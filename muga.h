@@ -145,7 +145,7 @@ size_m               muga_windows_windows_length = 0;
 LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	switch (uMsg) {
 	default:
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
@@ -301,7 +301,7 @@ MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
 		}
 		return MUGA_FALSE;
 	}
-	
+
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
