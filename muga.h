@@ -154,9 +154,11 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 }
 
 // get the hinstance
-// @TODO This doesn't account for DLLs, and will break
+// thank you we luv u raymond chen <3
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
 HINSTANCE muga_windows_get_hinstance() {
-	return GetModuleHandle(NULL);
+	return HINST_THISCOMPONENT;
 }
 
 // reallocs muga_windows_windows if new length is needed
@@ -197,8 +199,18 @@ MUGA_BOOL muga_windows_is_id_valid(muga_window win) {
 
 /* initiation/termination */
 
-// @TODO check if we have already initiated
+MUGA_BOOL muga_windows_has_initiated = MUGA_FALSE;
+
 MUGADEF void muga_init(MUGA_RESULT* result) {
+	// init check
+	if (muga_windows_has_initiated == MUGA_TRUE) {
+		muga_print("[MUGA] An attempt to initiate muga was made after already being initiated.\n");
+		if (result != MUGA_NULL) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+	muga_windows_has_initiated = MUGA_TRUE;
 	// initiate windows buffer
 	muga_windows_windows_length = 1;
 	muga_windows_windows = muga_malloc(sizeof(muga_windows_window) * muga_windows_windows_length);
@@ -210,8 +222,16 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	}
 }
 
-// @TODO check if we have already terminated
 MUGADEF void muga_term(MUGA_RESULT* result) {
+	// term check
+	if (muga_windows_has_initiated == MUGA_FALSE) {
+		muga_print("[MUGA] An attempt to terminate muga was made even though muga was already not running.\n");
+		if (result != MUGA_NULL) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+	muga_windows_has_initiated = MUGA_FALSE;
 	// free windows buffer
 	if (muga_windows_windows != MUGA_NULL_PTR) {
 		muga_free(muga_windows_windows);
@@ -234,7 +254,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, const wchar_m* name,
 		.active = MUGA_TRUE,
 		.alive = MUGA_TRUE,
 		// (WNDCLASSEXW)
-		// @TODO expand this
+		// @TODO add customizability to a lot of this
 		.window_class = {
 			.cbSize = sizeof(WNDCLASSEXW),                     // size of struct
 			.style =         0,                                // style (leaving 0 for now)
