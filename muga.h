@@ -74,6 +74,53 @@ typedef enum MUGA_BOOL MUGA_BOOL;
 #define MUGA_NULL     0
 #define MUGA_NULL_PTR 0
 
+/* apis */
+
+enum muga_graphics_api {
+	// @TODO properly implement this
+	MUGA_NO_GRAPHICS_API,
+
+	// opengl
+
+	MUGA_OPENGL_1_0,
+	MUGA_OPENGL_1_1,
+	MUGA_OPENGL_1_2,
+	MUGA_OPENGL_1_2_1,
+	MUGA_OPENGL_1_3,
+	MUGA_OPENGL_1_4,
+	MUGA_OPENGL_1_5,
+	MUGA_OPENGL_2_0,
+	MUGA_OPENGL_2_1,
+	MUGA_OPENGL_3_0,
+	MUGA_OPENGL_3_1,
+	MUGA_OPENGL_3_2_CORE,
+	MUGA_OPENGL_3_2_COMPATIBILITY,
+	MUGA_OPENGL_3_3_CORE,
+	MUGA_OPENGL_3_3_COMPATIBILITY,
+	MUGA_OPENGL_4_0_CORE,
+	MUGA_OPENGL_4_0_COMPATIBILITY,
+	MUGA_OPENGL_4_1_CORE,
+	MUGA_OPENGL_4_1_COMPATIBILITY,
+	MUGA_OPENGL_4_2_CORE,
+	MUGA_OPENGL_4_2_COMPATIBILITY,
+	MUGA_OPENGL_4_3_CORE,
+	MUGA_OPENGL_4_3_COMPATIBILITY,
+	MUGA_OPENGL_4_4_CORE,
+	MUGA_OPENGL_4_4_COMPATIBILITY,
+	MUGA_OPENGL_4_5_CORE,
+	MUGA_OPENGL_4_5_COMPATIBILITY,
+	MUGA_OPENGL_4_6_CORE,
+	MUGA_OPENGL_4_6_COMPATIBILITY
+
+#define MUGA_OPENGL_FIRST MUGA_OPENGL_1_0
+#define MUGA_OPENGL_LAST MUGA_OPENGL_4_6_COMPATIBILITY
+#define MUGA_IS_OPENGL(api) (api >= MUGA_OPENGL_FIRST && api <= MUGA_OPENGL_LAST)
+
+};
+typedef enum muga_graphics_api muga_graphics_api;
+
+
+
 /* general */
 
 MUGADEF void muga_init(MUGA_RESULT* result);
@@ -83,7 +130,7 @@ MUGADEF void muga_term(MUGA_RESULT* result);
 
 typedef size_m muga_window;
 
-MUGADEF muga_window muga_window_create(MUGA_RESULT* result, const wchar_m* name, unsigned int width, unsigned int height);
+MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, const wchar_m* name, unsigned int width, unsigned int height);
 MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_swap_buffers(MUGA_RESULT* result, muga_window win);
@@ -120,23 +167,436 @@ MUGADEF void muga_swap_buffers(MUGA_RESULT* result, muga_window win);
 
 #include <windows.h>
 
+// @TODO add flags to not include some graphics libs
+
+// opengl
+#include <gl/gl.h>
+#include <gl/glu.h>
+
+// wgl tokens
+
+// https://registry.khronos.org/OpenGL/extensions/ARB/WGL_ARB_create_context.txt
+
+#define WGL_CONTEXT_MAJOR_VERSION_ARB           0x2091
+#define WGL_CONTEXT_MINOR_VERSION_ARB           0x2092
+#define WGL_CONTEXT_LAYER_PLANE_ARB             0x2093
+#define WGL_CONTEXT_FLAGS_ARB                   0x2094
+#define WGL_CONTEXT_PROFILE_MASK_ARB            0x9126
+
+#define WGL_CONTEXT_DEBUG_BIT_ARB               0x0001
+#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB  0x0002
+
+#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB        0x00000001
+#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+
+#define ERROR_INVALID_VERSION_ARB               0x2095
+#define ERROR_INVALID_PROFILE_ARB               0x2096
+
+// https://registry.khronos.org/OpenGL/extensions/ARB/WGL_ARB_pixel_format.txt
+
+#define WGL_NUMBER_PIXEL_FORMATS_ARB            0x2000
+#define WGL_DRAW_TO_WINDOW_ARB                  0x2001
+#define WGL_DRAW_TO_BITMAP_ARB                  0x2002
+#define WGL_ACCELERATION_ARB                    0x2003
+#define WGL_NEED_PALETTE_ARB                    0x2004
+#define WGL_NEED_SYSTEM_PALETTE_ARB             0x2005
+#define WGL_SWAP_LAYER_BUFFERS_ARB              0x2006
+#define WGL_SWAP_METHOD_ARB                     0x2007
+#define WGL_NUMBER_OVERLAYS_ARB                 0x2008
+#define WGL_NUMBER_UNDERLAYS_ARB                0x2009
+#define WGL_TRANSPARENT_ARB                     0x200A
+#define WGL_TRANSPARENT_RED_VALUE_ARB           0x2037
+#define WGL_TRANSPARENT_GREEN_VALUE_ARB         0x2038
+#define WGL_TRANSPARENT_BLUE_VALUE_ARB          0x2039
+#define WGL_TRANSPARENT_ALPHA_VALUE_ARB         0x203A
+#define WGL_TRANSPARENT_INDEX_VALUE_ARB         0x203B
+#define WGL_SHARE_DEPTH_ARB                     0x200C
+#define WGL_SHARE_STENCIL_ARB                   0x200D
+#define WGL_SHARE_ACCUM_ARB                     0x200E
+#define WGL_SUPPORT_GDI_ARB                     0x200F
+#define WGL_SUPPORT_OPENGL_ARB                  0x2010
+#define WGL_DOUBLE_BUFFER_ARB                   0x2011
+#define WGL_STEREO_ARB                          0x2012
+#define WGL_PIXEL_TYPE_ARB                      0x2013
+#define WGL_COLOR_BITS_ARB                      0x2014
+#define WGL_RED_BITS_ARB                        0x2015
+#define WGL_RED_SHIFT_ARB                       0x2016
+#define WGL_GREEN_BITS_ARB                      0x2017
+#define WGL_GREEN_SHIFT_ARB                     0x2018
+#define WGL_BLUE_BITS_ARB                       0x2019
+#define WGL_BLUE_SHIFT_ARB                      0x201A
+#define WGL_ALPHA_BITS_ARB                      0x201B
+#define WGL_ALPHA_SHIFT_ARB                     0x201C
+#define WGL_ACCUM_BITS_ARB                      0x201D
+#define WGL_ACCUM_RED_BITS_ARB                  0x201E
+#define WGL_ACCUM_GREEN_BITS_ARB                0x201F
+#define WGL_ACCUM_BLUE_BITS_ARB                 0x2020
+#define WGL_ACCUM_ALPHA_BITS_ARB                0x2021
+#define WGL_DEPTH_BITS_ARB                      0x2022
+#define WGL_STENCIL_BITS_ARB                    0x2023
+#define WGL_AUX_BUFFERS_ARB                     0x2024
+
+#define WGL_NO_ACCELERATION_ARB                 0x2025
+#define WGL_GENERIC_ACCELERATION_ARB            0x2026
+#define WGL_FULL_ACCELERATION_ARB               0x2027
+
+#define WGL_SWAP_EXCHANGE_ARB                   0x2028
+#define WGL_SWAP_COPY_ARB                       0x2029
+#define WGL_SWAP_UNDEFINED_ARB                  0x202A
+
+#define WGL_TYPE_RGBA_ARB                       0x202B
+#define WGL_TYPE_COLORINDEX_ARB                 0x202C
+
+// wgl variables
+
+typedef HGLRC WINAPI wglCreateContextAttribsARB_type(HDC hdc, HGLRC hShareContext, const int *attribList);
+wglCreateContextAttribsARB_type *wglCreateContextAttribsARB;
+
+typedef BOOL WINAPI wglChoosePixelFormatARB_type(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+wglChoosePixelFormatARB_type *wglChoosePixelFormatARB;
+
+// pre-def functions
+
+// get the hinstance
+// thank you we luv u raymond chen <3
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+HINSTANCE muga_windows_get_hinstance() {
+	return HINST_THISCOMPONENT;
+}
+
+// https://gist.github.com/nickrolfe/1127313ed1dbf80254b614a721b3ee9c
+
+// initiates a dummy wgl context and gets the opengl extensions
+// needed for more pixel format options
+MUGA_RESULT muga_windows_init_opengl_extensions() {
+	WNDCLASSA win_class = {
+		.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
+		.lpfnWndProc = DefWindowProcA,
+		.hInstance = muga_windows_get_hinstance(),
+		.lpszClassName = "dummy wgl window"
+	};
+
+	if (!RegisterClassA(&win_class)) {
+		muga_print("[MUGA] Failed to register window class.\n");
+		return MUGA_FAILURE;
+	}
+
+	HWND win = CreateWindowExA(
+		0,
+		win_class.lpszClassName,
+		"dummy wgl window",
+		0,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		0,
+		0,
+		win_class.hInstance,
+		0
+	);
+
+	if (!win) {
+		muga_print("[MUGA] Failed to create window.\n");
+		return MUGA_FAILURE;
+	}
+
+	HDC dc = GetDC(win);
+
+	PIXELFORMATDESCRIPTOR format = {
+		.nSize = sizeof(PIXELFORMATDESCRIPTOR),
+		.nVersion = 1,
+		.iPixelType = PFD_TYPE_RGBA,
+        .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
+        .cColorBits = 32,
+        .cAlphaBits = 8,
+        .iLayerType = PFD_MAIN_PLANE,
+        .cDepthBits = 24,
+        .cStencilBits = 8
+	};
+
+	// @TODO make sure these failures destroy window and other stuff!
+	int pixel_format = ChoosePixelFormat(dc, &format);
+	if (!pixel_format) {
+		muga_print("[MUGA] Failed to find a valid pixel format.\n");
+		return MUGA_FAILURE;
+	}
+	if (!SetPixelFormat(dc, pixel_format, &format)) {
+		muga_print("[MUGA] Failed to set a pixel format.\n");
+		return MUGA_FAILURE;
+	}
+
+	HGLRC context = wglCreateContext(dc);
+	if (!context) {
+		muga_print("[MUGA] Failed to create a valid WGL context.\n");
+		return MUGA_FAILURE;
+	}
+	if (!wglMakeCurrent(dc, context)) {
+		muga_print("[MUGA] Failed to load a WGL context.\n");
+		return MUGA_FAILURE;
+	}
+
+	wglCreateContextAttribsARB = (wglCreateContextAttribsARB_type*)wglGetProcAddress("wglCreateContextAttribsARB");
+	wglChoosePixelFormatARB = (wglChoosePixelFormatARB_type*)wglGetProcAddress("wglChoosePixelFormatARB");
+
+	wglMakeCurrent(dc, 0);
+	wglDeleteContext(context);
+	ReleaseDC(win, dc);
+	DestroyWindow(win);
+	return MUGA_SUCCESS;
+}
+
+// creates an opengl context
+MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* context, muga_graphics_api api) {
+	if (!muga_windows_init_opengl_extensions()) {
+		return MUGA_FAILURE;
+	}
+
+	// pixel formatting
+	// @TODO make this customizable
+	int pixel_format_attributes[] = {
+		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+        WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
+        WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+        WGL_COLOR_BITS_ARB,     32,
+        WGL_DEPTH_BITS_ARB,     24,
+        WGL_STENCIL_BITS_ARB,   8,
+        0
+	};
+
+	// get the closest available format
+	int pixel_format;
+	UINT format_count;
+	wglChoosePixelFormatARB(device_context, pixel_format_attributes, 0, 1, &pixel_format, &format_count);
+	if (!format_count) {
+		muga_print("[MUGA] Failed to find a compatible OpenGL pixel format.\n");
+		return MUGA_FAILURE;
+	}
+
+	// set format
+	PIXELFORMATDESCRIPTOR format;
+	DescribePixelFormat(device_context, pixel_format, sizeof(PIXELFORMATDESCRIPTOR), &format);
+	if (!SetPixelFormat(device_context, pixel_format, &format)) {
+		muga_print("[MUGA] Failed to set OpenGL pixel format.\n");
+		return MUGA_FAILURE;
+	}
+
+	// create opengl attributes descriptor
+	int opengl_attributes[] = {
+		WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+		0
+	};
+
+	// Is there a better way of doing this?
+	switch (api) {
+		default:
+			// ?
+			break;
+		case MUGA_OPENGL_1_0:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_1:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 1;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_2:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 2;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_2_1:
+		// What the hell do I do here?
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 2;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_3:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 3;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_4:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 4;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_5:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 5;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_2_0:
+			opengl_attributes[1] = 2;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_2_1:
+			opengl_attributes[1] = 2;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_3_0:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_3_1:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 1;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_3_2_CORE:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_3_2_COMPATIBILITY:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_3_3_CORE:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_3_3_COMPATIBILITY:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_0_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 0;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_0_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 0;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_1_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 1;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_1_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 1;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_2_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_2_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_3_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_3_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_4_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 4;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_4_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 4;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_5_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 5;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_5_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 5;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_6_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 6;
+			opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_6_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 6;
+			opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+	}
+
+	// create and activate context
+	HGLRC opengl_context = wglCreateContextAttribsARB(device_context, 0, opengl_attributes);
+	if (!opengl_context) {
+		muga_print("[MUGA] Failed to create a valid OpenGL context.");
+		return MUGA_FAILURE;
+	}
+	if (!wglMakeCurrent(device_context, opengl_context)) {
+		muga_print("[MUGA] Failed to activate OpenGL context.");
+		return MUGA_FAILURE;
+	}
+	*context = opengl_context;
+
+	return MUGA_SUCCESS;
+}
+
 /* default window setup */
 
 // basic window vars/structs
 
 struct muga_windows_window {
+	// activity
 	MUGA_BOOL active;
 	MUGA_BOOL alive;
+
 	// window class information
 	WNDCLASSEXW window_class;
 	// window handle
 	HWND window_handle;
+	// device context
+	HDC device_context;
+
+	// api
+	muga_graphics_api api;
+	// @TODO don't store info for apis that aren't running
+	// opengl context
+	HGLRC opengl_context;
 };
 typedef struct muga_windows_window muga_windows_window;
 
 // What a stupid name
 muga_windows_window* muga_windows_windows      = MUGA_NULL_PTR;
-// @TODO make the default windows size customizable
 size_m               muga_windows_windows_length = 0;
 
 // window funcs
@@ -151,14 +611,6 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 		PostQuitMessage(0);
 		return 0;
 	}
-}
-
-// get the hinstance
-// thank you we luv u raymond chen <3
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
-HINSTANCE muga_windows_get_hinstance() {
-	return HINST_THISCOMPONENT;
 }
 
 // reallocs muga_windows_windows if new length is needed
@@ -247,7 +699,8 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 
 /* basic window funcs */
 
-MUGADEF muga_window muga_window_create(MUGA_RESULT* result, const wchar_m* name, unsigned int width, unsigned int height) {
+// @TODO make sure window gets destroyed if it fails
+MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, const wchar_m* name, unsigned int width, unsigned int height) {
 	// initialize muga_windows_window struct
 
 	muga_windows_window window_struct = {
@@ -303,6 +756,37 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, const wchar_m* name,
 	muga_window win = muga_windows_get_new_window_id();
 	muga_windows_windows[win] = window_struct;
 
+	// get some more info
+	muga_windows_windows[win].device_context = GetDC(muga_windows_windows[win].window_handle);
+
+	// make api context
+
+	// @TODO make option to share contexts (child windows?)
+
+	muga_windows_windows[win].api = api;
+	// opengl
+	if (MUGA_IS_OPENGL(api)) {
+		if (!muga_windows_create_opengl_context(
+				muga_windows_windows[win].device_context,
+				&muga_windows_windows[win].opengl_context,
+				api
+			)
+		) {
+			if (result != MUGA_NULL_PTR) {
+				*result = MUGA_FAILURE;
+			}
+			return 0;
+		}
+	// no api
+	} else if (api != MUGA_NO_GRAPHICS_API) {
+		muga_print("[MUGA] Unsupported graphics API for Windows.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		// @TODO handle this edge case
+		return 0;
+	}
+
 	// @TODO make start invisibility option
 	ShowWindow(window_struct.window_handle, SW_NORMAL);
 
@@ -338,11 +822,13 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	}
 
 	MSG msg = { 0 };
-	if (GetMessage(&msg, NULL, 0, 0) <= 0) {
-		muga_windows_windows[win].alive = MUGA_FALSE;
-	} else {
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
+	while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
+		if (msg.message == WM_QUIT) {
+			muga_windows_windows[win].alive = MUGA_FALSE;
+		} else {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
 	}
 
 	if (result != MUGA_NULL_PTR) {
@@ -351,6 +837,11 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 }
 
 MUGADEF void muga_swap_buffers(MUGA_RESULT* result, muga_window win) {
+
+	if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
+		SwapBuffers(muga_windows_windows[win].device_context);
+	}
+
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
