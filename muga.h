@@ -131,9 +131,10 @@ MUGADEF void muga_term(MUGA_RESULT* result);
 typedef size_m muga_window;
 
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, const wchar_m* name, unsigned int width, unsigned int height);
+MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
 MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
-MUGADEF void muga_swap_buffers(MUGA_RESULT* result, muga_window win);
+MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 
 #ifdef __cplusplus
     }
@@ -599,6 +600,9 @@ typedef struct muga_windows_window muga_windows_window;
 muga_windows_window* muga_windows_windows      = MUGA_NULL_PTR;
 size_m               muga_windows_windows_length = 0;
 
+MUGA_BOOL muga_windows_window_binded = MUGA_FALSE;
+size_m muga_windows_binded_window = 0;
+
 // window funcs
 
 // window proc
@@ -647,6 +651,29 @@ MUGA_BOOL muga_windows_is_id_valid(muga_window win) {
 		return MUGA_FALSE;
 	}
 	return muga_windows_windows[win].active;
+}
+
+void muga_windows_unbind() {
+	if (muga_windows_window_binded) {
+		if (MUGA_IS_OPENGL(muga_windows_windows[muga_windows_binded_window].api)) {
+			wglMakeCurrent(NULL, NULL);
+			printf("unbinded\n");
+		}
+		muga_windows_window_binded = MUGA_FALSE;
+	}
+}
+
+void muga_windows_bind(muga_window win) {
+	if (muga_windows_window_binded && muga_windows_binded_window == win) {
+		return;
+	}
+
+	muga_windows_unbind();
+	if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
+		wglMakeCurrent(muga_windows_windows[win].device_context, muga_windows_windows[win].opengl_context);
+	}
+	muga_windows_window_binded = MUGA_TRUE;
+	muga_windows_binded_window = win;
 }
 
 /* initiation/termination */
@@ -701,6 +728,8 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 
 // @TODO make sure window gets destroyed if it fails
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, const wchar_m* name, unsigned int width, unsigned int height) {
+	muga_windows_unbind();
+
 	// initialize muga_windows_window struct
 
 	muga_windows_window window_struct = {
@@ -709,18 +738,18 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		// (WNDCLASSEXW)
 		// @TODO add customizability to a lot of this
 		.window_class = {
-			.cbSize = sizeof(WNDCLASSEXW),                     // size of struct
-			.style =         0,                                // style (leaving 0 for now)
-			.lpfnWndProc =   muga_windows_default_window_proc, // window process function
-			.cbClsExtra =    0,                                // extra class allocation bytes
-			.cbWndExtra =    0,                                // extra window instance allocation bytes
-			.hInstance =     muga_windows_get_hinstance(),     // hInstance
-			.hIcon =         LoadIcon(0, IDI_WINLOGO),         // window icon
-			.hCursor =       LoadCursor(0, IDC_ARROW),         // window cursor
-			.hbrBackground = 0,                                // background brush (0 is fine)
-			.lpszMenuName =  name,                             // menu name
-			.lpszClassName = name,                             // class name
-			.hIconSm =       0                                 // small window icon
+			.cbSize = sizeof(WNDCLASSEXW),                       // size of struct
+			.style =         CS_HREDRAW | CS_VREDRAW | CS_OWNDC, // style
+			.lpfnWndProc =   muga_windows_default_window_proc,   // window process function
+			.cbClsExtra =    0,                                  // extra class allocation bytes
+			.cbWndExtra =    0,                                  // extra window instance allocation bytes
+			.hInstance =     muga_windows_get_hinstance(),       // hInstance
+			.hIcon =         LoadIcon(0, IDI_WINLOGO),           // window icon
+			.hCursor =       LoadCursor(0, IDC_ARROW),           // window cursor
+			.hbrBackground = 0,                                  // background brush (0 is fine)
+			.lpszMenuName =  name,                               // menu name
+			.lpszClassName = name,                               // class name
+			.hIconSm =       0                                   // small window icon
 		}
 	};
 	RegisterClassExW(&window_struct.window_class);
@@ -788,13 +817,19 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	}
 
 	// @TODO make start invisibility option
-	ShowWindow(window_struct.window_handle, SW_NORMAL);
+	ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
+	UpdateWindow(muga_windows_windows[win].window_handle);
+	muga_windows_bind(win);
 
 	// return
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
-	return 0;
+	return win;
+}
+
+MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
+
 }
 
 MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
@@ -821,6 +856,8 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		return;
 	}
 
+	muga_windows_bind(win);
+
 	MSG msg = { 0 };
 	while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
 		if (msg.message == WM_QUIT) {
@@ -836,7 +873,16 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
-MUGADEF void muga_swap_buffers(MUGA_RESULT* result, muga_window win) {
+MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_bind(win);
 
 	if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
 		SwapBuffers(muga_windows_windows[win].device_context);
