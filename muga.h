@@ -657,7 +657,6 @@ void muga_windows_unbind() {
 	if (muga_windows_window_binded) {
 		if (MUGA_IS_OPENGL(muga_windows_windows[muga_windows_binded_window].api)) {
 			wglMakeCurrent(NULL, NULL);
-			printf("unbinded\n");
 		}
 		muga_windows_window_binded = MUGA_FALSE;
 	}
@@ -829,7 +828,30 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 }
 
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
 
+	// destroy context and window
+	muga_windows_unbind();
+	ReleaseDC(
+		muga_windows_windows[win].window_handle,
+		muga_windows_windows[win].device_context
+	);
+	wglDeleteContext(muga_windows_windows[win].opengl_context);
+	DestroyWindow(muga_windows_windows[win].window_handle);
+
+	// open up to overriding
+	muga_windows_windows[win].active = MUGA_FALSE;
+	muga_windows_windows[win].alive = MUGA_FALSE;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
 }
 
 MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
@@ -849,7 +871,7 @@ MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
 
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	if (!muga_windows_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for updating is active is invalid.\n");
+		muga_print("[MUGA] Requested window ID for updating is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
