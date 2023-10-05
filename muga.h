@@ -130,7 +130,7 @@ MUGADEF void muga_term(MUGA_RESULT* result);
 
 typedef size_m muga_window;
 
-MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, const wchar_m* name, unsigned int width, unsigned int height);
+MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
 MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
@@ -171,8 +171,8 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 // @TODO add flags to not include some graphics libs
 
 // opengl
-#include <gl/gl.h>
-#include <gl/glu.h>
+/*#include <gl/gl.h>
+#include <gl/glu.h>*/
 
 // wgl tokens
 
@@ -606,13 +606,20 @@ size_m muga_windows_binded_window = 0;
 // window funcs
 
 // window proc
+// @TODO make render function and a way to bypass "the WM_NCLBUTTONDOWN trap"
+// https://www.gamedev.net/forums/topic/488074-win32-message-pump-and-opengl---rendering-pauses-while-draggingresizing/
 LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+
 	switch (uMsg) {
 	default:
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);
+		return 0;
+	case WM_SIZE:
+		glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
+		PostMessage(hwnd, WM_PAINT, 0, 0);
 		return 0;
 	}
 }
@@ -709,6 +716,9 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 		}
 		return;
 	}
+
+	muga_windows_unbind();
+
 	muga_windows_has_initiated = MUGA_FALSE;
 	// free windows buffer
 	if (muga_windows_windows != MUGA_NULL_PTR) {
@@ -726,7 +736,7 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 /* basic window funcs */
 
 // @TODO make sure window gets destroyed if it fails
-MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, const wchar_m* name, unsigned int width, unsigned int height) {
+MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height) {
 	muga_windows_unbind();
 
 	// initialize muga_windows_window struct
@@ -815,10 +825,16 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		return 0;
 	}
 
+	if (load_functions != MUGA_NULL_PTR) {
+	    if (!load_functions()) {
+	    	muga_print("[MUGA] Failed to load functions for graphics API.\n");
+	    }
+	}
+
 	// @TODO make start invisibility option
+	muga_windows_bind(win);
 	ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
 	UpdateWindow(muga_windows_windows[win].window_handle);
-	muga_windows_bind(win);
 
 	// return
 	if (result != MUGA_NULL_PTR) {
