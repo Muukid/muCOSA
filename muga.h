@@ -1495,7 +1495,14 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].alive = MUGA_TRUE;
 
 	XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
-	XStoreName(muga_linux_windows[win].display, muga_linux_windows[win].window, "WHY DOES X11 NOT LIKE WIDE STRINGS");
+
+	size_m len = 0;
+	for (size_m i = 0; name[i] != 0; i++) len++;
+	char* name_c = muga_malloc(sizeof(char) * (len+1));
+	for (size_m i = 0; i < len; i++) name_c[i] = (char)name[i];
+	name_c[len] = 0;
+	XStoreName(muga_linux_windows[win].display, muga_linux_windows[win].window, name_c);
+	muga_free(name_c);
 
 	muga_linux_window_bind(win);
 
