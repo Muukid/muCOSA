@@ -165,22 +165,38 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
     #endif
 #endif
 
+#ifdef MUGA_NO_API
+    #ifndef MUGA_NO_OPENGL
+    	#define MUGA_NO_OPENGL
+    #endif
+#endif
 
 /* WINDOWS IMPLEMENTATION */
 
 #if defined(_WIN32) || defined(WIN32)
+#define MUGA_WINDOWS
 
 #include <windows.h>
 
-// @TODO add flags to not include/consider some graphics libs
+// get the hinstance
+// thank you we luv u raymond chen <3
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+HINSTANCE muga_windows_get_hinstance() {
+	return HINST_THISCOMPONENT;
+}
 
-// opengl
+/* OPENGL SETUP */
+#ifndef MUGA_NO_OPENGL
+
 #ifdef MUGA_INCLUDE_OPENGL
 	#include <gl/gl.h>
 	#include <gl/glu.h>
 #endif
 
-// wgl tokens
+#define MUGA_OPENGL_CALL(stuff) stuff
+
+/* WGL tokens */
 
 // https://registry.khronos.org/OpenGL/extensions/ARB/WGL_ARB_create_context.txt
 
@@ -261,16 +277,6 @@ wglCreateContextAttribsARB_type *wglCreateContextAttribsARB;
 
 typedef BOOL WINAPI wglChoosePixelFormatARB_type(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
 wglChoosePixelFormatARB_type *wglChoosePixelFormatARB;
-
-// pre-def functions
-
-// get the hinstance
-// thank you we luv u raymond chen <3
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
-#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
-HINSTANCE muga_windows_get_hinstance() {
-	return HINST_THISCOMPONENT;
-}
 
 // https://gist.github.com/nickrolfe/1127313ed1dbf80254b614a721b3ee9c
 
@@ -583,6 +589,12 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
 	return MUGA_SUCCESS;
 }
 
+#else
+
+#define MUGA_OPENGL_CALL(...)
+
+#endif /* MUGA_NO_OPENGL */
+
 /* default window setup */
 
 // basic window vars/structs
@@ -603,7 +615,7 @@ struct muga_windows_window {
 	muga_graphics_api api;
 	// @TODO don't store info for apis that aren't running
 	// opengl context
-	HGLRC opengl_context;
+	MUGA_OPENGL_CALL(HGLRC opengl_context);
 
 	// callbacks
 	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height);
@@ -693,7 +705,7 @@ MUGA_BOOL muga_windows_is_id_valid(muga_window win) {
 void muga_windows_unbind() {
 	if (muga_windows_window_binded) {
 		if (MUGA_IS_OPENGL(muga_windows_windows[muga_windows_binded_window].api)) {
-			wglMakeCurrent(NULL, NULL);
+			MUGA_OPENGL_CALL(wglMakeCurrent(NULL, NULL));
 		}
 		muga_windows_window_binded = MUGA_FALSE;
 	}
@@ -706,7 +718,7 @@ void muga_windows_bind(muga_window win) {
 
 	muga_windows_unbind();
 	if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
-		wglMakeCurrent(muga_windows_windows[win].device_context, muga_windows_windows[win].opengl_context);
+		MUGA_OPENGL_CALL(wglMakeCurrent(muga_windows_windows[win].device_context, muga_windows_windows[win].opengl_context));
 	}
 	muga_windows_window_binded = MUGA_TRUE;
 	muga_windows_binded_window = win;
@@ -836,20 +848,22 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	muga_windows_windows[win].api = api;
 	// opengl
 	if (MUGA_IS_OPENGL(api)) {
-		if (!muga_windows_create_opengl_context(
-				muga_windows_windows[win].device_context,
-				&muga_windows_windows[win].opengl_context,
-				api
-			)
-		) {
-			if (result != MUGA_NULL_PTR) {
-				*result = MUGA_FAILURE;
+		MUGA_OPENGL_CALL(
+			if (!muga_windows_create_opengl_context(
+					muga_windows_windows[win].device_context,
+					&muga_windows_windows[win].opengl_context,
+					api
+				)
+			) {
+				if (result != MUGA_NULL_PTR) {
+					*result = MUGA_FAILURE;
+				}
+				return 0;
 			}
-			return 0;
-		}
+		);
 	// no api
 	} else if (api != MUGA_NO_GRAPHICS_API) {
-		muga_print("[MUGA] Unsupported graphics API for Windows.\n");
+		muga_print("[MUGA] Unsupported/Excluded (#define MUG_NO_...) graphics API for Windows.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -896,7 +910,9 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 		muga_windows_windows[win].window_handle,
 		muga_windows_windows[win].device_context
 	);
-	wglDeleteContext(muga_windows_windows[win].opengl_context);
+	if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
+		MUGA_OPENGL_CALL(wglDeleteContext(muga_windows_windows[win].opengl_context));
+	}
 	DestroyWindow(muga_windows_windows[win].window_handle);
 
 	// open up to overriding
@@ -955,7 +971,6 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
 		if (msg.message == WM_QUIT) {
 			muga_windows_windows[win].alive = MUGA_FALSE;
-			printf("%i isn't alive.", (int)win);
 		} else {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -979,7 +994,7 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 	muga_windows_bind(win);
 
 	if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
-		SwapBuffers(muga_windows_windows[win].device_context);
+		MUGA_OPENGL_CALL(SwapBuffers(muga_windows_windows[win].device_context));
 	}
 
 	if (result != MUGA_NULL_PTR) {
