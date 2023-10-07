@@ -164,6 +164,14 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
     #endif
 #endif
 
+/* graphics api flag settings */
+
+#ifndef MUGA_OPENGL
+    #ifndef MUGA_NO_OPENGL
+    	#define MUGA_NO_OPENGL
+    #endif
+#endif
+
 #ifdef MUGA_NO_API
     #ifndef MUGA_NO_OPENGL
     	#define MUGA_NO_OPENGL
