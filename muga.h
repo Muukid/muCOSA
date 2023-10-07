@@ -136,6 +136,8 @@ MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 
+MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height));
+
 #ifdef __cplusplus
     }
 #endif
@@ -171,8 +173,10 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 // @TODO add flags to not include some graphics libs
 
 // opengl
-/*#include <gl/gl.h>
-#include <gl/glu.h>*/
+#ifdef MUGA_INCLUDE_OPENGL
+	#include <gl/gl.h>
+	#include <gl/glu.h>
+#endif
 
 // wgl tokens
 
@@ -593,6 +597,9 @@ struct muga_windows_window {
 	// @TODO don't store info for apis that aren't running
 	// opengl context
 	HGLRC opengl_context;
+
+	// callbacks
+	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height);
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -609,7 +616,18 @@ size_m muga_windows_binded_window = 0;
 // @TODO make render function and a way to bypass "the WM_NCLBUTTONDOWN trap"
 // https://www.gamedev.net/forums/topic/488074-win32-message-pump-and-opengl---rendering-pauses-while-draggingresizing/
 LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	// find window id
+	MUGA_BOOL found_window_id = MUGA_FALSE;
+	muga_window win;
+	for (size_m i = 0; i < muga_windows_windows_length; i++) {
+		if (muga_windows_windows[i].active && muga_windows_windows[i].window_handle == hwnd) {
+			found_window_id = MUGA_TRUE;
+			win = (muga_window)i;
+			break;
+		}
+	}
 
+	// parse msg
 	switch (uMsg) {
 	default:
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
@@ -618,7 +636,9 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 		PostQuitMessage(0);
 		return 0;
 	case WM_SIZE:
-		glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
+		if (found_window_id && muga_windows_windows[win].framebuffer_resize_callback != MUGA_NULL_PTR) {
+			muga_windows_windows[win].framebuffer_resize_callback(win, (int)LOWORD(lParam), (int)HIWORD(lParam));
+		}
 		PostMessage(hwnd, WM_PAINT, 0, 0);
 		return 0;
 	}
@@ -700,6 +720,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	muga_windows_windows_length = 1;
 	muga_windows_windows = muga_malloc(sizeof(muga_windows_window) * muga_windows_windows_length);
 	muga_windows_windows[0].active = MUGA_FALSE;
+	muga_windows_windows[0].framebuffer_resize_callback = MUGA_NULL_PTR;
 
 	// return
 	if (result != MUGA_NULL) {
@@ -759,7 +780,8 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 			.lpszMenuName =  name,                               // menu name
 			.lpszClassName = name,                               // class name
 			.hIconSm =       0                                   // small window icon
-		}
+		},
+		.framebuffer_resize_callback = MUGA_NULL_PTR
 	};
 	RegisterClassExW(&window_struct.window_class);
 
@@ -821,13 +843,19 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
-		// @TODO handle this edge case
+		// @TODO handle this edge case and others
 		return 0;
 	}
 
+	// @TODO make it so that we don't have to do this,
+	// dunno how GLFW gets away with calling it after the window is created...
 	if (load_functions != MUGA_NULL_PTR) {
 	    if (!load_functions()) {
 	    	muga_print("[MUGA] Failed to load functions for graphics API.\n");
+	    	if (result != MUGA_NULL_PTR) {
+				*result = MUGA_FAILURE;
+			}
+			return 0;
 	    }
 	}
 
@@ -864,6 +892,7 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 	// open up to overriding
 	muga_windows_windows[win].active = MUGA_FALSE;
 	muga_windows_windows[win].alive = MUGA_FALSE;
+	muga_windows_windows[win].framebuffer_resize_callback = MUGA_NULL_PTR;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
@@ -925,6 +954,23 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 	if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
 		SwapBuffers(muga_windows_windows[win].device_context);
 	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height)) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_bind(win);
+	muga_windows_windows[win].framebuffer_resize_callback = framebuffer_resize_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
