@@ -77,7 +77,6 @@ typedef enum MUGA_BOOL MUGA_BOOL;
 /* apis */
 
 enum muga_graphics_api {
-	// @TODO properly implement this
 	MUGA_NO_GRAPHICS_API,
 
 	// opengl
@@ -189,9 +188,11 @@ HINSTANCE muga_windows_get_hinstance() {
 /* OPENGL SETUP */
 #ifndef MUGA_NO_OPENGL
 
-#ifdef MUGA_INCLUDE_OPENGL
-	#include <gl/gl.h>
-	#include <gl/glu.h>
+#ifndef MUGA_NO_INCLUDE_OPENGL
+	#ifndef glClearColor
+		#include <gl/gl.h>
+		#include <gl/glu.h>
+	#endif
 #endif
 
 #define MUGA_OPENGL_CALL(stuff) stuff
