@@ -712,7 +712,7 @@ MUGA_BOOL muga_windows_is_id_valid(muga_window win) {
 }
 
 void muga_windows_unbind() {
-	if (muga_windows_window_binded) {
+	if (muga_windows_window_binded && muga_linux_is_id_valid(muga_windows_binded_window)) {
 		if (MUGA_IS_OPENGL(muga_windows_windows[muga_windows_binded_window].api)) {
 			MUGA_OPENGL_CALL(wglMakeCurrent(NULL, NULL));
 		}
@@ -864,6 +864,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 					api
 				)
 			) {
+				// @TODO destroy window here
 				if (result != MUGA_NULL_PTR) {
 					*result = MUGA_FAILURE;
 				}
@@ -914,7 +915,9 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 	}
 
 	// destroy context and window
-	muga_windows_unbind();
+	if (win == muga_windows_binded_window && muga_windows_window_binded) {
+		muga_windows_unbind();
+	}
 	ReleaseDC(
 		muga_windows_windows[win].window_handle,
 		muga_windows_windows[win].device_context
@@ -1029,6 +1032,639 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
 }
 
 #endif /* WINDOWS */
+
+#ifdef linux
+#define MUG_LINUX
+
+#include <X11/Xlib.h>
+
+/* OPENGL SETUP */
+#ifndef MUGA_NO_OPENGL
+
+#ifndef MUGA_NO_INCLUDE_OPENGL
+	#ifndef glClearColor
+		#include <GL/gl.h>
+	#endif
+#endif
+#include <GL/glx.h>
+
+#define MUGA_OPENGL_CALL(stuff) stuff
+
+// context creation
+// https://apoorvaj.io/creating-a-modern-opengl-context/
+typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, Bool, const int*);
+MUGA_BOOL muga_linux_opengl_initiated = MUGA_FALSE;
+MUGA_RESULT muga_linux_init_opengl(Display* display, GLXContext* context, muga_graphics_api api) {
+	if (muga_linux_opengl_initiated) {
+		return MUGA_SUCCESS;
+	}
+
+	// choose framebuffer pixel format stuff
+
+	// @TODO customizability here
+	static int pixel_format_attributes[] = {
+		GLX_RENDER_TYPE,   GLX_RGBA_BIT,
+		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+		GLX_DOUBLEBUFFER,  MUGA_TRUE,
+		GLX_RED_SIZE,      1,
+		GLX_GREEN_SIZE,    1,
+		GLX_BLUE_SIZE,     1,
+		None
+	};
+
+	int fbc_count = 0;
+	GLXFBConfig* fbc = glXChooseFBConfig(
+		display, 
+		DefaultScreen(display),
+		pixel_format_attributes,
+		&fbc_count
+	);
+
+	if (!fbc) {
+		muga_print("[MUGA] Failed to find compatible framebuffer configuration.\n");
+		return MUGA_FAILURE;
+	}
+
+	// create context
+
+	glXCreateContextAttribsARBProc glXCreateContextAttribsARB = 0;
+	glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)
+	glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
+
+	if (!glXCreateContextAttribsARB) {
+		muga_print("[MUGA] Failed to find glX function to create an OpenGL context.\n");
+		return MUGA_FAILURE;
+	}
+
+	static int opengl_attributes[] = {
+		GLX_CONTEXT_MAJOR_VERSION_ARB, 3,
+		GLX_CONTEXT_MINOR_VERSION_ARB, 3,
+		GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+		None
+	};
+
+	switch (api) {
+		default:
+			// ?
+			break;
+		case MUGA_OPENGL_1_0:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_1:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 1;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_2:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 2;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_2_1:
+		// What the hell do I do here?
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 2;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_3:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 3;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_4:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 4;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_1_5:
+			opengl_attributes[1] = 1;
+			opengl_attributes[3] = 5;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_2_0:
+			opengl_attributes[1] = 2;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_2_1:
+			opengl_attributes[1] = 2;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_3_0:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 0;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_3_1:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 1;
+			opengl_attributes[4] = 0;
+			opengl_attributes[5] = 0;
+			break;
+		case MUGA_OPENGL_3_2_CORE:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_3_2_COMPATIBILITY:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_3_3_CORE:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_3_3_COMPATIBILITY:
+			opengl_attributes[1] = 3;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_0_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 0;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_0_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 0;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_1_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 1;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_1_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 1;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_2_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_2_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 2;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_3_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_3_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 3;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_4_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 4;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_4_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 4;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_5_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 5;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_5_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 5;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_6_CORE:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 6;
+			opengl_attributes[5] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+			break;
+		case MUGA_OPENGL_4_6_COMPATIBILITY:
+			opengl_attributes[1] = 4;
+			opengl_attributes[3] = 6;
+			opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB;
+			break;
+	}
+
+	*context = glXCreateContextAttribsARB(display, fbc[0], MUGA_NULL, MUGA_TRUE, opengl_attributes);
+	if (!*context) {
+		muga_print("[MUGA] Failed to create valid OpenGL context.\n");
+		return MUGA_FAILURE;
+	}
+
+	muga_linux_opengl_initiated = MUGA_SUCCESS;
+	return MUGA_SUCCESS;
+}
+
+#else
+
+#define MUGA_OPENGL_CALL(...)
+
+#endif /* MUGA_NO_OPENGL */
+
+/* window setup */
+
+struct muga_linux_window {
+	MUGA_BOOL active;
+	MUGA_BOOL alive;
+
+	// display to render on, result of XOpenDisplay
+	Display* display;
+	// parent window, result of DefaultRootWindow
+	Window parent_window;
+	// actual window
+	Window window;
+	// graphics api
+	muga_graphics_api api;
+	// event handling
+	XEvent event;
+	// delete message @TODO make sure this is the correct way of doing this
+	Atom delete_message;
+
+	// opengl context
+	MUGA_OPENGL_CALL(GLXContext opengl_context);
+
+	// callbacks
+	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height);
+};
+typedef struct muga_linux_window muga_linux_window;
+
+muga_linux_window* muga_linux_windows = MUGA_NULL_PTR;
+size_m muga_linux_windows_length = 0;
+
+MUGA_BOOL muga_linux_window_binded = MUGA_FALSE;
+muga_window muga_linux_binded_window = 0;
+
+size_m muga_linux_get_new_window_id() {
+	for (size_m i = 0; i < muga_linux_windows_length; i++) {
+		if (muga_linux_windows[i].active == MUGA_FALSE) {
+			return i;
+		}
+	}
+
+	muga_linux_windows_length++;
+	muga_linux_windows = (muga_linux_window*)muga_realloc(
+		muga_linux_windows, 
+		muga_linux_windows_length * sizeof(muga_linux_window)
+	);
+
+	return muga_linux_windows_length - 1;
+}
+
+MUGA_BOOL muga_linux_is_id_valid(muga_window win) {
+	if (win >= muga_linux_windows_length || muga_linux_windows[win].active == MUGA_FALSE) {
+		return MUGA_FALSE;
+	}
+	return MUGA_TRUE;
+}
+
+void muga_linux_window_unbind() {
+	if (muga_linux_window_binded && muga_linux_is_id_valid(muga_linux_binded_window)) {
+
+		if (MUGA_IS_OPENGL(muga_linux_windows[muga_linux_binded_window].api)) {
+			MUGA_OPENGL_CALL(
+				glXMakeCurrent(
+					muga_linux_windows[muga_linux_binded_window].display,
+					None,
+					NULL
+				);
+			);
+		}
+
+		muga_linux_window_binded = MUGA_FALSE;
+	}
+}
+
+void muga_linux_window_bind(muga_window win) {
+	muga_linux_window_unbind();
+
+	if (MUGA_IS_OPENGL(muga_linux_windows[muga_linux_binded_window].api)) {
+		MUGA_OPENGL_CALL(
+			glXMakeCurrent(
+				muga_linux_windows[win].display,
+				muga_linux_windows[win].window,
+				muga_linux_windows[win].opengl_context
+			);
+		);
+	}
+
+	muga_linux_binded_window = win;
+	muga_linux_window_binded = MUGA_TRUE;
+}
+
+/* initiation / termination */
+
+MUGA_BOOL muga_linux_is_initiated = MUGA_FALSE;
+MUGADEF void muga_init(MUGA_RESULT* result) {
+	if (muga_linux_is_initiated) {
+		muga_print("[MUGA] An attempt to initiate muga despite already being initiated was made.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (muga_linux_windows == MUGA_NULL_PTR) {
+		muga_linux_windows_length = 1;
+		muga_linux_windows = muga_malloc(muga_linux_windows_length * sizeof(muga_linux_window));
+	}
+
+	muga_linux_is_initiated = MUGA_TRUE;
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+// @TODO properly destory windows here
+MUGADEF void muga_term(MUGA_RESULT* result) {
+	if (!muga_linux_is_initiated) {
+		muga_print("[MUGA] An attempt to terminate muga despite already being terminated (or never being initiated) was made.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (muga_linux_windows != MUGA_NULL_PTR) {
+		muga_free(muga_linux_windows);
+		muga_linux_windows = MUGA_NULL_PTR;
+		muga_linux_windows_length = 0;
+	}
+
+	muga_linux_is_initiated = MUGA_FALSE;
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+/* window functions */
+
+MUGADEF muga_window muga_window_create(
+	MUGA_RESULT* result, 
+	muga_graphics_api api, 
+	MUGA_BOOL (*load_functions)(void), 
+	const wchar_m* name, 
+	unsigned int width, unsigned int height
+) {
+	// window creation
+	muga_window win = (muga_window)muga_linux_get_new_window_id();
+
+	muga_linux_windows[win].display = XOpenDisplay(MUGA_NULL_PTR);
+	muga_linux_windows[win].parent_window = DefaultRootWindow(muga_linux_windows[win].display);
+
+	// Would like to not use XCreateSimpleWindow here but doing
+	// otherwise makes me pick pixel formatting before picking
+	// it with an API, so I'm kinda stuck here
+	//int black_color = BlackPixel(muga_linux_windows[win].display, muga_linux_windows[win].parent_window);
+	muga_linux_windows[win].window = XCreateSimpleWindow(
+		muga_linux_windows[win].display,       // display
+		muga_linux_windows[win].parent_window, // parent window
+		10, 10,                                // position
+		width, height,                         // dimensions
+		0, 0,                        // border width and border color
+		0                            // background
+	);
+	XSelectInput(muga_linux_windows[win].display, muga_linux_windows[win].window, ExposureMask | KeyPressMask);
+
+	// api initialization
+
+	muga_linux_windows[win].api = api;
+	if (MUGA_IS_OPENGL(api)) {
+		MUGA_OPENGL_CALL (
+			if (muga_linux_init_opengl(
+				muga_linux_windows[win].display,
+				&muga_linux_windows[win].opengl_context,
+				api
+			) == MUGA_FAILURE) {
+				// @TODO destroy window here
+				if (result != MUGA_NULL_PTR) {
+					*result = MUGA_FAILURE;
+				}
+				return 0;
+			}
+		);
+	} else if (api != MUGA_NO_GRAPHICS_API) {
+		muga_print("[MUGA] Unsupported/Excluded (#define MUG_NO_...) graphics API for Linux.\n");
+		// @TODO destroy window here
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return 0;
+	}
+
+	// define more info
+
+	// delete message
+	// https://stackoverflow.com/questions/10792361/how-do-i-gracefully-exit-an-x11-event-loop
+	muga_linux_windows[win].delete_message = XInternAtom(
+		muga_linux_windows[win].display, "WM_DELETE_WINDOW", MUGA_FALSE
+	);
+	XSetWMProtocols(
+		muga_linux_windows[win].display, 
+		muga_linux_windows[win].window,
+		&muga_linux_windows[win].delete_message,
+		1
+	);
+
+	// callbacks
+	muga_linux_windows[win].framebuffer_resize_callback = MUGA_NULL_PTR;
+
+	// display window
+
+	muga_linux_windows[win].active = MUGA_TRUE;
+	muga_linux_windows[win].alive = MUGA_TRUE;
+
+	XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
+	XStoreName(muga_linux_windows[win].display, muga_linux_windows[win].window, "WHY DOES X11 NOT LIKE WIDE STRINGS");
+
+	muga_linux_window_bind(win);
+
+	// load api
+
+	if (load_functions != MUGA_NULL_PTR) {
+	    if (!load_functions()) {
+	    	muga_print("[MUGA] Failed to load functions for graphics API.\n");
+	    	// @TODO destroy window here
+	    	if (result != MUGA_NULL_PTR) {
+				*result = MUGA_FAILURE;
+			}
+			return 0;
+	    }
+	}
+
+	// return success
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return win;
+}
+
+MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (win == muga_linux_binded_window) {
+		muga_linux_window_unbind();
+	}
+
+	// not sure if anything else needs to be destroyed...
+	if (MUGA_IS_OPENGL(muga_linux_windows[win].api)) {
+		MUGA_OPENGL_CALL(
+			glXDestroyContext(muga_linux_windows[win].display, muga_linux_windows[win].opengl_context);
+		);
+	}
+	XDestroyWindow(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window
+	);
+	XCloseDisplay(muga_linux_windows[win].display);
+
+	muga_linux_windows[win].active = MUGA_FALSE;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for checking if window is active is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_linux_windows[win].alive;
+}
+
+MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if ((!muga_linux_window_binded) || (muga_linux_window_binded && muga_linux_binded_window != win)) {
+		muga_linux_window_bind(win);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for updating is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	XWindowAttributes attributes;
+	XGetWindowAttributes(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		&attributes
+	);
+
+	while (XPending(muga_linux_windows[win].display)) {
+		XNextEvent(muga_linux_windows[win].display, &muga_linux_windows[win].event);
+		switch (muga_linux_windows[win].event.type) {
+		case Expose:
+			if (muga_linux_windows[win].framebuffer_resize_callback != MUGA_NULL_PTR) {
+				muga_linux_windows[win].framebuffer_resize_callback(win, attributes.width, attributes.height);
+			}
+			break;
+		case ClientMessage:
+			if (muga_linux_windows[win].event.xclient.data.l[0] == muga_linux_windows[win].delete_message) {
+				muga_linux_windows[win].alive = MUGA_FALSE;
+			}
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (MUGA_IS_OPENGL(muga_linux_windows[win].api)) {
+		MUGA_OPENGL_CALL(
+			glXSwapBuffers(muga_linux_windows[win].display, muga_linux_windows[win].window);
+		);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_framebuffer_resize_callback(
+	MUGA_RESULT* result, 
+	muga_window win, 
+	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height)
+) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting framebuffer resize callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].framebuffer_resize_callback = framebuffer_resize_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+#endif /* LINUX */
 
 #ifdef __cplusplus
     }
