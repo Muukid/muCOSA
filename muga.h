@@ -133,6 +133,8 @@ typedef size_m muga_window;
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
 MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
+MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
+
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 
@@ -164,13 +166,13 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
 #endif
 
 
-/* WINDOWS */
+/* WINDOWS IMPLEMENTATION */
 
 #if defined(_WIN32) || defined(WIN32)
 
 #include <windows.h>
 
-// @TODO add flags to not include some graphics libs
+// @TODO add flags to not include/consider some graphics libs
 
 // opengl
 #ifdef MUGA_INCLUDE_OPENGL
@@ -274,7 +276,11 @@ HINSTANCE muga_windows_get_hinstance() {
 
 // initiates a dummy wgl context and gets the opengl extensions
 // needed for more pixel format options
+MUGA_BOOL muga_windows_has_initiated_opengl_extensions = MUGA_FALSE;
 MUGA_RESULT muga_windows_init_opengl_extensions() {
+	if (muga_windows_has_initiated_opengl_extensions) {
+		return MUGA_SUCCESS;
+	}
 	WNDCLASSA win_class = {
 		.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
 		.lpfnWndProc = DefWindowProcA,
@@ -349,6 +355,7 @@ MUGA_RESULT muga_windows_init_opengl_extensions() {
 	wglDeleteContext(context);
 	ReleaseDC(win, dc);
 	DestroyWindow(win);
+	muga_windows_has_initiated_opengl_extensions = MUGA_TRUE;
 	return MUGA_SUCCESS;
 }
 
@@ -625,6 +632,9 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 			win = (muga_window)i;
 			break;
 		}
+	}
+	if (found_window_id) {
+		muga_window_set_context(MUGA_NULL_PTR, win);
 	}
 
 	// parse msg
@@ -914,6 +924,22 @@ MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
 	return muga_windows_windows[win].alive;
 }
 
+MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_bind(win);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_FAILURE;
+	}
+}
+
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for updating is invalid.\n");
@@ -929,6 +955,7 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
 		if (msg.message == WM_QUIT) {
 			muga_windows_windows[win].alive = MUGA_FALSE;
+			printf("%i isn't alive.", (int)win);
 		} else {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -962,7 +989,7 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 
 MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height)) {
 	if (!muga_windows_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
+		muga_print("[MUGA] Requested window ID for setting framebuffer resize callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
