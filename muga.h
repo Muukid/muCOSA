@@ -383,9 +383,9 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
 	// pixel formatting
 	// @TODO make this customizable
 	int pixel_format_attributes[] = {
-		WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-        WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+		WGL_DRAW_TO_WINDOW_ARB, MUGA_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, MUGA_TRUE,
+        WGL_DOUBLE_BUFFER_ARB,  MUGA_TRUE,
         WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
         WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
         WGL_COLOR_BITS_ARB,     32,
@@ -712,7 +712,7 @@ MUGA_BOOL muga_windows_is_id_valid(muga_window win) {
 }
 
 void muga_windows_unbind() {
-	if (muga_windows_window_binded && muga_linux_is_id_valid(muga_windows_binded_window)) {
+	if (muga_windows_window_binded && muga_windows_is_id_valid(muga_windows_binded_window)) {
 		if (MUGA_IS_OPENGL(muga_windows_windows[muga_windows_binded_window].api)) {
 			MUGA_OPENGL_CALL(wglMakeCurrent(NULL, NULL));
 		}
@@ -873,7 +873,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		);
 	// no api
 	} else if (api != MUGA_NO_GRAPHICS_API) {
-		muga_print("[MUGA] Unsupported/Excluded (#define MUG_NO_...) graphics API for Windows.\n");
+		muga_print("[MUGA] Unsupported/Excluded (#define MUGA_NO_...) graphics API for Windows.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -1034,7 +1034,7 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
 #endif /* WINDOWS */
 
 #ifdef linux
-#define MUG_LINUX
+#define MUGA_LINUX
 
 #include <X11/Xlib.h>
 
@@ -1464,7 +1464,7 @@ MUGADEF muga_window muga_window_create(
 			}
 		);
 	} else if (api != MUGA_NO_GRAPHICS_API) {
-		muga_print("[MUGA] Unsupported/Excluded (#define MUG_NO_...) graphics API for Linux.\n");
+		muga_print("[MUGA] Unsupported/Excluded (#define MUGA_NO_...) graphics API for Linux.\n");
 		// @TODO destroy window here
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
@@ -1615,6 +1615,8 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 			if (muga_linux_windows[win].framebuffer_resize_callback != MUGA_NULL_PTR) {
 				muga_linux_windows[win].framebuffer_resize_callback(win, attributes.width, attributes.height);
 			}
+			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			break;
 		case ClientMessage:
 			if (muga_linux_windows[win].event.xclient.data.l[0] == muga_linux_windows[win].delete_message) {
