@@ -1,6 +1,6 @@
 /*
 muga.h - Muukid
-Public domain single-file C library for creating contexts for cross-platform graphics APIs.
+Public domain single-file C library for creating windows and contexts for cross-platform graphics APIs. 
 No warranty implied; use at your own risk.
 
 Licensed under MIT License or public domain, whichever you prefer.
@@ -347,24 +347,32 @@ MUGA_RESULT muga_windows_init_opengl_extensions() {
         .cStencilBits = 8
 	};
 
-	// @TODO make sure these failures destroy window and other stuff!
 	int pixel_format = ChoosePixelFormat(dc, &format);
 	if (!pixel_format) {
 		muga_print("[MUGA] Failed to find a valid pixel format.\n");
+		ReleaseDC(win, dc);
+		DestroyWindow(win);
 		return MUGA_FAILURE;
 	}
 	if (!SetPixelFormat(dc, pixel_format, &format)) {
 		muga_print("[MUGA] Failed to set a pixel format.\n");
+		ReleaseDC(win, dc);
+		DestroyWindow(win);
 		return MUGA_FAILURE;
 	}
 
 	HGLRC context = wglCreateContext(dc);
 	if (!context) {
 		muga_print("[MUGA] Failed to create a valid WGL context.\n");
+		ReleaseDC(win, dc);
+		DestroyWindow(win);
 		return MUGA_FAILURE;
 	}
 	if (!wglMakeCurrent(dc, context)) {
 		muga_print("[MUGA] Failed to load a WGL context.\n");
+		wglDeleteContext(context);
+		ReleaseDC(win, dc);
+		DestroyWindow(win);
 		return MUGA_FAILURE;
 	}
 
@@ -627,7 +635,6 @@ struct muga_windows_window {
 
 	// api
 	muga_graphics_api api;
-	// @TODO don't store info for apis that aren't running
 	// opengl context
 	MUGA_OPENGL_CALL(HGLRC opengl_context);
 
@@ -802,7 +809,6 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		.active = MUGA_TRUE,
 		.alive = MUGA_TRUE,
 		// (WNDCLASSEXW)
-		// @TODO add customizability to a lot of this
 		.window_class = {
 			.cbSize = sizeof(WNDCLASSEXW),                       // size of struct
 			.style =         CS_HREDRAW | CS_VREDRAW | CS_OWNDC, // style
@@ -819,7 +825,13 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		},
 		.framebuffer_resize_callback = MUGA_NULL_PTR
 	};
-	RegisterClassExW(&window_struct.window_class);
+	if (!RegisterClassExW(&window_struct.window_class)) {
+		muga_print("[MUGA] Failed to register window class.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return 0;
+	}
 
 	// create window
 
@@ -869,10 +881,14 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 					api
 				)
 			) {
-				// @TODO destroy window here
 				if (result != MUGA_NULL_PTR) {
 					*result = MUGA_FAILURE;
 				}
+				ReleaseDC(
+					muga_windows_windows[win].window_handle,
+					muga_windows_windows[win].device_context
+				);
+				DestroyWindow(muga_windows_windows[win].window_handle);
 				return 0;
 			}
 		);
@@ -882,18 +898,28 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
-		// @TODO handle this edge case and others
+		ReleaseDC(
+			muga_windows_windows[win].window_handle,
+			muga_windows_windows[win].device_context
+		);
+		DestroyWindow(muga_windows_windows[win].window_handle);
 		return 0;
 	}
 
-	// @TODO make it so that we don't have to do this,
-	// dunno how GLFW gets away with calling it after the window is created...
 	if (load_functions != MUGA_NULL_PTR) {
 	    if (!load_functions()) {
 	    	muga_print("[MUGA] Failed to load functions for graphics API.\n");
 	    	if (result != MUGA_NULL_PTR) {
 				*result = MUGA_FAILURE;
 			}
+			ReleaseDC(
+				muga_windows_windows[win].window_handle,
+				muga_windows_windows[win].device_context
+			);
+			if (MUGA_IS_OPENGL(muga_windows_windows[win].api)) {
+				MUGA_OPENGL_CALL(wglDeleteContext(muga_windows_windows[win].opengl_context));
+			}
+			DestroyWindow(muga_windows_windows[win].window_handle);
 			return 0;
 	    }
 	}
@@ -1417,7 +1443,6 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	}
 }
 
-// @TODO properly destory windows here
 MUGADEF void muga_term(MUGA_RESULT* result) {
 	if (!muga_linux_is_initiated) {
 		muga_print("[MUGA] An attempt to terminate muga despite already being terminated (or never being initiated) was made.\n");
@@ -1425,6 +1450,12 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 			*result = MUGA_FAILURE;
 		}
 		return;
+	}
+
+	for (size_m i = 0; i < muga_linux_windows_length; i++) {
+		if (muga_linux_windows[i].active) {
+			muga_window_destroy(MUGA_NULL_PTR, i);
+		}
 	}
 
 	if (muga_linux_windows != MUGA_NULL_PTR) {
@@ -1478,19 +1509,27 @@ MUGADEF muga_window muga_window_create(
 				&muga_linux_windows[win].opengl_context,
 				api
 			) == MUGA_FAILURE) {
-				// @TODO destroy window here
 				if (result != MUGA_NULL_PTR) {
 					*result = MUGA_FAILURE;
 				}
+				XDestroyWindow(
+					muga_linux_windows[win].display,
+					muga_linux_windows[win].window
+				);
+				XCloseDisplay(muga_linux_windows[win].display);
 				return 0;
 			}
 		);
 	} else if (api != MUGA_NO_GRAPHICS_API) {
 		muga_print("[MUGA] Unsupported/Excluded (#define MUGA_NO_...) graphics API for Linux.\n");
-		// @TODO destroy window here
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
+		XDestroyWindow(
+			muga_linux_windows[win].display,
+			muga_linux_windows[win].window
+		);
+		XCloseDisplay(muga_linux_windows[win].display);
 		return 0;
 	}
 
@@ -1518,6 +1557,7 @@ MUGADEF muga_window muga_window_create(
 
 	XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
 
+	// convert name from wchar_m* to char*
 	size_m len = 0;
 	for (size_m i = 0; name[i] != 0; i++) len++;
 	char* name_c = muga_malloc(sizeof(char) * (len+1));
@@ -1533,10 +1573,19 @@ MUGADEF muga_window muga_window_create(
 	if (load_functions != MUGA_NULL_PTR) {
 	    if (!load_functions()) {
 	    	muga_print("[MUGA] Failed to load functions for graphics API.\n");
-	    	// @TODO destroy window here
 	    	if (result != MUGA_NULL_PTR) {
 				*result = MUGA_FAILURE;
 			}
+			if (MUGA_IS_OPENGL(muga_linux_windows[win].api)) {
+				MUGA_OPENGL_CALL(
+					glXDestroyContext(muga_linux_windows[win].display, muga_linux_windows[win].opengl_context);
+				);
+			}
+			XDestroyWindow(
+				muga_linux_windows[win].display,
+				muga_linux_windows[win].window
+			);
+			XCloseDisplay(muga_linux_windows[win].display);
 			return 0;
 	    }
 	}
