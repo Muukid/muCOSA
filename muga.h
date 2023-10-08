@@ -783,6 +783,12 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 
 	muga_windows_unbind();
 
+	for (size_m i = 0; i < muga_windows_windows_length; i++) {
+		if (muga_windows_windows[i].active) {
+			muga_window_destroy(MUGA_NULL_PTR, i);
+		}
+	}
+
 	muga_windows_has_initiated = MUGA_FALSE;
 	// free windows buffer
 	if (muga_windows_windows != MUGA_NULL_PTR) {
