@@ -30,10 +30,19 @@ More explicit license information at the end of the file.
 
 /* C standard library dependencies */
 
-#ifndef size_m
+#if !defined(size_m)
 	
 	#include <stddef.h>
+
 	#define size_m size_t
+
+#endif
+
+#if !defined(SIZE_MAX_M)
+
+    #include <stdint.h>
+
+    #define SIZE_MAX_M SIZE_MAX
 
 #endif
 
@@ -118,7 +127,198 @@ enum muga_graphics_api {
 };
 typedef enum muga_graphics_api muga_graphics_api;
 
+/* input */
 
+enum muga_input_method {
+	MUGA_NO_INPUT_METHOD,
+	MUGA_KEYBOARD
+};
+typedef enum muga_input_method muga_input_method;
+
+enum muga_input_key {
+	MUGA_NO_INPUT_KEY,
+
+	// keyboard
+	// (https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
+
+	// @TODO add comments to some of these
+	MUGA_KEYBOARD_KEY_BACKSPACE,
+	MUGA_KEYBOARD_KEY_TAB,
+	MUGA_KEYBOARD_KEY_CLEAR,
+	MUGA_KEYBOARD_KEY_RETURN,
+	MUGA_KEYBOARD_KEY_SHIFT,
+	MUGA_KEYBOARD_KEY_CONTROL,
+	MUGA_KEYBOARD_KEY_MENU,
+	MUGA_KEYBOARD_KEY_PAUSE,
+	MUGA_KEYBOARD_KEY_CAPITAL,
+	MUGA_KEYBOARD_KEY_KANA,
+	MUGA_KEYBOARD_KEY_HANGUL,
+	MUGA_KEYBOARD_KEY_IME_ON,
+	MUGA_KEYBOARD_KEY_JUNJA,
+	MUGA_KEYBOARD_KEY_FINAL,
+	MUGA_KEYBOARD_KEY_HANJA,
+	MUGA_KEYBOARD_KEY_KANJI,
+	MUGA_KEYBOARD_KEY_IME_OFF,
+	MUGA_KEYBOARD_KEY_ESCAPE,
+	MUGA_KEYBOARD_KEY_CONVERT,
+	MUGA_KEYBOARD_KEY_NONCONVERT,
+	MUGA_KEYBOARD_KEY_ACCEPT,
+	MUGA_KEYBOARD_KEY_MODECHANGE,
+	MUGA_KEYBOARD_KEY_SPACE,
+	MUGA_KEYBOARD_KEY_PRIOR,
+	MUGA_KEYBOARD_KEY_NEXT,
+	MUGA_KEYBOARD_KEY_END,
+	MUGA_KEYBOARD_KEY_HOME,
+	MUGA_KEYBOARD_KEY_LEFT,
+	MUGA_KEYBOARD_KEY_UP,
+	MUGA_KEYBOARD_KEY_RIGHT,
+	MUGA_KEYBOARD_KEY_DOWN,
+	MUGA_KEYBOARD_KEY_SELECT,
+	MUGA_KEYBOARD_KEY_PRINT,
+	MUGA_KEYBOARD_KEY_EXECUTE,
+	MUGA_KEYBOARD_KEY_SNAPSHOT,
+	MUGA_KEYBOARD_KEY_INSERT,
+	MUGA_KEYBOARD_KEY_DELETE,
+	MUGA_KEYBOARD_KEY_HELP,
+	MUGA_KEYBOARD_KEY_0,
+	MUGA_KEYBOARD_KEY_1,
+	MUGA_KEYBOARD_KEY_2,
+	MUGA_KEYBOARD_KEY_3,
+	MUGA_KEYBOARD_KEY_4,
+	MUGA_KEYBOARD_KEY_5,
+	MUGA_KEYBOARD_KEY_6,
+	MUGA_KEYBOARD_KEY_7,
+	MUGA_KEYBOARD_KEY_8,
+	MUGA_KEYBOARD_KEY_9,
+	MUGA_KEYBOARD_KEY_A,
+	MUGA_KEYBOARD_KEY_B,
+	MUGA_KEYBOARD_KEY_C,
+	MUGA_KEYBOARD_KEY_D,
+	MUGA_KEYBOARD_KEY_E,
+	MUGA_KEYBOARD_KEY_F,
+	MUGA_KEYBOARD_KEY_G,
+	MUGA_KEYBOARD_KEY_H,
+	MUGA_KEYBOARD_KEY_I,
+	MUGA_KEYBOARD_KEY_J,
+	MUGA_KEYBOARD_KEY_K,
+	MUGA_KEYBOARD_KEY_L,
+	MUGA_KEYBOARD_KEY_M,
+	MUGA_KEYBOARD_KEY_N,
+	MUGA_KEYBOARD_KEY_O,
+	MUGA_KEYBOARD_KEY_P,
+	MUGA_KEYBOARD_KEY_Q,
+	MUGA_KEYBOARD_KEY_R,
+	MUGA_KEYBOARD_KEY_S,
+	MUGA_KEYBOARD_KEY_T,
+	MUGA_KEYBOARD_KEY_U,
+	MUGA_KEYBOARD_KEY_V,
+	MUGA_KEYBOARD_KEY_W,
+	MUGA_KEYBOARD_KEY_X,
+	MUGA_KEYBOARD_KEY_Y,
+	MUGA_KEYBOARD_KEY_Z,
+	MUGA_KEYBOARD_KEY_LEFT_WINDOWS,
+	MUGA_KEYBOARD_KEY_RIGHT_WINDOWS,
+	MUGA_KEYBOARD_KEY_APPS,
+	MUGA_KEYBOARD_KEY_SLEEP,
+	MUGA_KEYBOARD_KEY_NUMPAD_0,
+	MUGA_KEYBOARD_KEY_NUMPAD_1,
+	MUGA_KEYBOARD_KEY_NUMPAD_2,
+	MUGA_KEYBOARD_KEY_NUMPAD_3,
+	MUGA_KEYBOARD_KEY_NUMPAD_4,
+	MUGA_KEYBOARD_KEY_NUMPAD_5,
+	MUGA_KEYBOARD_KEY_NUMPAD_6,
+	MUGA_KEYBOARD_KEY_NUMPAD_7,
+	MUGA_KEYBOARD_KEY_NUMPAD_8,
+	MUGA_KEYBOARD_KEY_NUMPAD_9,
+	MUGA_KEYBOARD_KEY_MULTIPLY,
+	MUGA_KEYBOARD_KEY_ADD,
+	MUGA_KEYBOARD_KEY_SEPARATOR,
+	MUGA_KEYBOARD_KEY_SUBTRACT,
+	MUGA_KEYBOARD_KEY_DECIMAL,
+	MUGA_KEYBOARD_KEY_DIVIDE,
+	MUGA_KEYBOARD_KEY_F1,
+	MUGA_KEYBOARD_KEY_F2,
+	MUGA_KEYBOARD_KEY_F3,
+	MUGA_KEYBOARD_KEY_F4,
+	MUGA_KEYBOARD_KEY_F5,
+	MUGA_KEYBOARD_KEY_F6,
+	MUGA_KEYBOARD_KEY_F7,
+	MUGA_KEYBOARD_KEY_F8,
+	MUGA_KEYBOARD_KEY_F9,
+	MUGA_KEYBOARD_KEY_F10,
+	MUGA_KEYBOARD_KEY_F11,
+	MUGA_KEYBOARD_KEY_F12,
+	MUGA_KEYBOARD_KEY_F13,
+	MUGA_KEYBOARD_KEY_F14,
+	MUGA_KEYBOARD_KEY_F15,
+	MUGA_KEYBOARD_KEY_F16,
+	MUGA_KEYBOARD_KEY_F17,
+	MUGA_KEYBOARD_KEY_F18,
+	MUGA_KEYBOARD_KEY_F19,
+	MUGA_KEYBOARD_KEY_F20,
+	MUGA_KEYBOARD_KEY_F21,
+	MUGA_KEYBOARD_KEY_F22,
+	MUGA_KEYBOARD_KEY_F23,
+	MUGA_KEYBOARD_KEY_F24,
+	MUGA_KEYBOARD_KEY_NUMLOCK,
+	MUGA_KEYBOARD_KEY_SCROLL,
+	MUGA_KEYBOARD_KEY_LEFT_SHIFT,
+	MUGA_KEYBOARD_KEY_RIGHT_SHIFT,
+	MUGA_KEYBOARD_KEY_LEFT_CONTROL,
+	MUGA_KEYBOARD_KEY_RIGHT_CONTROL,
+	MUGA_KEYBOARD_KEY_LEFT_MENU,
+	MUGA_KEYBOARD_KEY_RIGHT_MENU,
+	MUGA_KEYBOARD_KEY_BROWSER_BACK,
+	MUGA_KEYBOARD_KEY_BROWSER_FORWARD,
+	MUGA_KEYBOARD_KEY_BROWSER_REFRESH,
+	MUGA_KEYBOARD_KEY_BROWSER_STOP,
+	MUGA_KEYBOARD_KEY_BROWSER_SEARCH,
+	MUGA_KEYBOARD_KEY_BROWSER_FAVORITES,
+	MUGA_KEYBOARD_KEY_BROWSER_HOME,
+	MUGA_KEYBOARD_KEY_VOLUME_MUTE,
+	MUGA_KEYBOARD_KEY_VOLUME_DOWN,
+	MUGA_KEYBOARD_KEY_VOLUME_UP,
+	MUGA_KEYBOARD_KEY_MEDIA_NEXT_TRACK,
+	MUGA_KEYBOARD_KEY_MEDIA_PREV_TRACK,
+	MUGA_KEYBOARD_KEY_MEDIA_STOP,
+	MUGA_KEYBOARD_KEY_MEDIA_PLAY_PAUSE,
+	MUGA_KEYBOARD_KEY_LAUNCH_MAIL,
+	MUGA_KEYBOARD_KEY_LAUNCH_MEDIA_SELECT,
+	MUGA_KEYBOARD_KEY_LAUNCH_APP1,
+	MUGA_KEYBOARD_KEY_LAUNCH_APP2,
+	MUGA_KEYBOARD_KEY_OEM_1,
+	MUGA_KEYBOARD_KEY_OEM_PLUS,
+	MUGA_KEYBOARD_KEY_OEM_COMMA,
+	MUGA_KEYBOARD_KEY_OEM_MINUS,
+	MUGA_KEYBOARD_KEY_OEM_PERIOD,
+	MUGA_KEYBOARD_KEY_OEM_2,
+	MUGA_KEYBOARD_KEY_OEM_3,
+	MUGA_KEYBOARD_KEY_OEM_4,
+	MUGA_KEYBOARD_KEY_OEM_5,
+	MUGA_KEYBOARD_KEY_OEM_6,
+	MUGA_KEYBOARD_KEY_OEM_7,
+	MUGA_KEYBOARD_KEY_OEM_8,
+	MUGA_KEYBOARD_KEY_OEM_102,
+	MUGA_KEYBOARD_KEY_PROCESS,
+	MUGA_KEYBOARD_KEY_PACKET,
+	MUGA_KEYBOARD_KEY_ATTN,
+	MUGA_KEYBOARD_KEY_CRSEL,
+	MUGA_KEYBOARD_KEY_EXSEL,
+	MUGA_KEYBOARD_KEY_EREOF,
+	MUGA_KEYBOARD_KEY_PLAY,
+	MUGA_KEYBOARD_KEY_ZOOM,
+	MUGA_KEYBOARD_KEY_PA1,
+	MUGA_KEYBOARD_KEY_OEM_CLEAR
+
+#define MUGA_KEYBOARD_FIRST MUGA_KEYBOARD_KEY_BACKSPACE
+#define MUGA_KEYBOARD_LAST MUGA_KEYBOARD_KEY_OEM_CLEAR
+#define MUGA_IS_KEYBOARD(key) (key >= MUGA_KEYBOARD_FIRST && key <= MUGA_KEYBOARD_LAST)
+};
+typedef enum muga_input_key muga_input_key;
+
+#define MUGA_KEY_BIT  MUGA_BOOL
+#define MUGA_KEY_UP   MUGA_FALSE
+#define MUGA_KEY_DOWN MUGA_TRUE
 
 /* general */
 
@@ -128,6 +328,7 @@ MUGADEF void muga_term(MUGA_RESULT* result);
 /* window */
 
 typedef size_m muga_window;
+#define MUGA_NO_WINDOW SIZE_MAX_M
 
 // basic window functions
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
@@ -136,6 +337,8 @@ MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
+
+MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
 
 // callbacks
 MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height));
@@ -189,6 +392,7 @@ MUGADEF void* muga_get_opengl_function_address(const char* name);
 #define MUGA_WINDOWS
 
 #include <windows.h>
+#include <Windows.h>
 
 // get the hinstance
 // thank you we luv u raymond chen <3
@@ -617,6 +821,518 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
 
 #endif /* MUGA_NO_OPENGL */
 
+/* keyboard input */
+
+// @TODO fix certain undefined keys
+int muga_windows_muga_key_to_windows_key(muga_input_key key) {
+	switch (key) {
+	default:
+		return VK_NONAME;
+		break;
+	case MUGA_KEYBOARD_KEY_BACKSPACE:
+		return VK_BACK;
+		break;
+	case MUGA_KEYBOARD_KEY_TAB:
+		return VK_TAB;
+		break;
+	case MUGA_KEYBOARD_KEY_CLEAR:
+		return VK_CLEAR;
+		break;
+	case MUGA_KEYBOARD_KEY_RETURN:
+		return VK_RETURN;
+		break;
+	case MUGA_KEYBOARD_KEY_SHIFT:
+		return VK_SHIFT;
+		break;
+	case MUGA_KEYBOARD_KEY_CONTROL:
+		return VK_CONTROL;
+		break;
+	case MUGA_KEYBOARD_KEY_MENU:
+		return VK_MENU;
+		break;
+	case MUGA_KEYBOARD_KEY_PAUSE:
+		return VK_PAUSE;
+		break;
+	case MUGA_KEYBOARD_KEY_CAPITAL:
+		return VK_CAPITAL;
+		break;
+	case MUGA_KEYBOARD_KEY_KANA:
+		return VK_KANA;
+		break;
+	case MUGA_KEYBOARD_KEY_HANGUL:
+		return VK_HANGUL;
+		break;
+	/*case MUGA_KEYBOARD_KEY_IME_ON:
+		return VK_IME_ON;
+		break;*/
+	case MUGA_KEYBOARD_KEY_JUNJA:
+		return VK_JUNJA;
+		break;
+	case MUGA_KEYBOARD_KEY_FINAL:
+		return VK_FINAL;
+		break;
+	case MUGA_KEYBOARD_KEY_HANJA:
+		return VK_HANJA;
+		break;
+	case MUGA_KEYBOARD_KEY_KANJI:
+		return VK_KANJI;
+		break;
+	/*case MUGA_KEYBOARD_KEY_IME_OFF:
+		return VK_IME_OFF;
+		break;*/
+	case MUGA_KEYBOARD_KEY_ESCAPE:
+		return VK_ESCAPE;
+		break;
+	case MUGA_KEYBOARD_KEY_CONVERT:
+		return VK_CONVERT;
+		break;
+	case MUGA_KEYBOARD_KEY_NONCONVERT:
+		return VK_NONCONVERT;
+		break;
+	case MUGA_KEYBOARD_KEY_ACCEPT:
+		return VK_ACCEPT;
+		break;
+	case MUGA_KEYBOARD_KEY_MODECHANGE:
+		return VK_MODECHANGE;
+		break;
+	case MUGA_KEYBOARD_KEY_SPACE:
+		return VK_SPACE;
+		break;
+	case MUGA_KEYBOARD_KEY_PRIOR:
+		return VK_PRIOR;
+		break;
+	case MUGA_KEYBOARD_KEY_NEXT:
+		return VK_NEXT;
+		break;
+	case MUGA_KEYBOARD_KEY_END:
+		return VK_END;
+		break;
+	case MUGA_KEYBOARD_KEY_HOME:
+		return VK_HOME;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT:
+		return VK_LEFT;
+		break;
+	case MUGA_KEYBOARD_KEY_UP:
+		return VK_UP;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT:
+		return VK_RIGHT;
+		break;
+	case MUGA_KEYBOARD_KEY_DOWN:
+		return VK_DOWN;
+		break;
+	case MUGA_KEYBOARD_KEY_SELECT:
+		return VK_SELECT;
+		break;
+	case MUGA_KEYBOARD_KEY_PRINT:
+		return VK_PRINT;
+		break;
+	case MUGA_KEYBOARD_KEY_EXECUTE:
+		return VK_EXECUTE;
+		break;
+	case MUGA_KEYBOARD_KEY_SNAPSHOT:
+		return VK_SNAPSHOT;
+		break;
+	case MUGA_KEYBOARD_KEY_INSERT:
+		return VK_INSERT;
+		break;
+	case MUGA_KEYBOARD_KEY_DELETE:
+		return VK_DELETE;
+		break;
+	case MUGA_KEYBOARD_KEY_HELP:
+		return VK_HELP;
+		break;
+	case MUGA_KEYBOARD_KEY_0:
+		return 0x30;
+		break;
+	case MUGA_KEYBOARD_KEY_1:
+		return 0x31;
+		break;
+	case MUGA_KEYBOARD_KEY_2:
+		return 0x32;
+		break;
+	case MUGA_KEYBOARD_KEY_3:
+		return 0x33;
+		break;
+	case MUGA_KEYBOARD_KEY_4:
+		return 0x34;
+		break;
+	case MUGA_KEYBOARD_KEY_5:
+		return 0x35;
+		break;
+	case MUGA_KEYBOARD_KEY_6:
+		return 0x36;
+		break;
+	case MUGA_KEYBOARD_KEY_7:
+		return 0x37;
+		break;
+	case MUGA_KEYBOARD_KEY_8:
+		return 0x38;
+		break;
+	case MUGA_KEYBOARD_KEY_9:
+		return 0x39;
+		break;
+	case MUGA_KEYBOARD_KEY_A:
+		return 0x41;
+		break;
+	case MUGA_KEYBOARD_KEY_B:
+		return 0x42;
+		break;
+	case MUGA_KEYBOARD_KEY_C:
+		return 0x43;
+		break;
+	case MUGA_KEYBOARD_KEY_D:
+		return 0x44;
+		break;
+	case MUGA_KEYBOARD_KEY_E:
+		return 0x45;
+		break;
+	case MUGA_KEYBOARD_KEY_F:
+		return 0x46;
+		break;
+	case MUGA_KEYBOARD_KEY_G:
+		return 0x47;
+		break;
+	case MUGA_KEYBOARD_KEY_H:
+		return 0x48;
+		break;
+	case MUGA_KEYBOARD_KEY_I:
+		return 0x49;
+		break;
+	case MUGA_KEYBOARD_KEY_J:
+		return 0x4A;
+		break;
+	case MUGA_KEYBOARD_KEY_K:
+		return 0x4B;
+		break;
+	case MUGA_KEYBOARD_KEY_L:
+		return 0x4C;
+		break;
+	case MUGA_KEYBOARD_KEY_M:
+		return 0x4D;
+		break;
+	case MUGA_KEYBOARD_KEY_N:
+		return 0x4E;
+		break;
+	case MUGA_KEYBOARD_KEY_O:
+		return 0x4F;
+		break;
+	case MUGA_KEYBOARD_KEY_P:
+		return 0x50;
+		break;
+	case MUGA_KEYBOARD_KEY_Q:
+		return 0x51;
+		break;
+	case MUGA_KEYBOARD_KEY_R:
+		return 0x52;
+		break;
+	case MUGA_KEYBOARD_KEY_S:
+		return 0x53;
+		break;
+	case MUGA_KEYBOARD_KEY_T:
+		return 0x54;
+		break;
+	case MUGA_KEYBOARD_KEY_U:
+		return 0x55;
+		break;
+	case MUGA_KEYBOARD_KEY_V:
+		return 0x56;
+		break;
+	case MUGA_KEYBOARD_KEY_W:
+		return 0x57;
+		break;
+	case MUGA_KEYBOARD_KEY_X:
+		return 0x58;
+		break;
+	case MUGA_KEYBOARD_KEY_Y:
+		return 0x59;
+		break;
+	case MUGA_KEYBOARD_KEY_Z:
+		return 0x5A;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_WINDOWS:
+		return VK_LWIN;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_WINDOWS:
+		return VK_RWIN;
+		break;
+	case MUGA_KEYBOARD_KEY_APPS:
+		return VK_APPS;
+		break;
+	case MUGA_KEYBOARD_KEY_SLEEP:
+		return VK_SLEEP;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_0:
+		return VK_NUMPAD0;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_1:
+		return VK_NUMPAD1;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_2:
+		return VK_NUMPAD2;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_3:
+		return VK_NUMPAD3;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_4:
+		return VK_NUMPAD4;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_5:
+		return VK_NUMPAD5;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_6:
+		return VK_NUMPAD6;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_7:
+		return VK_NUMPAD7;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_8:
+		return VK_NUMPAD8;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_9:
+		return VK_NUMPAD9;
+		break;
+	case MUGA_KEYBOARD_KEY_MULTIPLY:
+		return VK_MULTIPLY;
+		break;
+	case MUGA_KEYBOARD_KEY_ADD:
+		return VK_ADD;
+		break;
+	case MUGA_KEYBOARD_KEY_SEPARATOR:
+		return VK_SEPARATOR;
+		break;
+	case MUGA_KEYBOARD_KEY_SUBTRACT:
+		return VK_SUBTRACT;
+		break;
+	case MUGA_KEYBOARD_KEY_DECIMAL:
+		return VK_DECIMAL;
+		break;
+	case MUGA_KEYBOARD_KEY_DIVIDE:
+		return VK_DIVIDE;
+		break;
+	case MUGA_KEYBOARD_KEY_F1:
+		return VK_F1;
+		break;
+	case MUGA_KEYBOARD_KEY_F2:
+		return VK_F2;
+		break;
+	case MUGA_KEYBOARD_KEY_F3:
+		return VK_F3;
+		break;
+	case MUGA_KEYBOARD_KEY_F4:
+		return VK_F4;
+		break;
+	case MUGA_KEYBOARD_KEY_F5:
+		return VK_F5;
+		break;
+	case MUGA_KEYBOARD_KEY_F6:
+		return VK_F6;
+		break;
+	case MUGA_KEYBOARD_KEY_F7:
+		return VK_F7;
+		break;
+	case MUGA_KEYBOARD_KEY_F8:
+		return VK_F8;
+		break;
+	case MUGA_KEYBOARD_KEY_F9:
+		return VK_F9;
+		break;
+	case MUGA_KEYBOARD_KEY_F10:
+		return VK_F10;
+		break;
+	case MUGA_KEYBOARD_KEY_F11:
+		return VK_F11;
+		break;
+	case MUGA_KEYBOARD_KEY_F12:
+		return VK_F12;
+		break;
+	case MUGA_KEYBOARD_KEY_F13:
+		return VK_F13;
+		break;
+	case MUGA_KEYBOARD_KEY_F14:
+		return VK_F14;
+		break;
+	case MUGA_KEYBOARD_KEY_F15:
+		return VK_F15;
+		break;
+	case MUGA_KEYBOARD_KEY_F16:
+		return VK_F16;
+		break;
+	case MUGA_KEYBOARD_KEY_F17:
+		return VK_F17;
+		break;
+	case MUGA_KEYBOARD_KEY_F18:
+		return VK_F18;
+		break;
+	case MUGA_KEYBOARD_KEY_F19:
+		return VK_F19;
+		break;
+	case MUGA_KEYBOARD_KEY_F20:
+		return VK_F20;
+		break;
+	case MUGA_KEYBOARD_KEY_F21:
+		return VK_F21;
+		break;
+	case MUGA_KEYBOARD_KEY_F22:
+		return VK_F22;
+		break;
+	case MUGA_KEYBOARD_KEY_F23:
+		return VK_F23;
+		break;
+	case MUGA_KEYBOARD_KEY_F24:
+		return VK_F24;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMLOCK:
+		return VK_NUMLOCK;
+		break;
+	case MUGA_KEYBOARD_KEY_SCROLL:
+		return VK_SCROLL;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_SHIFT:
+		return VK_LSHIFT;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_SHIFT:
+		return VK_RSHIFT;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_CONTROL:
+		return VK_LCONTROL;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_CONTROL:
+		return VK_RCONTROL;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_MENU:
+		return VK_LMENU;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_MENU:
+		return VK_RMENU;
+		break;
+	case MUGA_KEYBOARD_KEY_BROWSER_BACK:
+		return VK_BROWSER_BACK;
+		break;
+	case MUGA_KEYBOARD_KEY_BROWSER_FORWARD:
+		return VK_BROWSER_FORWARD;
+		break;
+	case MUGA_KEYBOARD_KEY_BROWSER_REFRESH:
+		return VK_BROWSER_REFRESH;
+		break;
+	case MUGA_KEYBOARD_KEY_BROWSER_STOP:
+		return VK_BROWSER_STOP;
+		break;
+	case MUGA_KEYBOARD_KEY_BROWSER_SEARCH:
+		return VK_BROWSER_SEARCH;
+		break;
+	case MUGA_KEYBOARD_KEY_BROWSER_FAVORITES:
+		return VK_BROWSER_FAVORITES;
+		break;
+	case MUGA_KEYBOARD_KEY_BROWSER_HOME:
+		return VK_BROWSER_HOME;
+		break;
+	case MUGA_KEYBOARD_KEY_VOLUME_MUTE:
+		return VK_VOLUME_MUTE;
+		break;
+	case MUGA_KEYBOARD_KEY_VOLUME_DOWN:
+		return VK_VOLUME_DOWN;
+		break;
+	case MUGA_KEYBOARD_KEY_VOLUME_UP:
+		return VK_VOLUME_UP;
+		break;
+	case MUGA_KEYBOARD_KEY_MEDIA_NEXT_TRACK:
+		return VK_MEDIA_NEXT_TRACK;
+		break;
+	case MUGA_KEYBOARD_KEY_MEDIA_PREV_TRACK:
+		return VK_MEDIA_PREV_TRACK;
+		break;
+	case MUGA_KEYBOARD_KEY_MEDIA_STOP:
+		return VK_MEDIA_STOP;
+		break;
+	case MUGA_KEYBOARD_KEY_MEDIA_PLAY_PAUSE:
+		return VK_MEDIA_PLAY_PAUSE;
+		break;
+	case MUGA_KEYBOARD_KEY_LAUNCH_MAIL:
+		return VK_LAUNCH_MAIL;
+		break;
+	case MUGA_KEYBOARD_KEY_LAUNCH_MEDIA_SELECT:
+		return VK_LAUNCH_MEDIA_SELECT;
+		break;
+	case MUGA_KEYBOARD_KEY_LAUNCH_APP1:
+		return VK_LAUNCH_APP1;
+		break;
+	case MUGA_KEYBOARD_KEY_LAUNCH_APP2:
+		return VK_LAUNCH_APP2;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_1:
+		return VK_OEM_1;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_PLUS:
+		return VK_OEM_PLUS;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_COMMA:
+		return VK_OEM_COMMA;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_MINUS:
+		return VK_OEM_MINUS;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_PERIOD:
+		return VK_OEM_PERIOD;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_2:
+		return VK_OEM_2;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_3:
+		return VK_OEM_3;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_4:
+		return VK_OEM_4;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_5:
+		return VK_OEM_5;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_6:
+		return VK_OEM_6;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_7:
+		return VK_OEM_7;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_8:
+		return VK_OEM_8;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_102:
+		return VK_OEM_102;
+		break;
+	case MUGA_KEYBOARD_KEY_PROCESS:
+		return VK_PROCESSKEY;
+		break;
+	case MUGA_KEYBOARD_KEY_PACKET:
+		return VK_PACKET;
+		break;
+	case MUGA_KEYBOARD_KEY_ATTN:
+		return VK_ATTN;
+		break;
+	case MUGA_KEYBOARD_KEY_CRSEL:
+		return VK_CRSEL;
+		break;
+	case MUGA_KEYBOARD_KEY_EXSEL:
+		return VK_EXSEL;
+		break;
+	case MUGA_KEYBOARD_KEY_EREOF:
+		return VK_EREOF;
+		break;
+	case MUGA_KEYBOARD_KEY_PLAY:
+		return VK_PLAY;
+		break;
+	case MUGA_KEYBOARD_KEY_ZOOM:
+		return VK_ZOOM;
+		break;
+	case MUGA_KEYBOARD_KEY_PA1:
+		return VK_PA1;
+		break;
+	case MUGA_KEYBOARD_KEY_OEM_CLEAR:
+		return VK_OEM_CLEAR;
+		break;
+	}
+}
+
 /* default window setup */
 
 // basic window vars/structs
@@ -836,7 +1552,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
-		return 0;
+		return MUGA_NO_WINDOW;
 	}
 
 	// create window
@@ -863,7 +1579,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
-		return 0;
+		return MUGA_NO_WINDOW;
 	}
 
 	// assign window into window array
@@ -895,7 +1611,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 					muga_windows_windows[win].device_context
 				);
 				DestroyWindow(muga_windows_windows[win].window_handle);
-				return 0;
+				return MUGA_NO_WINDOW;
 			}
 		);
 	// no api
@@ -909,7 +1625,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 			muga_windows_windows[win].device_context
 		);
 		DestroyWindow(muga_windows_windows[win].window_handle);
-		return 0;
+		return MUGA_NO_WINDOW;
 	}
 
 	if (load_functions != MUGA_NULL_PTR) {
@@ -926,7 +1642,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 				MUGA_OPENGL_CALL(wglDeleteContext(muga_windows_windows[win].opengl_context));
 			}
 			DestroyWindow(muga_windows_windows[win].window_handle);
-			return 0;
+			return MUGA_NO_WINDOW;
 	    }
 	}
 
@@ -1048,6 +1764,36 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+
+	if (muga_windows_is_id_valid(win)) {
+		// if i don't call this, it carries the state until the window becomes focused
+		GetAsyncKeyState(muga_windows_muga_key_to_windows_key(key));
+		
+		if (GetActiveWindow() != muga_windows_windows[win].window_handle) {
+			return MUGA_KEY_UP;
+		}
+	}
+
+	switch (method) {
+
+	default:
+		return MUGA_KEY_UP;
+		break;
+
+	case MUGA_KEYBOARD:
+		if (GetAsyncKeyState(muga_windows_muga_key_to_windows_key(key))) {
+			return MUGA_KEY_DOWN;
+		}
+		return MUGA_KEY_UP;
+		break;
+
 	}
 }
 
@@ -1523,7 +2269,7 @@ MUGADEF muga_window muga_window_create(
 					muga_linux_windows[win].window
 				);
 				XCloseDisplay(muga_linux_windows[win].display);
-				return 0;
+				return MUGA_NO_WINDOW;
 			}
 		);
 	} else if (api != MUGA_NO_GRAPHICS_API) {
@@ -1536,7 +2282,7 @@ MUGADEF muga_window muga_window_create(
 			muga_linux_windows[win].window
 		);
 		XCloseDisplay(muga_linux_windows[win].display);
-		return 0;
+		return MUGA_NO_WINDOW;
 	}
 
 	// define more info
@@ -1592,7 +2338,7 @@ MUGADEF muga_window muga_window_create(
 				muga_linux_windows[win].window
 			);
 			XCloseDisplay(muga_linux_windows[win].display);
-			return 0;
+			return MUGA_NO_WINDOW;
 	    }
 	}
 
