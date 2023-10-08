@@ -1326,7 +1326,7 @@ MUGA_RESULT muga_linux_init_opengl(Display* display, GLXContext* context, muga_g
 		return MUGA_FAILURE;
 	}
 
-	muga_linux_opengl_initiated = MUGA_SUCCESS;
+	//muga_linux_opengl_initiated = MUGA_SUCCESS;
 	return MUGA_SUCCESS;
 }
 
@@ -1699,6 +1699,7 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 			if (muga_linux_windows[win].event.xclient.data.l[0] == muga_linux_windows[win].delete_message) {
 				muga_linux_windows[win].alive = MUGA_FALSE;
 			}
+			XUnmapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
 			break;
 		default:
 			break;
