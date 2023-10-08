@@ -129,15 +129,20 @@ MUGADEF void muga_term(MUGA_RESULT* result);
 
 typedef size_m muga_window;
 
+// basic window functions
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
 MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
-
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 
+// callbacks
 MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height));
+
+/* opengl functions */
+
+MUGADEF void* muga_get_opengl_function_address(const char* name);
 
 #ifdef __cplusplus
     }
@@ -1031,6 +1036,22 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
 	}
 }
 
+/* opengl functions */
+
+// https://stackoverflow.com/questions/76638441/how-to-init-glad-without-the-glfw-loader-using-windows-headers
+MUGADEF void* muga_get_opengl_function_address(const char* name) {
+	void *p = (void *)wglGetProcAddress(name);
+
+	if (p == 0 ||
+	   (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
+	   (p == (void*)-1)) {
+		HMODULE module = LoadLibraryA("opengl32.dll"); 
+		p = (void *)GetProcAddress(module, name);
+	}
+
+	return p;
+}
+
 #endif /* WINDOWS */
 
 #ifdef linux
@@ -1041,6 +1062,7 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
 /* OPENGL SETUP */
 #ifndef MUGA_NO_OPENGL
 
+// this kinda doesn't make sense
 #ifndef MUGA_NO_INCLUDE_OPENGL
 	#ifndef glClearColor
 		#include <GL/gl.h>
@@ -1671,6 +1693,12 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
+}
+
+/* opengl functions */
+
+MUGADEF void* muga_get_opengl_function_address(const char* name) {
+	return (void*)glXGetProcAddress((const GLubyte*)name);
 }
 
 #endif /* LINUX */
