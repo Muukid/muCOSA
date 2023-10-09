@@ -2995,7 +2995,7 @@ void muga_linux_input_flush(muga_linux_input* input) {
 
 struct muga_linux_window {
 	MUGA_BOOL active;
-	MUGA_BOOL alive;
+	MUGA_BOOL closed;
 
 	// display to render on, result of XOpenDisplay
 	Display* display;
@@ -3217,7 +3217,7 @@ MUGADEF muga_window muga_window_create(
 	// display window
 
 	muga_linux_windows[win].active = MUGA_TRUE;
-	muga_linux_windows[win].alive = MUGA_TRUE;
+	muga_linux_windows[win].closed = MUGA_FALSE;
 	muga_linux_windows[win].input = (muga_linux_input){0};
 
 	XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
@@ -3325,7 +3325,7 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 
 		case ClientMessage:
 			if (muga_linux_windows[win].event.xclient.data.l[0] == muga_linux_windows[win].delete_message) {
-				muga_linux_windows[win].alive = MUGA_FALSE;
+				muga_linux_windows[win].closed = MUGA_TRUE;
 			}
 			XUnmapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
 			break;
@@ -3384,43 +3384,19 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
-MUGADEF MUGA_BOOL muga_window_get_active(MUGA_RESULT* result, muga_window win) {
+MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win) {
 	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for checking if window is active is invalid.\n");
+		muga_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
-		return MUGA_FALSE;
+		return MUGA_TRUE;
 	}
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
-	return muga_linux_windows[win].alive;
-}
-
-MUGADEF void muga_window_set_active(MUGA_RESULT* result, muga_window win, MUGA_BOOL active) {
-	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for setting if window is active is invalid.\n");
-		if (result != MUGA_NULL_PTR) {
-			*result = MUGA_FAILURE;
-		}
-		return;
-	}
-
-	if (active == MUGA_FALSE && muga_linux_windows[win].alive == MUGA_TRUE) {
-		XUnmapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
-		muga_window_update(result, win);
-		muga_linux_input_flush(&muga_linux_windows[win].input);
-	} else if (active == MUGA_TRUE && muga_linux_windows[win].alive == MUGA_FALSE) {
-		XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
-		muga_window_update(result, win);
-	}
-	muga_linux_windows[win].alive = active;
-
-	if (result != MUGA_NULL_PTR) {
-		*result= MUGA_SUCCESS;
-	}
+	return muga_linux_windows[win].closed;
 }
 
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
