@@ -273,6 +273,8 @@ typedef enum muga_input_key muga_input_key;
 MUGADEF void muga_init(MUGA_RESULT* result);
 MUGADEF void muga_term(MUGA_RESULT* result);
 
+MUGADEF double muga_time_get(MUGA_RESULT* result);
+
 /* window */
 
 typedef size_m muga_window;
@@ -1636,8 +1638,8 @@ size_m muga_windows_get_new_window_id() {
 // returns if id is valid or not
 MUGA_BOOL muga_windows_is_id_valid(muga_window win) {
 	if (win >= muga_windows_windows_length ||
-		muga_windows_windows[win].active == MUGA_FALSE ||
-		muga_windows_windows[win].closed == MUGA_TRUE
+		muga_windows_windows[win].active == MUGA_FALSE //||
+		//muga_windows_windows[win].closed == MUGA_TRUE
 	) {
 		return MUGA_FALSE;
 	}
@@ -2058,9 +2060,11 @@ MUGADEF void* muga_get_opengl_function_address(const char* name) {
 #define MUGA_LINUX
 
 #define XK_3270
-#include <X11/Xlib.h>
+#include <X11/X.h>
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
+
+#include <time.h>
 
 /* OPENGL SETUP */
 #ifndef MUGA_NO_OPENGL
@@ -3087,8 +3091,8 @@ size_m muga_linux_get_new_window_id() {
 
 MUGA_BOOL muga_linux_is_id_valid(muga_window win) {
 	if (win >= muga_linux_windows_length || 
-		muga_linux_windows[win].active == MUGA_FALSE || 
-		muga_linux_windows[win].closed == MUGA_TRUE
+		muga_linux_windows[win].active == MUGA_FALSE //|| 
+		//muga_linux_windows[win].closed == MUGA_TRUE
 	) {
 		return MUGA_FALSE;
 	}
@@ -3138,9 +3142,18 @@ void muga_linux_window_bind(muga_window win) {
 	muga_linux_window_binded = MUGA_TRUE;
 }
 
+// https://stackoverflow.com/questions/3756323/how-to-get-the-current-time-in-milliseconds-from-c-in-linux
+double muga_linux_get_global_time() {
+	struct timespec spec;
+	clock_gettime(CLOCK_REALTIME, &spec);
+    return (double)spec.tv_sec + ((double)spec.tv_nsec / (double)1.0e9);
+}
+
 /* initiation / termination */
 
 MUGA_BOOL muga_linux_is_initiated = MUGA_FALSE;
+double original_time = 0.f;
+
 MUGADEF void muga_init(MUGA_RESULT* result) {
 	if (muga_linux_is_initiated) {
 		muga_print("[MUGA] An attempt to initiate muga despite already being initiated was made.\n");
@@ -3155,6 +3168,8 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 		muga_linux_windows = muga_malloc(muga_linux_windows_length * sizeof(muga_linux_window));
 		muga_linux_windows[0].active = MUGA_FALSE;
 	}
+
+	original_time = muga_linux_get_global_time();
 
 	muga_linux_is_initiated = MUGA_TRUE;
 	if (result != MUGA_NULL_PTR) {
@@ -3187,6 +3202,13 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
+}
+
+MUGADEF double muga_time_get(MUGA_RESULT* result) {
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_linux_get_global_time() - original_time;
 }
 
 /* window functions */
