@@ -1680,9 +1680,18 @@ void muga_windows_bind(muga_window win) {
 	muga_windows_binded_window = win;
 }
 
+// https://stackoverflow.com/questions/1695288/getting-the-current-time-in-milliseconds-from-the-system-clock-in-windows
+double muga_windows_get_current_time() {
+	FILETIME file_time;
+	GetSystemTimeAsFileTime(&file_time);
+	LONGLONG ll_now = (LONGLONG)file_time.dwLowDateTime + ((LONGLONG)(file_time.dwHighDateTime) << 32LL);
+	return (double)ll_now / (double)1.0e7;
+}
+
 /* initiation/termination */
 
 MUGA_BOOL muga_windows_has_initiated = MUGA_FALSE;
+double muga_windows_original_time = 0.f;
 
 MUGADEF void muga_init(MUGA_RESULT* result) {
 	// init check
@@ -1693,12 +1702,15 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 		}
 		return;
 	}
+
 	muga_windows_has_initiated = MUGA_TRUE;
 	// initiate windows buffer
 	muga_windows_windows_length = 1;
 	muga_windows_windows = muga_malloc(sizeof(muga_windows_window) * muga_windows_windows_length);
 	muga_windows_windows[0].active = MUGA_FALSE;
 	muga_windows_windows[0].framebuffer_resize_callback = MUGA_NULL_PTR;
+
+	muga_windows_original_time = muga_windows_get_current_time();
 
 	// return
 	if (result != MUGA_NULL) {
@@ -1736,6 +1748,20 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 	if (result != MUGA_NULL) {
 		*result = MUGA_SUCCESS;
 	}
+}
+
+MUGADEF double muga_time_get(MUGA_RESULT* result) {
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_windows_get_current_time() - muga_windows_original_time;
+}
+
+MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	muga_windows_original_time = muga_windows_original_time + muga_time_get(result) - time;
 }
 
 /* basic window funcs */
@@ -2003,7 +2029,7 @@ MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win) {
 		return;
 	}
 
-	muga_window_set_visible(result, win, MUGA_TRUE);
+	muga_window_set_visible(result, win, MUGA_FALSE);
 	muga_windows_windows[win].closed = MUGA_TRUE;
 
 	if (result != MUGA_NULL_PTR) {
@@ -3210,7 +3236,7 @@ double muga_linux_get_global_time() {
 /* initiation / termination */
 
 MUGA_BOOL muga_linux_is_initiated = MUGA_FALSE;
-double original_time = 0.f;
+double muga_linux_original_time = 0.f;
 
 MUGADEF void muga_init(MUGA_RESULT* result) {
 	if (muga_linux_is_initiated) {
@@ -3227,7 +3253,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 		muga_linux_windows[0].active = MUGA_FALSE;
 	}
 
-	original_time = muga_linux_get_global_time();
+	muga_linux_original_time = muga_linux_get_global_time();
 
 	muga_linux_is_initiated = MUGA_TRUE;
 	if (result != MUGA_NULL_PTR) {
@@ -3266,14 +3292,14 @@ MUGADEF double muga_time_get(MUGA_RESULT* result) {
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
-	return muga_linux_get_global_time() - original_time;
+	return muga_linux_get_global_time() - muga_linux_original_time;
 }
 
 MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
-	original_time = original_time + muga_time_get(result) - time;
+	muga_linux_original_time = muga_linux_original_time + muga_time_get(result) - time;
 }
 
 /* window functions */
@@ -3552,7 +3578,7 @@ MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win) {
 		return;
 	}
 
-	muga_window_set_visible(result, win, MUGA_TRUE);
+	muga_window_set_visible(result, win, MUGA_FALSE);
 	muga_linux_windows[win].closed = MUGA_TRUE;
 
 	if (result != MUGA_NULL_PTR) {
