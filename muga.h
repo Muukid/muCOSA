@@ -141,28 +141,16 @@ enum muga_input_key {
 	// keyboard
 	// (https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
 
-	// @TODO add comments to some of these
 	MUGA_KEYBOARD_KEY_BACKSPACE,
 	MUGA_KEYBOARD_KEY_TAB,
 	MUGA_KEYBOARD_KEY_CLEAR,
 	MUGA_KEYBOARD_KEY_RETURN,
-	MUGA_KEYBOARD_KEY_SHIFT,
-	MUGA_KEYBOARD_KEY_CONTROL,
-	MUGA_KEYBOARD_KEY_MENU,
 	MUGA_KEYBOARD_KEY_PAUSE,
-	MUGA_KEYBOARD_KEY_CAPITAL,
 	MUGA_KEYBOARD_KEY_KANA,
 	MUGA_KEYBOARD_KEY_HANGUL,
-	MUGA_KEYBOARD_KEY_IME_ON,
-	MUGA_KEYBOARD_KEY_JUNJA,
-	MUGA_KEYBOARD_KEY_FINAL,
 	MUGA_KEYBOARD_KEY_HANJA,
 	MUGA_KEYBOARD_KEY_KANJI,
-	MUGA_KEYBOARD_KEY_IME_OFF,
 	MUGA_KEYBOARD_KEY_ESCAPE,
-	MUGA_KEYBOARD_KEY_CONVERT,
-	MUGA_KEYBOARD_KEY_NONCONVERT,
-	MUGA_KEYBOARD_KEY_ACCEPT,
 	MUGA_KEYBOARD_KEY_MODECHANGE,
 	MUGA_KEYBOARD_KEY_SPACE,
 	MUGA_KEYBOARD_KEY_PRIOR,
@@ -176,7 +164,6 @@ enum muga_input_key {
 	MUGA_KEYBOARD_KEY_SELECT,
 	MUGA_KEYBOARD_KEY_PRINT,
 	MUGA_KEYBOARD_KEY_EXECUTE,
-	MUGA_KEYBOARD_KEY_SNAPSHOT,
 	MUGA_KEYBOARD_KEY_INSERT,
 	MUGA_KEYBOARD_KEY_DELETE,
 	MUGA_KEYBOARD_KEY_HELP,
@@ -218,8 +205,6 @@ enum muga_input_key {
 	MUGA_KEYBOARD_KEY_Z,
 	MUGA_KEYBOARD_KEY_LEFT_WINDOWS,
 	MUGA_KEYBOARD_KEY_RIGHT_WINDOWS,
-	MUGA_KEYBOARD_KEY_APPS,
-	MUGA_KEYBOARD_KEY_SLEEP,
 	MUGA_KEYBOARD_KEY_NUMPAD_0,
 	MUGA_KEYBOARD_KEY_NUMPAD_1,
 	MUGA_KEYBOARD_KEY_NUMPAD_2,
@@ -268,50 +253,15 @@ enum muga_input_key {
 	MUGA_KEYBOARD_KEY_RIGHT_CONTROL,
 	MUGA_KEYBOARD_KEY_LEFT_MENU,
 	MUGA_KEYBOARD_KEY_RIGHT_MENU,
-	MUGA_KEYBOARD_KEY_BROWSER_BACK,
-	MUGA_KEYBOARD_KEY_BROWSER_FORWARD,
-	MUGA_KEYBOARD_KEY_BROWSER_REFRESH,
-	MUGA_KEYBOARD_KEY_BROWSER_STOP,
-	MUGA_KEYBOARD_KEY_BROWSER_SEARCH,
-	MUGA_KEYBOARD_KEY_BROWSER_FAVORITES,
-	MUGA_KEYBOARD_KEY_BROWSER_HOME,
-	MUGA_KEYBOARD_KEY_VOLUME_MUTE,
-	MUGA_KEYBOARD_KEY_VOLUME_DOWN,
-	MUGA_KEYBOARD_KEY_VOLUME_UP,
-	MUGA_KEYBOARD_KEY_MEDIA_NEXT_TRACK,
-	MUGA_KEYBOARD_KEY_MEDIA_PREV_TRACK,
-	MUGA_KEYBOARD_KEY_MEDIA_STOP,
-	MUGA_KEYBOARD_KEY_MEDIA_PLAY_PAUSE,
-	MUGA_KEYBOARD_KEY_LAUNCH_MAIL,
-	MUGA_KEYBOARD_KEY_LAUNCH_MEDIA_SELECT,
-	MUGA_KEYBOARD_KEY_LAUNCH_APP1,
-	MUGA_KEYBOARD_KEY_LAUNCH_APP2,
-	MUGA_KEYBOARD_KEY_OEM_1,
-	MUGA_KEYBOARD_KEY_OEM_PLUS,
-	MUGA_KEYBOARD_KEY_OEM_COMMA,
-	MUGA_KEYBOARD_KEY_OEM_MINUS,
-	MUGA_KEYBOARD_KEY_OEM_PERIOD,
-	MUGA_KEYBOARD_KEY_OEM_2,
-	MUGA_KEYBOARD_KEY_OEM_3,
-	MUGA_KEYBOARD_KEY_OEM_4,
-	MUGA_KEYBOARD_KEY_OEM_5,
-	MUGA_KEYBOARD_KEY_OEM_6,
-	MUGA_KEYBOARD_KEY_OEM_7,
-	MUGA_KEYBOARD_KEY_OEM_8,
-	MUGA_KEYBOARD_KEY_OEM_102,
-	MUGA_KEYBOARD_KEY_PROCESS,
-	MUGA_KEYBOARD_KEY_PACKET,
 	MUGA_KEYBOARD_KEY_ATTN,
 	MUGA_KEYBOARD_KEY_CRSEL,
 	MUGA_KEYBOARD_KEY_EXSEL,
 	MUGA_KEYBOARD_KEY_EREOF,
 	MUGA_KEYBOARD_KEY_PLAY,
-	MUGA_KEYBOARD_KEY_ZOOM,
-	MUGA_KEYBOARD_KEY_PA1,
-	MUGA_KEYBOARD_KEY_OEM_CLEAR
+	MUGA_KEYBOARD_KEY_PA1
 
 #define MUGA_KEYBOARD_FIRST MUGA_KEYBOARD_KEY_BACKSPACE
-#define MUGA_KEYBOARD_LAST MUGA_KEYBOARD_KEY_OEM_CLEAR
+#define MUGA_KEYBOARD_LAST MUGA_KEYBOARD_KEY_PA1
 #define MUGA_IS_KEYBOARD(key) (key >= MUGA_KEYBOARD_FIRST && key <= MUGA_KEYBOARD_LAST)
 };
 typedef enum muga_input_key muga_input_key;
@@ -392,7 +342,6 @@ MUGADEF void* muga_get_opengl_function_address(const char* name);
 #define MUGA_WINDOWS
 
 #include <windows.h>
-#include <Windows.h>
 
 // get the hinstance
 // thank you we luv u raymond chen <3
@@ -841,20 +790,8 @@ int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 	case MUGA_KEYBOARD_KEY_RETURN:
 		return VK_RETURN;
 		break;
-	case MUGA_KEYBOARD_KEY_SHIFT:
-		return VK_SHIFT;
-		break;
-	case MUGA_KEYBOARD_KEY_CONTROL:
-		return VK_CONTROL;
-		break;
-	case MUGA_KEYBOARD_KEY_MENU:
-		return VK_MENU;
-		break;
 	case MUGA_KEYBOARD_KEY_PAUSE:
 		return VK_PAUSE;
-		break;
-	case MUGA_KEYBOARD_KEY_CAPITAL:
-		return VK_CAPITAL;
 		break;
 	case MUGA_KEYBOARD_KEY_KANA:
 		return VK_KANA;
@@ -862,35 +799,14 @@ int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 	case MUGA_KEYBOARD_KEY_HANGUL:
 		return VK_HANGUL;
 		break;
-	/*case MUGA_KEYBOARD_KEY_IME_ON:
-		return VK_IME_ON;
-		break;*/
-	case MUGA_KEYBOARD_KEY_JUNJA:
-		return VK_JUNJA;
-		break;
-	case MUGA_KEYBOARD_KEY_FINAL:
-		return VK_FINAL;
-		break;
 	case MUGA_KEYBOARD_KEY_HANJA:
 		return VK_HANJA;
 		break;
 	case MUGA_KEYBOARD_KEY_KANJI:
 		return VK_KANJI;
 		break;
-	/*case MUGA_KEYBOARD_KEY_IME_OFF:
-		return VK_IME_OFF;
-		break;*/
 	case MUGA_KEYBOARD_KEY_ESCAPE:
 		return VK_ESCAPE;
-		break;
-	case MUGA_KEYBOARD_KEY_CONVERT:
-		return VK_CONVERT;
-		break;
-	case MUGA_KEYBOARD_KEY_NONCONVERT:
-		return VK_NONCONVERT;
-		break;
-	case MUGA_KEYBOARD_KEY_ACCEPT:
-		return VK_ACCEPT;
 		break;
 	case MUGA_KEYBOARD_KEY_MODECHANGE:
 		return VK_MODECHANGE;
@@ -930,9 +846,6 @@ int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 		break;
 	case MUGA_KEYBOARD_KEY_EXECUTE:
 		return VK_EXECUTE;
-		break;
-	case MUGA_KEYBOARD_KEY_SNAPSHOT:
-		return VK_SNAPSHOT;
 		break;
 	case MUGA_KEYBOARD_KEY_INSERT:
 		return VK_INSERT;
@@ -1056,12 +969,6 @@ int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 		break;
 	case MUGA_KEYBOARD_KEY_RIGHT_WINDOWS:
 		return VK_RWIN;
-		break;
-	case MUGA_KEYBOARD_KEY_APPS:
-		return VK_APPS;
-		break;
-	case MUGA_KEYBOARD_KEY_SLEEP:
-		return VK_SLEEP;
 		break;
 	case MUGA_KEYBOARD_KEY_NUMPAD_0:
 		return VK_NUMPAD0;
@@ -1207,105 +1114,6 @@ int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 	case MUGA_KEYBOARD_KEY_RIGHT_MENU:
 		return VK_RMENU;
 		break;
-	case MUGA_KEYBOARD_KEY_BROWSER_BACK:
-		return VK_BROWSER_BACK;
-		break;
-	case MUGA_KEYBOARD_KEY_BROWSER_FORWARD:
-		return VK_BROWSER_FORWARD;
-		break;
-	case MUGA_KEYBOARD_KEY_BROWSER_REFRESH:
-		return VK_BROWSER_REFRESH;
-		break;
-	case MUGA_KEYBOARD_KEY_BROWSER_STOP:
-		return VK_BROWSER_STOP;
-		break;
-	case MUGA_KEYBOARD_KEY_BROWSER_SEARCH:
-		return VK_BROWSER_SEARCH;
-		break;
-	case MUGA_KEYBOARD_KEY_BROWSER_FAVORITES:
-		return VK_BROWSER_FAVORITES;
-		break;
-	case MUGA_KEYBOARD_KEY_BROWSER_HOME:
-		return VK_BROWSER_HOME;
-		break;
-	case MUGA_KEYBOARD_KEY_VOLUME_MUTE:
-		return VK_VOLUME_MUTE;
-		break;
-	case MUGA_KEYBOARD_KEY_VOLUME_DOWN:
-		return VK_VOLUME_DOWN;
-		break;
-	case MUGA_KEYBOARD_KEY_VOLUME_UP:
-		return VK_VOLUME_UP;
-		break;
-	case MUGA_KEYBOARD_KEY_MEDIA_NEXT_TRACK:
-		return VK_MEDIA_NEXT_TRACK;
-		break;
-	case MUGA_KEYBOARD_KEY_MEDIA_PREV_TRACK:
-		return VK_MEDIA_PREV_TRACK;
-		break;
-	case MUGA_KEYBOARD_KEY_MEDIA_STOP:
-		return VK_MEDIA_STOP;
-		break;
-	case MUGA_KEYBOARD_KEY_MEDIA_PLAY_PAUSE:
-		return VK_MEDIA_PLAY_PAUSE;
-		break;
-	case MUGA_KEYBOARD_KEY_LAUNCH_MAIL:
-		return VK_LAUNCH_MAIL;
-		break;
-	case MUGA_KEYBOARD_KEY_LAUNCH_MEDIA_SELECT:
-		return VK_LAUNCH_MEDIA_SELECT;
-		break;
-	case MUGA_KEYBOARD_KEY_LAUNCH_APP1:
-		return VK_LAUNCH_APP1;
-		break;
-	case MUGA_KEYBOARD_KEY_LAUNCH_APP2:
-		return VK_LAUNCH_APP2;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_1:
-		return VK_OEM_1;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_PLUS:
-		return VK_OEM_PLUS;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_COMMA:
-		return VK_OEM_COMMA;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_MINUS:
-		return VK_OEM_MINUS;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_PERIOD:
-		return VK_OEM_PERIOD;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_2:
-		return VK_OEM_2;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_3:
-		return VK_OEM_3;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_4:
-		return VK_OEM_4;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_5:
-		return VK_OEM_5;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_6:
-		return VK_OEM_6;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_7:
-		return VK_OEM_7;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_8:
-		return VK_OEM_8;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_102:
-		return VK_OEM_102;
-		break;
-	case MUGA_KEYBOARD_KEY_PROCESS:
-		return VK_PROCESSKEY;
-		break;
-	case MUGA_KEYBOARD_KEY_PACKET:
-		return VK_PACKET;
-		break;
 	case MUGA_KEYBOARD_KEY_ATTN:
 		return VK_ATTN;
 		break;
@@ -1321,14 +1129,8 @@ int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 	case MUGA_KEYBOARD_KEY_PLAY:
 		return VK_PLAY;
 		break;
-	case MUGA_KEYBOARD_KEY_ZOOM:
-		return VK_ZOOM;
-		break;
 	case MUGA_KEYBOARD_KEY_PA1:
 		return VK_PA1;
-		break;
-	case MUGA_KEYBOARD_KEY_OEM_CLEAR:
-		return VK_OEM_CLEAR;
 		break;
 	}
 }
@@ -1835,7 +1637,9 @@ MUGADEF void* muga_get_opengl_function_address(const char* name) {
 #ifdef linux
 #define MUGA_LINUX
 
+#define XK_3270
 #include <X11/Xlib.h>
+#include <X11/XKBlib.h>
 
 /* OPENGL SETUP */
 #ifndef MUGA_NO_OPENGL
@@ -2082,6 +1886,749 @@ MUGA_RESULT muga_linux_init_opengl(Display* display, GLXContext* context, muga_g
 
 #endif /* MUGA_NO_OPENGL */
 
+/* keyboard input */
+
+// https://www.cl.cam.ac.uk/~mgk25/ucs/keysymdef.h
+int muga_linux_muga_key_to_linux_key(muga_input_key key) {
+	switch (key) {
+	default:
+		return XK_VoidSymbol;
+		break;
+	case MUGA_KEYBOARD_KEY_BACKSPACE:
+		return XK_BackSpace;
+		break;
+	case MUGA_KEYBOARD_KEY_TAB:
+		return XK_Tab;
+		break;
+	case MUGA_KEYBOARD_KEY_CLEAR:
+		return XK_Clear;
+		break;
+	case MUGA_KEYBOARD_KEY_RETURN:
+		return XK_Return;
+		break;
+	case MUGA_KEYBOARD_KEY_PAUSE:
+		return XK_Pause;
+		break;
+	case MUGA_KEYBOARD_KEY_KANA:
+		return XK_Katakana;
+		break;
+	case MUGA_KEYBOARD_KEY_HANGUL:
+		return XK_Hangul;
+		break;
+	case MUGA_KEYBOARD_KEY_HANJA:
+		return XK_Hangul_Hanja;
+		break;
+	case MUGA_KEYBOARD_KEY_KANJI:
+		return XK_Kanji;
+		break;
+	case MUGA_KEYBOARD_KEY_ESCAPE:
+		return XK_Escape;
+		break;
+	case MUGA_KEYBOARD_KEY_MODECHANGE:
+		return XK_Mode_switch;
+		break;
+	case MUGA_KEYBOARD_KEY_SPACE:
+		return XK_space;
+		break;
+	case MUGA_KEYBOARD_KEY_PRIOR:
+		return XK_Prior;
+		break;
+	case MUGA_KEYBOARD_KEY_NEXT:
+		return XK_Next;
+		break;
+	case MUGA_KEYBOARD_KEY_END:
+		return XK_End;
+		break;
+	case MUGA_KEYBOARD_KEY_HOME:
+		return XK_Home;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT:
+		return XK_Left;
+		break;
+	case MUGA_KEYBOARD_KEY_UP:
+		return XK_Up;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT:
+		return XK_Right;
+		break;
+	case MUGA_KEYBOARD_KEY_DOWN:
+		return XK_Down;
+		break;
+	case MUGA_KEYBOARD_KEY_SELECT:
+		return XK_Select;
+		break;
+	case MUGA_KEYBOARD_KEY_PRINT:
+		return XK_Print;
+		break;
+	case MUGA_KEYBOARD_KEY_EXECUTE:
+		return XK_Execute;
+		break;
+	case MUGA_KEYBOARD_KEY_INSERT:
+		return XK_Insert;
+		break;
+	case MUGA_KEYBOARD_KEY_DELETE:
+		return XK_Delete;
+		break;
+	case MUGA_KEYBOARD_KEY_HELP:
+		return XK_Help;
+		break;
+	case MUGA_KEYBOARD_KEY_0:
+		return XK_0;
+		break;
+	case MUGA_KEYBOARD_KEY_1:
+		return XK_1;
+		break;
+	case MUGA_KEYBOARD_KEY_2:
+		return XK_2;
+		break;
+	case MUGA_KEYBOARD_KEY_3:
+		return XK_3;
+		break;
+	case MUGA_KEYBOARD_KEY_4:
+		return XK_4;
+		break;
+	case MUGA_KEYBOARD_KEY_5:
+		return XK_5;
+		break;
+	case MUGA_KEYBOARD_KEY_6:
+		return XK_6;
+		break;
+	case MUGA_KEYBOARD_KEY_7:
+		return XK_7;
+		break;
+	case MUGA_KEYBOARD_KEY_8:
+		return XK_8;
+		break;
+	case MUGA_KEYBOARD_KEY_9:
+		return XK_9;
+		break;
+	case MUGA_KEYBOARD_KEY_A:
+		return XK_a;
+		break;
+	case MUGA_KEYBOARD_KEY_B:
+		return XK_b;
+		break;
+	case MUGA_KEYBOARD_KEY_C:
+		return XK_c;
+		break;
+	case MUGA_KEYBOARD_KEY_D:
+		return XK_d;
+		break;
+	case MUGA_KEYBOARD_KEY_E:
+		return XK_e;
+		break;
+	case MUGA_KEYBOARD_KEY_F:
+		return XK_f;
+		break;
+	case MUGA_KEYBOARD_KEY_G:
+		return XK_g;
+		break;
+	case MUGA_KEYBOARD_KEY_H:
+		return XK_h;
+		break;
+	case MUGA_KEYBOARD_KEY_I:
+		return XK_i;
+		break;
+	case MUGA_KEYBOARD_KEY_J:
+		return XK_j;
+		break;
+	case MUGA_KEYBOARD_KEY_K:
+		return XK_k;
+		break;
+	case MUGA_KEYBOARD_KEY_L:
+		return XK_l;
+		break;
+	case MUGA_KEYBOARD_KEY_M:
+		return XK_m;
+		break;
+	case MUGA_KEYBOARD_KEY_N:
+		return XK_n;
+		break;
+	case MUGA_KEYBOARD_KEY_O:
+		return XK_o;
+		break;
+	case MUGA_KEYBOARD_KEY_P:
+		return XK_p;
+		break;
+	case MUGA_KEYBOARD_KEY_Q:
+		return XK_q;
+		break;
+	case MUGA_KEYBOARD_KEY_R:
+		return XK_r;
+		break;
+	case MUGA_KEYBOARD_KEY_S:
+		return XK_s;
+		break;
+	case MUGA_KEYBOARD_KEY_T:
+		return XK_t;
+		break;
+	case MUGA_KEYBOARD_KEY_U:
+		return XK_u;
+		break;
+	case MUGA_KEYBOARD_KEY_V:
+		return XK_v;
+		break;
+	case MUGA_KEYBOARD_KEY_W:
+		return XK_w;
+		break;
+	case MUGA_KEYBOARD_KEY_X:
+		return XK_x;
+		break;
+	case MUGA_KEYBOARD_KEY_Y:
+		return XK_y;
+		break;
+	case MUGA_KEYBOARD_KEY_Z:
+		return XK_z;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_WINDOWS:
+		return XK_Super_L;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_WINDOWS:
+		return XK_Super_R;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_0:
+		return XK_KP_0;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_1:
+		return XK_KP_1;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_2:
+		return XK_KP_2;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_3:
+		return XK_KP_3;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_4:
+		return XK_KP_4;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_5:
+		return XK_KP_5;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_6:
+		return XK_KP_6;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_7:
+		return XK_KP_7;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_8:
+		return XK_KP_8;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMPAD_9:
+		return XK_KP_9;
+		break;
+	case MUGA_KEYBOARD_KEY_MULTIPLY:
+		return XK_KP_Multiply;
+		break;
+	case MUGA_KEYBOARD_KEY_ADD:
+		return XK_KP_Add;
+		break;
+	case MUGA_KEYBOARD_KEY_SEPARATOR:
+		return XK_KP_Separator;
+		break;
+	case MUGA_KEYBOARD_KEY_SUBTRACT:
+		return XK_KP_Subtract;
+		break;
+	case MUGA_KEYBOARD_KEY_DECIMAL:
+		return XK_KP_Decimal;
+		break;
+	case MUGA_KEYBOARD_KEY_DIVIDE:
+		return XK_KP_Divide;
+		break;
+	case MUGA_KEYBOARD_KEY_F1:
+		return XK_F1;
+		break;
+	case MUGA_KEYBOARD_KEY_F2:
+		return XK_F2;
+		break;
+	case MUGA_KEYBOARD_KEY_F3:
+		return XK_F3;
+		break;
+	case MUGA_KEYBOARD_KEY_F4:
+		return XK_F4;
+		break;
+	case MUGA_KEYBOARD_KEY_F5:
+		return XK_F5;
+		break;
+	case MUGA_KEYBOARD_KEY_F6:
+		return XK_F6;
+		break;
+	case MUGA_KEYBOARD_KEY_F7:
+		return XK_F7;
+		break;
+	case MUGA_KEYBOARD_KEY_F8:
+		return XK_F8;
+		break;
+	case MUGA_KEYBOARD_KEY_F9:
+		return XK_F9;
+		break;
+	case MUGA_KEYBOARD_KEY_F10:
+		return XK_F10;
+		break;
+	case MUGA_KEYBOARD_KEY_F11:
+		return XK_F11;
+		break;
+	case MUGA_KEYBOARD_KEY_F12:
+		return XK_F12;
+		break;
+	case MUGA_KEYBOARD_KEY_F13:
+		return XK_F13;
+		break;
+	case MUGA_KEYBOARD_KEY_F14:
+		return XK_F14;
+		break;
+	case MUGA_KEYBOARD_KEY_F15:
+		return XK_F15;
+		break;
+	case MUGA_KEYBOARD_KEY_F16:
+		return XK_F16;
+		break;
+	case MUGA_KEYBOARD_KEY_F17:
+		return XK_F17;
+		break;
+	case MUGA_KEYBOARD_KEY_F18:
+		return XK_F18;
+		break;
+	case MUGA_KEYBOARD_KEY_F19:
+		return XK_F19;
+		break;
+	case MUGA_KEYBOARD_KEY_F20:
+		return XK_F20;
+		break;
+	case MUGA_KEYBOARD_KEY_F21:
+		return XK_F21;
+		break;
+	case MUGA_KEYBOARD_KEY_F22:
+		return XK_F22;
+		break;
+	case MUGA_KEYBOARD_KEY_F23:
+		return XK_F23;
+		break;
+	case MUGA_KEYBOARD_KEY_F24:
+		return XK_F24;
+		break;
+	case MUGA_KEYBOARD_KEY_NUMLOCK:
+		return XK_Num_Lock;
+		break;
+	case MUGA_KEYBOARD_KEY_SCROLL:
+		return XK_Scroll_Lock;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_SHIFT:
+		return XK_Shift_L;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_SHIFT:
+		return XK_Shift_R;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_CONTROL:
+		return XK_Control_L;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_CONTROL:
+		return XK_Control_R;
+		break;
+	case MUGA_KEYBOARD_KEY_LEFT_MENU:
+		return XK_Menu;
+		break;
+	case MUGA_KEYBOARD_KEY_RIGHT_MENU:
+		return XK_Menu;
+		break;
+	case MUGA_KEYBOARD_KEY_ATTN:
+		return XK_3270_Attn;
+		break;
+	case MUGA_KEYBOARD_KEY_CRSEL:
+		return XK_3270_CursorSelect;
+		break;
+	case MUGA_KEYBOARD_KEY_EXSEL:
+		return XK_3270_ExSelect;
+		break;
+	case MUGA_KEYBOARD_KEY_EREOF:
+		return XK_3270_EraseEOF;
+		break;
+	case MUGA_KEYBOARD_KEY_PLAY:
+		return XK_3270_Play;
+		break;
+	case MUGA_KEYBOARD_KEY_PA1:
+		return XK_3270_PA1;
+		break;
+	}
+}
+
+muga_input_key muga_linux_linux_key_to_muga_key(int key) {
+	switch (key) {
+	default:
+		return MUGA_NO_INPUT_KEY;
+		break;
+	case XK_BackSpace:
+		return MUGA_KEYBOARD_KEY_BACKSPACE;
+		break;
+	case XK_Tab:
+		return MUGA_KEYBOARD_KEY_TAB;
+		break;
+	case XK_Clear:
+		return MUGA_KEYBOARD_KEY_CLEAR;
+		break;
+	case XK_Return:
+		return MUGA_KEYBOARD_KEY_RETURN;
+		break;
+	case XK_Menu:
+		return MUGA_KEYBOARD_KEY_LEFT_MENU;
+		break;
+	case XK_Pause:
+		return MUGA_KEYBOARD_KEY_PAUSE;
+		break;
+	case XK_Katakana:
+		return MUGA_KEYBOARD_KEY_KANA;
+		break;
+	case XK_Hangul:
+		return MUGA_KEYBOARD_KEY_HANGUL;
+		break;
+	case XK_Hangul_Hanja:
+		return MUGA_KEYBOARD_KEY_HANJA;
+		break;
+	case XK_Kanji:
+		return MUGA_KEYBOARD_KEY_KANJI;
+		break;
+	case XK_Escape:
+		return MUGA_KEYBOARD_KEY_ESCAPE;
+		break;
+	case XK_Mode_switch:
+		return MUGA_KEYBOARD_KEY_MODECHANGE;
+		break;
+	case XK_space:
+		return MUGA_KEYBOARD_KEY_SPACE;
+		break;
+	case XK_Prior:
+		return MUGA_KEYBOARD_KEY_PRIOR;
+		break;
+	case XK_Next:
+		return MUGA_KEYBOARD_KEY_NEXT;
+		break;
+	case XK_End:
+		return MUGA_KEYBOARD_KEY_END;
+		break;
+	case XK_Home:
+		return MUGA_KEYBOARD_KEY_HOME;
+		break;
+	case XK_Left:
+		return MUGA_KEYBOARD_KEY_LEFT;
+		break;
+	case XK_Up:
+		return MUGA_KEYBOARD_KEY_UP;
+		break;
+	case XK_Right:
+		return MUGA_KEYBOARD_KEY_RIGHT;
+		break;
+	case XK_Down:
+		return MUGA_KEYBOARD_KEY_DOWN;
+		break;
+	case XK_Select:
+		return MUGA_KEYBOARD_KEY_SELECT;
+		break;
+	case XK_Print:
+		return MUGA_KEYBOARD_KEY_PRINT;
+		break;
+	case XK_Execute:
+		return MUGA_KEYBOARD_KEY_EXECUTE;
+		break;
+	case XK_Insert:
+		return MUGA_KEYBOARD_KEY_INSERT;
+		break;
+	case XK_Delete:
+		return MUGA_KEYBOARD_KEY_DELETE;
+		break;
+	case XK_Help:
+		return MUGA_KEYBOARD_KEY_HELP;
+		break;
+	case XK_0:
+		return MUGA_KEYBOARD_KEY_0;
+		break;
+	case XK_1:
+		return MUGA_KEYBOARD_KEY_1;
+		break;
+	case XK_2:
+		return MUGA_KEYBOARD_KEY_2;
+		break;
+	case XK_3:
+		return MUGA_KEYBOARD_KEY_3;
+		break;
+	case XK_4:
+		return MUGA_KEYBOARD_KEY_4;
+		break;
+	case XK_5:
+		return MUGA_KEYBOARD_KEY_5;
+		break;
+	case XK_6:
+		return MUGA_KEYBOARD_KEY_6;
+		break;
+	case XK_7:
+		return MUGA_KEYBOARD_KEY_7;
+		break;
+	case XK_8:
+		return MUGA_KEYBOARD_KEY_8;
+		break;
+	case XK_9:
+		return MUGA_KEYBOARD_KEY_9;
+		break;
+	case XK_a:
+		return MUGA_KEYBOARD_KEY_A;
+		break;
+	case XK_b:
+		return MUGA_KEYBOARD_KEY_B;
+		break;
+	case XK_c:
+		return MUGA_KEYBOARD_KEY_C;
+		break;
+	case XK_d:
+		return MUGA_KEYBOARD_KEY_D;
+		break;
+	case XK_e:
+		return MUGA_KEYBOARD_KEY_E;
+		break;
+	case XK_f:
+		return MUGA_KEYBOARD_KEY_F;
+		break;
+	case XK_g:
+		return MUGA_KEYBOARD_KEY_G;
+		break;
+	case XK_h:
+		return MUGA_KEYBOARD_KEY_H;
+		break;
+	case XK_i:
+		return MUGA_KEYBOARD_KEY_I;
+		break;
+	case XK_j:
+		return MUGA_KEYBOARD_KEY_J;
+		break;
+	case XK_k:
+		return MUGA_KEYBOARD_KEY_K;
+		break;
+	case XK_l:
+		return MUGA_KEYBOARD_KEY_L;
+		break;
+	case XK_m:
+		return MUGA_KEYBOARD_KEY_M;
+		break;
+	case XK_n:
+		return MUGA_KEYBOARD_KEY_N;
+		break;
+	case XK_o:
+		return MUGA_KEYBOARD_KEY_O;
+		break;
+	case XK_p:
+		return MUGA_KEYBOARD_KEY_P;
+		break;
+	case XK_q:
+		return MUGA_KEYBOARD_KEY_Q;
+		break;
+	case XK_r:
+		return MUGA_KEYBOARD_KEY_R;
+		break;
+	case XK_s:
+		return MUGA_KEYBOARD_KEY_S;
+		break;
+	case XK_t:
+		return MUGA_KEYBOARD_KEY_T;
+		break;
+	case XK_u:
+		return MUGA_KEYBOARD_KEY_U;
+		break;
+	case XK_v:
+		return MUGA_KEYBOARD_KEY_V;
+		break;
+	case XK_w:
+		return MUGA_KEYBOARD_KEY_W;
+		break;
+	case XK_x:
+		return MUGA_KEYBOARD_KEY_X;
+		break;
+	case XK_y:
+		return MUGA_KEYBOARD_KEY_Y;
+		break;
+	case XK_z:
+		return MUGA_KEYBOARD_KEY_Z;
+		break;
+	case XK_Super_L:
+		return MUGA_KEYBOARD_KEY_LEFT_WINDOWS;
+		break;
+	case XK_Super_R:
+		return MUGA_KEYBOARD_KEY_RIGHT_WINDOWS;
+		break;
+	case XK_KP_0:
+		return MUGA_KEYBOARD_KEY_NUMPAD_0;
+		break;
+	case XK_KP_1:
+		return MUGA_KEYBOARD_KEY_NUMPAD_1;
+		break;
+	case XK_KP_2:
+		return MUGA_KEYBOARD_KEY_NUMPAD_2;
+		break;
+	case XK_KP_3:
+		return MUGA_KEYBOARD_KEY_NUMPAD_3;
+		break;
+	case XK_KP_4:
+		return MUGA_KEYBOARD_KEY_NUMPAD_4;
+		break;
+	case XK_KP_5:
+		return MUGA_KEYBOARD_KEY_NUMPAD_5;
+		break;
+	case XK_KP_6:
+		return MUGA_KEYBOARD_KEY_NUMPAD_6;
+		break;
+	case XK_KP_7:
+		return MUGA_KEYBOARD_KEY_NUMPAD_7;
+		break;
+	case XK_KP_8:
+		return MUGA_KEYBOARD_KEY_NUMPAD_8;
+		break;
+	case XK_KP_9:
+		return MUGA_KEYBOARD_KEY_NUMPAD_9;
+		break;
+	case XK_KP_Multiply:
+		return MUGA_KEYBOARD_KEY_MULTIPLY;
+		break;
+	case XK_KP_Add:
+		return MUGA_KEYBOARD_KEY_ADD;
+		break;
+	case XK_KP_Separator:
+		return MUGA_KEYBOARD_KEY_SEPARATOR;
+		break;
+	case XK_KP_Subtract:
+		return MUGA_KEYBOARD_KEY_SUBTRACT;
+		break;
+	case XK_KP_Decimal:
+		return MUGA_KEYBOARD_KEY_DECIMAL;
+		break;
+	case XK_KP_Divide:
+		return MUGA_KEYBOARD_KEY_DIVIDE;
+		break;
+	case XK_F1:
+		return MUGA_KEYBOARD_KEY_F1;
+		break;
+	case XK_F2:
+		return MUGA_KEYBOARD_KEY_F2;
+		break;
+	case XK_F3:
+		return MUGA_KEYBOARD_KEY_F3;
+		break;
+	case XK_F4:
+		return MUGA_KEYBOARD_KEY_F4;
+		break;
+	case XK_F5:
+		return MUGA_KEYBOARD_KEY_F5;
+		break;
+	case XK_F6:
+		return MUGA_KEYBOARD_KEY_F6;
+		break;
+	case XK_F7:
+		return MUGA_KEYBOARD_KEY_F7;
+		break;
+	case XK_F8:
+		return MUGA_KEYBOARD_KEY_F8;
+		break;
+	case XK_F9:
+		return MUGA_KEYBOARD_KEY_F9;
+		break;
+	case XK_F10:
+		return MUGA_KEYBOARD_KEY_F10;
+		break;
+	case XK_F11:
+		return MUGA_KEYBOARD_KEY_F11;
+		break;
+	case XK_F12:
+		return MUGA_KEYBOARD_KEY_F12;
+		break;
+	case XK_F13:
+		return MUGA_KEYBOARD_KEY_F13;
+		break;
+	case XK_F14:
+		return MUGA_KEYBOARD_KEY_F14;
+		break;
+	case XK_F15:
+		return MUGA_KEYBOARD_KEY_F15;
+		break;
+	case XK_F16:
+		return MUGA_KEYBOARD_KEY_F16;
+		break;
+	case XK_F17:
+		return MUGA_KEYBOARD_KEY_F17;
+		break;
+	case XK_F18:
+		return MUGA_KEYBOARD_KEY_F18;
+		break;
+	case XK_F19:
+		return MUGA_KEYBOARD_KEY_F19;
+		break;
+	case XK_F20:
+		return MUGA_KEYBOARD_KEY_F20;
+		break;
+	case XK_F21:
+		return MUGA_KEYBOARD_KEY_F21;
+		break;
+	case XK_F22:
+		return MUGA_KEYBOARD_KEY_F22;
+		break;
+	case XK_F23:
+		return MUGA_KEYBOARD_KEY_F23;
+		break;
+	case XK_F24:
+		return MUGA_KEYBOARD_KEY_F24;
+		break;
+	case XK_Num_Lock:
+		return MUGA_KEYBOARD_KEY_NUMLOCK;
+		break;
+	case XK_Scroll_Lock:
+		return MUGA_KEYBOARD_KEY_SCROLL;
+		break;
+	case XK_Shift_L:
+		return MUGA_KEYBOARD_KEY_LEFT_SHIFT;
+		break;
+	case XK_Shift_R:
+		return MUGA_KEYBOARD_KEY_RIGHT_SHIFT;
+		break;
+	case XK_Control_L:
+		return MUGA_KEYBOARD_KEY_LEFT_CONTROL;
+		break;
+	case XK_Control_R:
+		return MUGA_KEYBOARD_KEY_RIGHT_CONTROL;
+		break;
+	case XK_3270_Attn:
+		return MUGA_KEYBOARD_KEY_ATTN;
+		break;
+	case XK_3270_CursorSelect:
+		return MUGA_KEYBOARD_KEY_CRSEL;
+		break;
+	case XK_3270_ExSelect:
+		return MUGA_KEYBOARD_KEY_EXSEL;
+		break;
+	case XK_3270_EraseEOF:
+		return MUGA_KEYBOARD_KEY_EREOF;
+		break;
+	case XK_3270_Play:
+		return MUGA_KEYBOARD_KEY_PLAY;
+		break;
+	case XK_3270_PA1:
+		return MUGA_KEYBOARD_KEY_PA1;
+		break;
+	}
+}
+
+struct muga_linux_input {
+	MUGA_KEY_BIT keyboard_down_status[MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1];
+};
+typedef struct muga_linux_input muga_linux_input;
+
+void muga_linux_input_set_status(muga_linux_input* input, int linux_key, MUGA_KEY_BIT bit) {
+	muga_input_key key = muga_linux_linux_key_to_muga_key(linux_key);
+	if (MUGA_IS_KEYBOARD(key)) {
+		input->keyboard_down_status[key-MUGA_KEYBOARD_FIRST] = bit;
+	}
+}
+
+MUGA_KEY_BIT muga_linux_input_get_status(muga_linux_input input, muga_input_key key) {
+	if (MUGA_IS_KEYBOARD(key)) {
+		return input.keyboard_down_status[key-MUGA_KEYBOARD_FIRST];
+	}
+	return MUGA_KEY_UP;
+}
+
 /* window setup */
 
 struct muga_linux_window {
@@ -2096,10 +2643,13 @@ struct muga_linux_window {
 	Window window;
 	// graphics api
 	muga_graphics_api api;
+
 	// event handling
 	XEvent event;
 	// delete message @TODO make sure this is the correct way of doing this
 	Atom delete_message;
+	// input
+	muga_linux_input input;
 
 	// opengl context
 	MUGA_OPENGL_CALL(GLXContext opengl_context);
@@ -2249,7 +2799,7 @@ MUGADEF muga_window muga_window_create(
 		0, 0,                        // border width and border color
 		0                            // background
 	);
-	XSelectInput(muga_linux_windows[win].display, muga_linux_windows[win].window, ExposureMask | KeyPressMask);
+	XSelectInput(muga_linux_windows[win].display, muga_linux_windows[win].window, ExposureMask | KeyPressMask | KeyReleaseMask);
 
 	// api initialization
 
@@ -2306,6 +2856,7 @@ MUGADEF muga_window muga_window_create(
 
 	muga_linux_windows[win].active = MUGA_TRUE;
 	muga_linux_windows[win].alive = MUGA_TRUE;
+	muga_linux_windows[win].input = (muga_linux_input){0};
 
 	XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
 
@@ -2434,19 +2985,36 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	while (XPending(muga_linux_windows[win].display)) {
 		XNextEvent(muga_linux_windows[win].display, &muga_linux_windows[win].event);
 		switch (muga_linux_windows[win].event.type) {
+
 		case Expose:
 			if (muga_linux_windows[win].framebuffer_resize_callback != MUGA_NULL_PTR) {
 				muga_linux_windows[win].framebuffer_resize_callback(win, attributes.width, attributes.height);
 			}
-			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 			break;
+
 		case ClientMessage:
 			if (muga_linux_windows[win].event.xclient.data.l[0] == muga_linux_windows[win].delete_message) {
 				muga_linux_windows[win].alive = MUGA_FALSE;
 			}
 			XUnmapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
 			break;
+
+		case KeyRelease:
+			muga_linux_input_set_status(
+				&muga_linux_windows[win].input,
+				XkbKeycodeToKeysym(muga_linux_windows[win].display, muga_linux_windows[win].event.xkey.keycode, 0, 0),
+				MUGA_KEY_UP
+			);
+			break;
+
+		case KeyPress:
+			muga_linux_input_set_status(
+				&muga_linux_windows[win].input,
+				XkbKeycodeToKeysym(muga_linux_windows[win].display, muga_linux_windows[win].event.xkey.keycode, 0, 0),
+				MUGA_KEY_DOWN
+			);
+			break;
+
 		default:
 			break;
 		}
@@ -2475,6 +3043,10 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
+}
+
+MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
+	return muga_linux_input_get_status(muga_linux_windows[win].input, key);
 }
 
 MUGADEF void muga_window_set_framebuffer_resize_callback(
