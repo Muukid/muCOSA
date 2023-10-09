@@ -290,7 +290,8 @@ MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win);
 
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
 
-
+MUGADEF MUGA_BOOL muga_window_get_visible(MUGA_RESULT* result, muga_window win);
+MUGADEF void      muga_window_set_visible(MUGA_RESULT* result, muga_window win, MUGA_BOOL visible);
 
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
 
@@ -3035,6 +3036,7 @@ void muga_linux_input_flush(muga_linux_input* input) {
 struct muga_linux_window {
 	MUGA_BOOL active;
 	MUGA_BOOL closed;
+	MUGA_BOOL visible;
 
 	// display to render on, result of XOpenDisplay
 	Display* display;
@@ -3307,6 +3309,8 @@ MUGADEF muga_window muga_window_create(
 	    }
 	}
 
+	muga_linux_windows[win].visible = MUGA_TRUE;
+
 	// return success
 
 	if (result != MUGA_NULL_PTR) {
@@ -3453,7 +3457,7 @@ MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win) {
 
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
+		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -3463,6 +3467,47 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	if ((!muga_linux_window_binded) || (muga_linux_window_binded && muga_linux_binded_window != win)) {
 		muga_linux_window_bind(win);
 	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF MUGA_BOOL muga_window_get_visible(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting visibility is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_linux_windows[win].visible;
+}
+
+MUGADEF void muga_window_set_visible(MUGA_RESULT* result, muga_window win, MUGA_BOOL visible) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting visibility is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (visible == MUGA_FALSE && muga_linux_windows[win].visible == MUGA_TRUE) {
+		XUnmapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
+		muga_window_update(result, win);
+		muga_linux_input_flush(&muga_linux_windows[win].input);
+	} else if (visible == MUGA_TRUE && muga_linux_windows[win].visible == MUGA_FALSE) {
+		XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
+		muga_window_update(result, win);
+		muga_linux_input_flush(&muga_linux_windows[win].input);
+	}
+
+	muga_linux_windows[win].visible = visible;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
