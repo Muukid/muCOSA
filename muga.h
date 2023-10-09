@@ -1994,6 +1994,23 @@ MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win) {
 	return muga_windows_windows[win].closed;
 }
 
+MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for closing is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_window_set_visible(result, win, MUGA_TRUE);
+	muga_windows_windows[win].closed = MUGA_TRUE;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
@@ -3535,6 +3552,7 @@ MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win) {
 		return;
 	}
 
+	muga_window_set_visible(result, win, MUGA_TRUE);
 	muga_linux_windows[win].closed = MUGA_TRUE;
 
 	if (result != MUGA_NULL_PTR) {
