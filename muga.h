@@ -1737,10 +1737,16 @@ MUGADEF void muga_term(MUGA_RESULT* result) {
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height) {
 	muga_windows_unbind();
 
+	// allocate class name
+	muga_window win = muga_windows_get_new_window_id();
+	wchar_m* class_name = muga_malloc(sizeof(wchar_m) * 2);
+	class_name[0] = '!' + win;
+	class_name[1] = '\0';
+
 	// initialize muga_windows_window struct
 
 	muga_windows_window window_struct = {
-		.active = MUGA_TRUE,
+		.active = MUGA_FALSE,
 		.closed = MUGA_FALSE,
 		// (WNDCLASSEXW)
 		.window_class = {
@@ -1754,13 +1760,14 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 			.hCursor =       LoadCursor(0, IDC_ARROW),           // window cursor
 			.hbrBackground = 0,                                  // background brush (0 is fine)
 			.lpszMenuName =  name,                               // menu name
-			.lpszClassName = name,                               // class name
+			.lpszClassName = class_name,                         // class name
 			.hIconSm =       0                                   // small window icon
 		},
 		.framebuffer_resize_callback = MUGA_NULL_PTR
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		muga_print("[MUGA] Failed to register window class.\n");
+		muga_free(class_name);
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -1773,7 +1780,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		// @TODO figure out window styling
 		// @TODO make default position customizable
 		0,                                    // extra window style
-		name,                                 // class name
+		class_name,                           // class name
 		name,                                 // window name
 		WS_OVERLAPPEDWINDOW,                  // window style
 		CW_USEDEFAULT,                        // x-position
@@ -1788,6 +1795,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 
 	if (window_struct.window_handle == NULL) {
 		muga_print("[MUGA] Failed to create window.\n");
+		muga_free(class_name);
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -1795,7 +1803,6 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	}
 
 	// assign window into window array
-	muga_window win = muga_windows_get_new_window_id();
 	muga_windows_windows[win] = window_struct;
 	muga_windows_windows[win].input = (muga_windows_input){0};
 
@@ -1824,6 +1831,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 					muga_windows_windows[win].device_context
 				);
 				DestroyWindow(muga_windows_windows[win].window_handle);
+				muga_free(class_name);
 				return MUGA_NO_WINDOW;
 			}
 		);
@@ -1838,6 +1846,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 			muga_windows_windows[win].device_context
 		);
 		DestroyWindow(muga_windows_windows[win].window_handle);
+		muga_free(class_name);
 		return MUGA_NO_WINDOW;
 	}
 
@@ -1855,17 +1864,13 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 				MUGA_OPENGL_CALL(wglDeleteContext(muga_windows_windows[win].opengl_context));
 			}
 			DestroyWindow(muga_windows_windows[win].window_handle);
+			muga_free(class_name);
 			return MUGA_NO_WINDOW;
 	    }
 	}
 
-	// allocate class name
-	size_m len = muga_wstrlen(name);
-	muga_windows_windows[win].class_name = malloc(sizeof(wchar_m) * (len + 1));
-	for (size_m i = 0; i < len; i++) {
-		muga_windows_windows[win].class_name[i] = name[i];
-	}
-	muga_windows_windows[win].class_name[len] = '\0';
+	muga_windows_windows[win].class_name = class_name;
+	muga_windows_windows[win].active = MUGA_TRUE;
 
 	// @TODO make start invisibility option
 	muga_windows_bind(win);
