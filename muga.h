@@ -2057,6 +2057,7 @@ MUGADEF void* muga_get_opengl_function_address(const char* name) {
 
 #define XK_3270
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <X11/XKBlib.h>
 
 /* OPENGL SETUP */
@@ -3505,9 +3506,11 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(
 
 /* opengl functions */
 
+MUGA_OPENGL_CALL(
 MUGADEF void* muga_get_opengl_function_address(const char* name) {
 	return (void*)glXGetProcAddress((const GLubyte*)name);
 }
+)
 
 #endif /* LINUX */
 
