@@ -1516,6 +1516,8 @@ struct muga_windows_window {
 	MUGA_BOOL active;
 	// closed states whether or not the window here has been closed
 	MUGA_BOOL closed;
+	// visible or invisible
+	MUGA_BOOL visible;
 
 	// class name
 	wchar_m* class_name;
@@ -1876,6 +1878,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 
 	muga_windows_windows[win].class_name = class_name;
 	muga_windows_windows[win].active = MUGA_TRUE;
+	muga_windows_windows[win].visible = MUGA_TRUE;
 
 	// @TODO make start invisibility option
 	muga_windows_bind(win);
@@ -2001,6 +2004,43 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	}
 
 	muga_windows_bind(win);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF MUGA_BOOL muga_window_get_visible(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting visibility is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_windows_windows[win].visible;
+}
+
+MUGADEF void muga_window_set_visible(MUGA_RESULT* result, muga_window win, MUGA_BOOL visible) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting visibility is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (visible == MUGA_FALSE && muga_windows_windows[win].visible == MUGA_TRUE) {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_HIDE);
+	} else if (visible == MUGA_TRUE && muga_windows_windows[win].visible == MUGA_FALSE) {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
+	}
+
+	muga_windows_windows[win].visible = visible;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
