@@ -47,10 +47,12 @@ More explicit license information at the end of the file.
 #endif
 
 #ifndef wchar_m
-
-    #include <wchar.h>
     #define wchar_m wchar_t
+#endif
 
+#ifndef muga_wstrlen
+    #include <wchar.h>
+    #define muga_wstrlen wcslen
 #endif
 
 #if !defined(muga_malloc)  || \
@@ -287,6 +289,8 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win);
 
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
+
+
 
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
 
@@ -1508,6 +1512,8 @@ struct muga_windows_window {
 	// closed states whether or not the window here has been closed
 	MUGA_BOOL closed;
 
+	// class name
+	wchar_m* class_name;
 	// window class information
 	WNDCLASSEXW window_class;
 	// window handle
@@ -1853,6 +1859,14 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	    }
 	}
 
+	// allocate class name
+	size_m len = muga_wstrlen(name);
+	muga_windows_windows[win].class_name = malloc(sizeof(wchar_m) * (len + 1));
+	for (size_m i = 0; i < len; i++) {
+		muga_windows_windows[win].class_name[i] = name[i];
+	}
+	muga_windows_windows[win].class_name[len] = '\0';
+
 	// @TODO make start invisibility option
 	muga_windows_bind(win);
 	ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
@@ -1873,6 +1887,10 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 		}
 		return;
 	}
+
+	// unregister class
+	UnregisterClassW(muga_windows_windows[win].class_name, muga_windows_windows[win].window_class.hInstance);
+	muga_free(muga_windows_windows[win].class_name);
 
 	// destroy context and window
 	if (win == muga_windows_binded_window && muga_windows_window_binded) {
@@ -3413,7 +3431,7 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 
 MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win) {
 	if (!muga_linux_is_valid_closed(win)) {
-		muga_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
+		muga_print("[MUGA] Requested window ID for checking if closed is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
