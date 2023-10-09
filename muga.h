@@ -281,12 +281,17 @@ typedef size_m muga_window;
 #define MUGA_NO_WINDOW SIZE_MAX_M
 
 // basic window functions
+
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
-MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win);
-MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
+
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
+
+MUGADEF MUGA_BOOL muga_window_get_active(MUGA_RESULT* result, muga_window win);
+MUGADEF void muga_window_set_active(MUGA_RESULT* result, muga_window win, MUGA_BOOL active);
+
+MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
 
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
 
@@ -1492,37 +1497,6 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
-MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
-	if (!muga_windows_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for checking if window is active is invalid.\n");
-		if (result != MUGA_NULL_PTR) {
-			*result = MUGA_FAILURE;
-		}
-		return MUGA_FALSE;
-	}
-
-	if (result != MUGA_NULL_PTR) {
-		*result = MUGA_SUCCESS;
-	}
-	return muga_windows_windows[win].alive;
-}
-
-MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
-	if (!muga_windows_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
-		if (result != MUGA_NULL_PTR) {
-			*result = MUGA_FAILURE;
-		}
-		return;
-	}
-
-	muga_windows_bind(win);
-
-	if (result != MUGA_NULL_PTR) {
-		*result = MUGA_FAILURE;
-	}
-}
-
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for updating is invalid.\n");
@@ -1569,18 +1543,55 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
+MUGADEF MUGA_BOOL muga_window_get_active(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for checking if window is active is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_windows_windows[win].alive;
+}
+
+MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_bind(win);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_FAILURE;
+	}
+}
+
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting input bit is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_KEY_UP;
+	}
+
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
 
-	if (muga_windows_is_id_valid(win)) {
-		// if i don't call this, it carries the state until the window becomes focused
-		GetAsyncKeyState(muga_windows_muga_key_to_windows_key(key));
-		
-		if (GetActiveWindow() != muga_windows_windows[win].window_handle) {
-			return MUGA_KEY_UP;
-		}
+	// if i don't call this, it carries the state until the window becomes focused
+	GetAsyncKeyState(muga_windows_muga_key_to_windows_key(key));
+	
+	if (GetActiveWindow() != muga_windows_windows[win].window_handle) {
+		return MUGA_KEY_UP;
 	}
 
 	switch (method) {
@@ -2629,6 +2640,12 @@ MUGA_KEY_BIT muga_linux_input_get_status(muga_linux_input input, muga_input_key 
 	return MUGA_KEY_UP;
 }
 
+void muga_linux_input_flush(muga_linux_input* input) {
+	for (size_m i = 0; i < MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1; i++) {
+		input->keyboard_down_status[i] = MUGA_KEY_UP;
+	}
+}
+
 /* window setup */
 
 struct muga_linux_window {
@@ -2926,40 +2943,9 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 	);
 	XCloseDisplay(muga_linux_windows[win].display);
 
+	muga_linux_input_flush(&muga_linux_windows[win].input);
+
 	muga_linux_windows[win].active = MUGA_FALSE;
-
-	if (result != MUGA_NULL_PTR) {
-		*result = MUGA_SUCCESS;
-	}
-}
-
-MUGADEF MUGA_BOOL muga_window_active(MUGA_RESULT* result, muga_window win) {
-	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for checking if window is active is invalid.\n");
-		if (result != MUGA_NULL_PTR) {
-			*result = MUGA_FAILURE;
-		}
-		return MUGA_FALSE;
-	}
-
-	if (result != MUGA_NULL_PTR) {
-		*result = MUGA_SUCCESS;
-	}
-	return muga_linux_windows[win].alive;
-}
-
-MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
-	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
-		if (result != MUGA_NULL_PTR) {
-			*result = MUGA_FAILURE;
-		}
-		return;
-	}
-
-	if ((!muga_linux_window_binded) || (muga_linux_window_binded && muga_linux_binded_window != win)) {
-		muga_linux_window_bind(win);
-	}
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
@@ -3020,6 +3006,14 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		}
 	}
 
+	Window focused_window;
+	int revert_to;
+	XGetInputFocus(muga_linux_windows[win].display, &focused_window, &revert_to);
+
+	if (focused_window != muga_linux_windows[win].window) {
+		muga_linux_input_flush(&muga_linux_windows[win].input);
+	}
+
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
@@ -3045,7 +3039,75 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
+MUGADEF MUGA_BOOL muga_window_get_active(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for checking if window is active is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_linux_windows[win].alive;
+}
+
+MUGADEF void muga_window_set_active(MUGA_RESULT* result, muga_window win, MUGA_BOOL active) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting if window is active is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (active == MUGA_FALSE && muga_linux_windows[win].alive == MUGA_TRUE) {
+		XUnmapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
+		muga_window_update(result, win);
+		muga_linux_input_flush(&muga_linux_windows[win].input);
+	} else if (active == MUGA_TRUE && muga_linux_windows[win].alive == MUGA_FALSE) {
+		XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
+		muga_window_update(result, win);
+	}
+	muga_linux_windows[win].alive = active;
+
+	if (result != MUGA_NULL_PTR) {
+		*result= MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if ((!muga_linux_window_binded) || (muga_linux_window_binded && muga_linux_binded_window != win)) {
+		muga_linux_window_bind(win);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting input bit is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_KEY_UP;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
 	return muga_linux_input_get_status(muga_linux_windows[win].input, key);
 }
 
