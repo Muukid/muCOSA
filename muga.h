@@ -3149,6 +3149,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	if (muga_linux_windows == MUGA_NULL_PTR) {
 		muga_linux_windows_length = 1;
 		muga_linux_windows = muga_malloc(muga_linux_windows_length * sizeof(muga_linux_window));
+		muga_linux_windows[0].active = MUGA_FALSE;
 	}
 
 	muga_linux_is_initiated = MUGA_TRUE;
