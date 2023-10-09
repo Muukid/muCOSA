@@ -1551,6 +1551,9 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 		}
 	}
 	if (found_window_id) {
+		if (muga_windows_windows[win].closed == MUGA_TRUE) {
+			return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+		}
 		muga_window_set_context(MUGA_NULL_PTR, win);
 	}
 
@@ -1972,7 +1975,7 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	muga_windows_bind(win);
 
 	if (result != MUGA_NULL_PTR) {
-		*result = MUGA_FAILURE;
+		*result = MUGA_SUCCESS;
 	}
 }
 
