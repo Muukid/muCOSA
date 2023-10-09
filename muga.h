@@ -1624,10 +1624,22 @@ size_m muga_windows_get_new_window_id() {
 
 // returns if id is valid or not
 MUGA_BOOL muga_windows_is_id_valid(muga_window win) {
-	if (win >= muga_windows_windows_length) {
+	if (win >= muga_windows_windows_length ||
+		muga_windows_windows[win].active == MUGA_FALSE ||
+		muga_windows_windows[win].closed == MUGA_TRUE
+	) {
 		return MUGA_FALSE;
 	}
-	return muga_windows_windows[win].active;
+	return MUGA_TRUE;
+}
+
+MUGA_BOOL muga_windows_is_id_valid_closed(muga_window win) {
+	if (win >= muga_windows_windows_length ||
+		muga_windows_windows[win].active == MUGA_FALSE
+	) {
+		return MUGA_FALSE;
+	}
+	return MUGA_TRUE;
 }
 
 void muga_windows_unbind() {
@@ -1851,7 +1863,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 }
 
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
-	if (!muga_windows_is_id_valid(win)) {
+	if (!muga_windows_is_id_valid_closed(win)) {
 		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
@@ -1934,7 +1946,7 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 }
 
 MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win) {
-	if (!muga_windows_is_id_valid(win)) {
+	if (!muga_windows_is_id_valid_closed(win)) {
 		muga_print("[MUGA] Requested window ID for checking if closed is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
@@ -3044,7 +3056,19 @@ size_m muga_linux_get_new_window_id() {
 }
 
 MUGA_BOOL muga_linux_is_id_valid(muga_window win) {
-	if (win >= muga_linux_windows_length || muga_linux_windows[win].active == MUGA_FALSE) {
+	if (win >= muga_linux_windows_length || 
+		muga_linux_windows[win].active == MUGA_FALSE || 
+		muga_linux_windows[win].closed == MUGA_TRUE
+	) {
+		return MUGA_FALSE;
+	}
+	return MUGA_TRUE;
+}
+
+MUGA_BOOL muga_linux_is_valid_closed(muga_window win) {
+	if (win >= muga_linux_windows_length || 
+		muga_linux_windows[win].active == MUGA_FALSE
+	) {
 		return MUGA_FALSE;
 	}
 	return MUGA_TRUE;
@@ -3264,7 +3288,7 @@ MUGADEF muga_window muga_window_create(
 }
 
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
-	if (!muga_linux_is_id_valid(win)) {
+	if (!muga_linux_is_valid_closed(win)) {
 		muga_print("[MUGA] Requested window ID for destruction is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
@@ -3385,7 +3409,7 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win) {
 }
 
 MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win) {
-	if (!muga_linux_is_id_valid(win)) {
+	if (!muga_linux_is_valid_closed(win)) {
 		muga_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
