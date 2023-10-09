@@ -274,6 +274,7 @@ MUGADEF void muga_init(MUGA_RESULT* result);
 MUGADEF void muga_term(MUGA_RESULT* result);
 
 MUGADEF double muga_time_get(MUGA_RESULT* result);
+MUGADEF void   muga_time_set(MUGA_RESULT* result, double time);
 
 /* window */
 
@@ -3209,6 +3210,13 @@ MUGADEF double muga_time_get(MUGA_RESULT* result) {
 		*result = MUGA_SUCCESS;
 	}
 	return muga_linux_get_global_time() - original_time;
+}
+
+MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	original_time = original_time + muga_time_get(result) - time;
 }
 
 /* window functions */
