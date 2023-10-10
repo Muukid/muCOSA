@@ -281,7 +281,16 @@ MUGADEF void   muga_time_set(MUGA_RESULT* result, double time);
 typedef size_m muga_window;
 #define MUGA_NO_WINDOW SIZE_MAX_M
 
-// basic window functions
+// basic window functionality
+
+struct muga_window_settings_struct {
+	MUGA_BOOL visible;
+};
+typedef struct muga_window_settings_struct muga_window_settings_struct;
+
+muga_window_settings_struct muga_window_settings = {
+	.visible = MUGA_TRUE
+};
 
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
@@ -1904,11 +1913,16 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 
 	muga_windows_windows[win].class_name = class_name;
 	muga_windows_windows[win].active = MUGA_TRUE;
-	muga_windows_windows[win].visible = MUGA_TRUE;
 
-	// @TODO make start invisibility option
 	muga_windows_bind(win);
-	ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
+
+	muga_windows_windows[win].visible = muga_window_settings.visible;
+	if (muga_windows_windows[win].visible) {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
+	} else {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_HIDE);
+	}
+	
 	UpdateWindow(muga_windows_windows[win].window_handle);
 
 	// return
