@@ -285,11 +285,13 @@ typedef size_m muga_window;
 
 struct muga_window_settings_struct {
 	MUGA_BOOL visible;
+	MUGA_BOOL resizable;
 };
 typedef struct muga_window_settings_struct muga_window_settings_struct;
 
 muga_window_settings_struct muga_window_settings = {
-	.visible = MUGA_TRUE
+	.visible = MUGA_TRUE,
+	.resizable = MUGA_TRUE
 };
 
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
@@ -1818,13 +1820,18 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 
 	// create window
 
+	DWORD style = WS_OVERLAPPEDWINDOW;
+	if (!muga_window_settings.resizable) {
+		style = WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
+	}
+
 	window_struct.window_handle = CreateWindowExW(
 		// @TODO figure out window styling
 		// @TODO make default position customizable
 		0,                                    // extra window style
 		class_name,                           // class name
 		name,                                 // window name
-		WS_OVERLAPPEDWINDOW,                  // window style
+		style,                                // window style
 		CW_USEDEFAULT,                        // x-position
 		CW_USEDEFAULT,                        // y-position
 		width,                                // width
@@ -1922,7 +1929,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	} else {
 		ShowWindow(muga_windows_windows[win].window_handle, SW_HIDE);
 	}
-	
+
 	UpdateWindow(muga_windows_windows[win].window_handle);
 
 	// return
