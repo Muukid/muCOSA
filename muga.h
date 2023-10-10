@@ -302,8 +302,12 @@ typedef struct muga_pixel_format muga_pixel_format;
 // settings
 struct muga_window_settings_struct {
 	muga_pixel_format pixel_format;
+
 	MUGA_BOOL visible;
 	MUGA_BOOL resizable;
+
+	unsigned int x;
+	unsigned int y;
 };
 typedef struct muga_window_settings_struct muga_window_settings_struct;
 
@@ -317,8 +321,12 @@ muga_window_settings_struct muga_window_settings = {
 		.depth_bits =   24,
 		.stencil_bits = 8
 	},
-	.visible = MUGA_TRUE,
-	.resizable = MUGA_TRUE
+
+	.visible =   MUGA_TRUE,
+	.resizable = MUGA_TRUE,
+
+	.x = 400,
+	.y = 200
 };
 
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
@@ -1858,8 +1866,8 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		class_name,                           // class name
 		name,                                 // window name
 		style,                                // window style
-		CW_USEDEFAULT,                        // x-position
-		CW_USEDEFAULT,                        // y-position
+		muga_window_settings.x,               // x-position
+		muga_window_settings.y,               // y-position
 		width,                                // width
 		height,                               // height
 		NULL,                                 // parent window
@@ -3371,7 +3379,8 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].window = XCreateSimpleWindow(
 		muga_linux_windows[win].display,       // display
 		muga_linux_windows[win].parent_window, // parent window
-		10, 10,                                // position
+		muga_window_settings.x,                // position
+		muga_window_settings.y,
 		width, height,                         // dimensions
 		0, 0,                        // border width and border color
 		0                            // background
