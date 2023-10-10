@@ -283,13 +283,40 @@ typedef size_m muga_window;
 
 // basic window functionality
 
+// pixel formatting
+// https://registry.khronos.org/OpenGL/extensions/ARB/WGL_ARB_pixel_format.txt
+// https://registry.khronos.org/OpenGL-Refpages/gl2.1/xhtml/glXChooseFBConfig.xml
+struct muga_pixel_format {
+	MUGA_BOOL doublebuffer;
+
+	unsigned int red_bits;
+	unsigned int green_bits;
+	unsigned int blue_bits;
+	unsigned int alpha_bits;
+
+	unsigned int depth_bits;
+	unsigned int stencil_bits;
+};
+typedef struct muga_pixel_format muga_pixel_format;
+
+// settings
 struct muga_window_settings_struct {
+	muga_pixel_format pixel_format;
 	MUGA_BOOL visible;
 	MUGA_BOOL resizable;
 };
 typedef struct muga_window_settings_struct muga_window_settings_struct;
 
 muga_window_settings_struct muga_window_settings = {
+	.pixel_format = {
+		.doublebuffer = MUGA_TRUE,
+		.red_bits =     8,
+		.green_bits =   8,
+		.blue_bits =    8,
+		.alpha_bits =   8,
+		.depth_bits =   24,
+		.stencil_bits = 8
+	},
 	.visible = MUGA_TRUE,
 	.resizable = MUGA_TRUE
 };
@@ -567,16 +594,18 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
 	}
 
 	// pixel formatting
-	// @TODO make this customizable
 	int pixel_format_attributes[] = {
 		WGL_DRAW_TO_WINDOW_ARB, MUGA_TRUE,
         WGL_SUPPORT_OPENGL_ARB, MUGA_TRUE,
-        WGL_DOUBLE_BUFFER_ARB,  MUGA_TRUE,
+        WGL_DOUBLE_BUFFER_ARB,  muga_window_settings.pixel_format.doublebuffer,
         WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
         WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-        WGL_COLOR_BITS_ARB,     32,
-        WGL_DEPTH_BITS_ARB,     24,
-        WGL_STENCIL_BITS_ARB,   8,
+        WGL_RED_BITS_ARB,       muga_window_settings.pixel_format.red_bits,
+        WGL_GREEN_BITS_ARB,     muga_window_settings.pixel_format.green_bits,
+        WGL_BLUE_BITS_ARB,      muga_window_settings.pixel_format.blue_bits,
+        WGL_ALPHA_BITS_ARB,     muga_window_settings.pixel_format.alpha_bits,
+        WGL_DEPTH_BITS_ARB,     muga_window_settings.pixel_format.depth_bits,
+        WGL_STENCIL_BITS_ARB,   muga_window_settings.pixel_format.stencil_bits,
         0
 	};
 
@@ -792,7 +821,6 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
 
 /* keyboard input */
 
-// @TODO fix certain undefined keys
 int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 	switch (key) {
 	default:
@@ -1777,7 +1805,6 @@ MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
 
 /* basic window funcs */
 
-// @TODO make sure window gets destroyed if it fails
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height) {
 	muga_windows_unbind();
 
@@ -1826,7 +1853,6 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	}
 
 	window_struct.window_handle = CreateWindowExW(
-		// @TODO figure out window styling
 		// @TODO make default position customizable
 		0,                                    // extra window style
 		class_name,                           // class name
