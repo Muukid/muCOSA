@@ -75,6 +75,21 @@ More explicit license information at the end of the file.
 
 #endif
 
+#if !defined(muga_strcmp) || \
+    !defined(muga_memset)
+
+    #include <string.h>
+
+    #ifndef muga_strcmp
+    	#define muga_strcmp strcmp
+    #endif
+
+    #ifndef muga_memset
+    	#define muga_memset memset
+    #endif
+
+#endif
+
 enum MUGA_BOOL { MUGA_FALSE, MUGA_TRUE };
 typedef enum MUGA_BOOL MUGA_BOOL;
 
@@ -3824,7 +3839,65 @@ MUGADEF void muga_window_focus(MUGA_RESULT* result, muga_window win) {
 		return;
 	}
 
-	// @TODO crashes when minimized, fix
+	// https://www.linuxquestions.org/questions/programming-9/how-to-read-the-state-by-using-_net_wm_state-in-xlib-836879/
+	MUGA_BOOL minimized = MUGA_FALSE;
+	Atom wmState = XInternAtom(muga_linux_windows[win].display, "_NET_WM_STATE", MUGA_TRUE);
+	Atom type;
+	int format;
+	unsigned long nItem, bytesAfter;
+	unsigned char* properties = MUGA_NULL;
+	XGetWindowProperty(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		wmState,
+		0,
+		(~0L),
+		MUGA_FALSE,
+		AnyPropertyType,
+		&type,
+		&format,
+		&nItem,
+		&bytesAfter,
+		&properties
+	);
+
+	for (size_m i = 0; i < nItem; i++) {
+		Atom prop = ((Atom*)properties)[0];
+		char* name = XGetAtomName(muga_linux_windows[win].display, prop);
+		if (muga_strcmp(name, "_NET_WM_STATE_HIDDEN") == 0) {
+			minimized = MUGA_TRUE;
+			break;
+		}
+		if (name) {
+			XFree(name);
+		}
+	}
+
+	// https://stackoverflow.com/questions/30192347/how-to-restore-a-window-with-xlib
+	if (minimized) {
+		XClientMessageEvent ev;
+		muga_memset(&ev, 0, sizeof(ev));
+		ev.type = ClientMessage;
+		ev.window = muga_linux_windows[win].window;
+		ev.message_type = XInternAtom(
+			muga_linux_windows[win].display,
+			"_NET_ACTIVE_WINDOW",
+			MUGA_TRUE
+		);
+		ev.format = 32;
+		ev.data.l[0] = 1;
+		ev.data.l[1] = CurrentTime;
+		ev.data.l[2] = ev.data.l[3] = ev.data.l[4] = 0;
+		XSendEvent(
+			muga_linux_windows[win].display,
+			muga_linux_windows[win].parent_window,
+			MUGA_FALSE,
+			SubstructureRedirectMask | SubstructureNotifyMask,
+			(XEvent*)&ev
+		);
+		XFlush(muga_linux_windows[win].display);
+	}
+
 	XSetInputFocus(
 		muga_linux_windows[win].display,
 		muga_linux_windows[win].window,
