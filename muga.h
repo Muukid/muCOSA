@@ -3447,6 +3447,13 @@ MUGADEF muga_window muga_window_create(
 	my_hints.y      = 0;
 	my_hints.width  = 0; // not sure if setting width and
 	my_hints.height = 0; // height to 0 here is safe...
+	if (!muga_window_settings.resizable) {
+		my_hints.flags |= PMinSize | PMaxSize;
+		my_hints.min_width =  width;
+		my_hints.min_height = height;
+		my_hints.max_width =  width;
+		my_hints.max_height = height;
+	}
 
 	XSetNormalHints(muga_linux_windows[win].display, muga_linux_windows[win].window, &my_hints);
 
