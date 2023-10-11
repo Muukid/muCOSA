@@ -3460,8 +3460,11 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].active = MUGA_TRUE;
 	muga_linux_windows[win].closed = MUGA_FALSE;
 	muga_linux_windows[win].input = (muga_linux_input){0};
+	muga_linux_windows[win].visible = muga_window_settings.visible;
 
-	XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
+	if (muga_linux_windows[win].visible) {
+		XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
+	}
 
 	// convert name from wchar_m* to char*
 	size_m len = 0;
@@ -3495,8 +3498,6 @@ MUGADEF muga_window muga_window_create(
 			return MUGA_NO_WINDOW;
 	    }
 	}
-
-	muga_linux_windows[win].visible = MUGA_TRUE;
 
 	// return success
 
