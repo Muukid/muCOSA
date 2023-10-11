@@ -351,7 +351,11 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 
+// sets
+
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
+
+MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const wchar_m* title);
 
 // get / toggle functions
 
@@ -3926,6 +3930,29 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	if ((!muga_linux_window_binded) || (muga_linux_window_binded && muga_linux_binded_window != win)) {
 		muga_linux_window_bind(win);
 	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const wchar_m* title) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting title is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	// convert title from wchar_m* to char*
+	size_m len = 0;
+	for (size_m i = 0; title[i] != 0; i++) len++;
+	char* name_c = muga_malloc(sizeof(char) * (len+1));
+	for (size_m i = 0; i < len; i++) name_c[i] = (char)title[i];
+	name_c[len] = 0;
+	XStoreName(muga_linux_windows[win].display, muga_linux_windows[win].window, name_c);
+	muga_free(name_c);
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
