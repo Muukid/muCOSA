@@ -3796,6 +3796,51 @@ MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
+MUGADEF MUGA_BOOL muga_window_get_focused(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting focused state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+
+	Window focused;
+	int revert_to;
+	XGetInputFocus(muga_linux_windows[win].display, &focused, &revert_to);
+	return focused == muga_linux_windows[win].window;
+}
+
+MUGADEF void muga_window_focus(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for focusing is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	// @TODO crashes when minimized, fix
+	XSetInputFocus(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		RevertToPointerRoot,
+		CurrentTime
+	);
+	XRaiseWindow(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window
+	);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
