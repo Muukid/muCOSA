@@ -341,15 +341,23 @@ MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win);
 
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
 
+// get / set window functions
+
 MUGADEF MUGA_BOOL muga_window_get_visible(MUGA_RESULT* result, muga_window win);
 MUGADEF void      muga_window_set_visible(MUGA_RESULT* result, muga_window win, MUGA_BOOL visible);
 
 MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int* x, int* y);
 MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int  x, int  y);
 
+MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, int* width, int* height);
+MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, int  width, int  height);
+
+// input
+
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
 
 // callbacks
+
 MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height));
 
 /* opengl functions */
@@ -2120,7 +2128,7 @@ MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int*
 	}
 }
 
-MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int  x, int  y) {
+MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int x, int y) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting position is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -2131,6 +2139,46 @@ MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int 
 
 	SetWindowPos(muga_windows_windows[win].window_handle, HWND_TOP, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE );
 
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, int* width, int* height) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	RECT rect = {0};
+	GetWindowRect(muga_windows_windows[win].window_handle, &rect);
+
+	if (width != MUGA_NULL_PTR) {
+		*width = (int)(rect.right - rect.left);
+	}
+	if (height != MUGA_NULL_PTR) {
+		*height = (int)(rect.bottom - rect.top);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, int width, int height) {
+		if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	SetWindowPos(muga_windows_windows[win].window_handle, HWND_TOP, 0, 0, width, height, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE);
+	
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
