@@ -3855,6 +3855,62 @@ MUGADEF void muga_window_set_visible(MUGA_RESULT* result, muga_window win, MUGA_
 	}
 }
 
+MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int* x, int* y) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	// https://stackoverflow.com/questions/3806872/window-position-in-xlib
+	int rx = 0, ry = 0;
+	Window child;
+	XWindowAttributes xwa;
+	XTranslateCoordinates(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		muga_linux_windows[win].parent_window,
+		0, 0,
+		&rx, &ry,
+		&child
+	);
+	XGetWindowAttributes(muga_linux_windows[win].display, muga_linux_windows[win].window, &xwa);
+
+	if (x != MUGA_NULL_PTR) {
+		*x = (int)(rx - xwa.x);
+	}
+
+	if (y != MUGA_NULL_PTR) {
+		*y = (int)(ry - xwa.y);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int x, int y) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	XMoveWindow(
+		muga_linux_windows[win].display, 
+		muga_linux_windows[win].window, 
+		x, y
+	);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting input bit is invalid.\n");
