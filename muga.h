@@ -306,8 +306,9 @@ struct muga_window_settings_struct {
 	MUGA_BOOL visible;
 	MUGA_BOOL resizable;
 
-	unsigned int x;
-	unsigned int y;
+	// @TODO test negative values
+	int x;
+	int y;
 };
 typedef struct muga_window_settings_struct muga_window_settings_struct;
 
@@ -342,6 +343,9 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
 
 MUGADEF MUGA_BOOL muga_window_get_visible(MUGA_RESULT* result, muga_window win);
 MUGADEF void      muga_window_set_visible(MUGA_RESULT* result, muga_window win, MUGA_BOOL visible);
+
+MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int* x, int* y);
+MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int  x, int  y);
 
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
 
@@ -2086,6 +2090,46 @@ MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win) {
 
 	muga_window_set_visible(result, win, MUGA_FALSE);
 	muga_windows_windows[win].closed = MUGA_TRUE;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int* x, int* y) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	RECT rect = {0};
+	GetWindowRect(muga_windows_windows[win].window_handle, &rect);
+
+	if (x != MUGA_NULL_PTR) {
+		*x = (int)rect.left;
+	}
+	if (y != MUGA_NULL_PTR) {
+		*y = (int)rect.top;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int  x, int  y) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	SetWindowPos(muga_windows_windows[win].window_handle, HWND_TOP, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE );
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
