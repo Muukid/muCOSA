@@ -354,8 +354,8 @@ MUGADEF void      muga_window_set_visible(MUGA_RESULT* result, muga_window win, 
 MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int* x, int* y);
 MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int  x, int  y);
 
-MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, int* width, int* height);
-MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, int  width, int  height);
+MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, unsigned int* width, unsigned int* height);
+MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, unsigned int  width, unsigned int  height);
 
 // input
 
@@ -2188,7 +2188,7 @@ MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int 
 	}
 }
 
-MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, int* width, int* height) {
+MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, unsigned int* width, unsigned int* height) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting dimensions is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -2212,7 +2212,7 @@ MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, in
 	}
 }
 
-MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, int width, int height) {
+MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, unsigned int width, unsigned int height) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting dimensions is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -3904,6 +3904,51 @@ MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int 
 		muga_linux_windows[win].display, 
 		muga_linux_windows[win].window, 
 		x, y
+	);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, unsigned int* width, unsigned int* height) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	XWindowAttributes xwa;
+	XGetWindowAttributes(muga_linux_windows[win].display, muga_linux_windows[win].window, &xwa);
+
+	if (width != MUGA_NULL_PTR) {
+		*width = xwa.width;
+	}
+
+	if (height != MUGA_NULL_PTR) {
+		*height = xwa.height;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, unsigned int width, unsigned int height) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	XResizeWindow(
+		muga_linux_windows[win].display, 
+		muga_linux_windows[win].window, 
+		width, height
 	);
 
 	if (result != MUGA_NULL_PTR) {
