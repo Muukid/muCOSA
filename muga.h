@@ -336,10 +336,15 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 
+MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
+
+// get / toggle functions
+
 MUGADEF MUGA_BOOL muga_window_get_closed(MUGA_RESULT* result, muga_window win);
 MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win);
 
-MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
+MUGADEF MUGA_BOOL muga_window_get_focused(MUGA_RESULT* result, muga_window win);
+MUGADEF void      muga_window_focus(MUGA_RESULT* result, muga_window win);
 
 // get / set window functions
 
@@ -2104,6 +2109,45 @@ MUGADEF void muga_window_close(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
+MUGADEF MUGA_BOOL muga_window_get_focused(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting focused state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return GetFocus() == muga_windows_windows[win].window_handle;
+}
+
+MUGADEF void muga_window_focus(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for focusing is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	// https://stackoverflow.com/questions/71437203/proper-way-of-activating-a-window-using-winapi
+	// a better approach is possible, but to do so i would need the automation api
+	// and i'm not touching that with a ten foot pole
+	SetForegroundWindow(muga_windows_windows[win].window_handle);
+	if (GetForegroundWindow() != muga_windows_windows[win].window_handle) {
+		SwitchToThisWindow(muga_windows_windows[win].window_handle, MUGA_TRUE);
+		Sleep(2);
+		SetForegroundWindow(muga_windows_windows[win].window_handle);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int* x, int* y) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting position is invalid.\n");
@@ -2169,7 +2213,7 @@ MUGADEF void muga_window_get_dimensions(MUGA_RESULT* result, muga_window win, in
 }
 
 MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, int width, int height) {
-		if (!muga_windows_is_id_valid(win)) {
+	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting dimensions is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
