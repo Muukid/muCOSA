@@ -3440,6 +3440,16 @@ MUGADEF muga_window muga_window_create(
 
 	// display window
 
+	XSizeHints    my_hints = {0};
+
+	my_hints.flags  = PPosition | PSize;
+	my_hints.x      = 0;
+	my_hints.y      = 0;
+	my_hints.width  = 0; // not sure if setting width and
+	my_hints.height = 0; // height to 0 here is safe...
+
+	XSetNormalHints(muga_linux_windows[win].display, muga_linux_windows[win].window, &my_hints);
+
 	muga_linux_windows[win].active = MUGA_TRUE;
 	muga_linux_windows[win].closed = MUGA_FALSE;
 	muga_linux_windows[win].input = (muga_linux_input){0};
