@@ -379,6 +379,9 @@ MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, un
 MUGADEF MUGA_BOOL muga_window_get_maximized(MUGA_RESULT* result, muga_window win);
 MUGADEF void      muga_window_set_maximized(MUGA_RESULT* result, muga_window win, MUGA_BOOL maximized);
 
+MUGADEF MUGA_BOOL muga_window_get_minimized(MUGA_RESULT* result, muga_window win);
+MUGADEF void      muga_window_set_minimized(MUGA_RESULT* result, muga_window win, MUGA_BOOL minimized);
+
 // input
 
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
@@ -4190,6 +4193,117 @@ MUGADEF void muga_window_set_maximized(MUGA_RESULT* result, muga_window win, MUG
 		(XEvent*)&ev
 	);
 	XFlush(muga_linux_windows[win].display);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF MUGA_BOOL muga_window_get_minimized(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting minimized state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+
+	Atom wmState = XInternAtom(muga_linux_windows[win].display, "_NET_WM_STATE", MUGA_TRUE);
+	Atom type;
+	int format;
+	unsigned long nItem, bytesAfter;
+	unsigned char* properties = MUGA_NULL;
+	XGetWindowProperty(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		wmState,
+		0,
+		(~0L),
+		MUGA_FALSE,
+		AnyPropertyType,
+		&type,
+		&format,
+		&nItem,
+		&bytesAfter,
+		&properties
+	);
+
+	for (size_m i = 0; i < nItem; i++) {
+		Atom prop = ((Atom*)properties)[0];
+		char* name = XGetAtomName(muga_linux_windows[win].display, prop);
+		if (muga_strcmp(name, "_NET_WM_STATE_HIDDEN") == 0) {
+			if (name) {
+				XFree(name);
+			}
+			return MUGA_TRUE;
+		}
+		if (name) {
+			XFree(name);
+		}
+	}
+
+	return MUGA_FALSE;
+}
+
+MUGADEF void muga_window_set_minimized(MUGA_RESULT* result, muga_window win, MUGA_BOOL minimized) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting minimized state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	// might want to use functions like XIconifyWindow here...
+	// don't know.
+	if (minimized == MUGA_TRUE) {
+		XClientMessageEvent ev;
+		Atom prop;
+		prop = XInternAtom(
+			muga_linux_windows[win].display,
+			"WM_CHANGE_STATE",
+			MUGA_FALSE
+		);
+		ev.type = ClientMessage;
+		ev.window = muga_linux_windows[win].window;
+		ev.message_type = prop;
+		ev.format = 32;
+		ev.data.l[0] = IconicState;
+		XSendEvent(
+			muga_linux_windows[win].display,
+			muga_linux_windows[win].parent_window,
+			MUGA_FALSE,
+			SubstructureRedirectMask|SubstructureNotifyMask,
+			(XEvent*)&ev
+		);
+		XFlush(muga_linux_windows[win].display);
+	} else {
+		XClientMessageEvent ev;
+		muga_memset(&ev, 0, sizeof(ev));
+		ev.type = ClientMessage;
+		ev.window = muga_linux_windows[win].window;
+		ev.message_type = XInternAtom(
+			muga_linux_windows[win].display,
+			"_NET_ACTIVE_WINDOW",
+			MUGA_TRUE
+		);
+		ev.format = 32;
+		ev.data.l[0] = 1;
+		ev.data.l[1] = CurrentTime;
+		ev.data.l[2] = ev.data.l[3] = ev.data.l[4] = 0;
+		XSendEvent(
+			muga_linux_windows[win].display,
+			muga_linux_windows[win].parent_window,
+			MUGA_FALSE,
+			SubstructureRedirectMask | SubstructureNotifyMask,
+			(XEvent*)&ev
+		);
+		XFlush(muga_linux_windows[win].display);
+	}
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
