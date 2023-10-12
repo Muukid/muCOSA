@@ -2253,6 +2253,47 @@ MUGADEF void muga_window_set_dimensions(MUGA_RESULT* result, muga_window win, un
 	}
 }
 
+MUGADEF MUGA_BOOL muga_window_get_maximized(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting maximized state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	WINDOWPLACEMENT wndpl = {0};
+	wndpl.length = sizeof(wndpl);
+	GetWindowPlacement(muga_windows_windows[win].window_handle, &wndpl);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return wndpl.showCmd == SW_MAXIMIZE;
+}
+
+MUGADEF void muga_window_set_maximized(MUGA_RESULT* result, muga_window win, MUGA_BOOL maximized) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting maximized state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (muga_window_get_maximized(result, win) == maximized) return;
+
+	if (maximized) {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_MAXIMIZE);
+	} else {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
