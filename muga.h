@@ -2269,6 +2269,22 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
+MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const wchar_m* title) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting title is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	SetWindowTextW(muga_windows_windows[win].window_handle, title);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF MUGA_BOOL muga_window_get_visible(MUGA_RESULT* result, muga_window win) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting visibility is invalid.\n");
