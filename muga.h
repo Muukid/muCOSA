@@ -2262,14 +2262,10 @@ MUGADEF MUGA_BOOL muga_window_get_maximized(MUGA_RESULT* result, muga_window win
 		return MUGA_FALSE;
 	}
 
-	WINDOWPLACEMENT wndpl = {0};
-	wndpl.length = sizeof(wndpl);
-	GetWindowPlacement(muga_windows_windows[win].window_handle, &wndpl);
-
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
-	return wndpl.showCmd == SW_MAXIMIZE;
+	return IsIconic(muga_windows_windows[win].window_handle);
 }
 
 MUGADEF void muga_window_set_maximized(MUGA_RESULT* result, muga_window win, MUGA_BOOL maximized) {
@@ -2287,6 +2283,43 @@ MUGADEF void muga_window_set_maximized(MUGA_RESULT* result, muga_window win, MUG
 		ShowWindow(muga_windows_windows[win].window_handle, SW_MAXIMIZE);
 	} else {
 		ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF MUGA_BOOL muga_window_get_minimized(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting minimized state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_FALSE;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return IsIconic(muga_windows_windows[win].window_handle);
+}
+
+MUGADEF void muga_window_set_minimized(MUGA_RESULT* result, muga_window win, MUGA_BOOL minimized) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting minimized state is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (muga_window_get_minimized(result, win) == minimized) return;
+
+	if (minimized) {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_MINIMIZE);
+	} else {
+		OpenIcon(muga_windows_windows[win].window_handle);
 	}
 
 	if (result != MUGA_NULL_PTR) {
