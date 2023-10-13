@@ -389,6 +389,7 @@ MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window 
 // callbacks
 
 MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height));
+MUGADEF void muga_window_set_position_callback          (MUGA_RESULT* result, muga_window win, void (*position_callback)          (muga_window win, int x, int y));
 
 /* opengl functions */
 
@@ -1626,6 +1627,7 @@ struct muga_windows_window {
 
 	// callbacks
 	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height);
+	void (*position_callback)(muga_window win, int x, int y);
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -1694,6 +1696,13 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 			muga_windows_input_set_status(&muga_windows_windows[win].input, wParam, MUGA_KEY_UP);
 		}
 		return 0;
+		break;
+
+	case WM_MOVE:
+		if (found_window_id && muga_windows_windows[win].position_callback != MUGA_NULL_PTR) {
+			muga_windows_windows[win].position_callback(win, (int)LOWORD(lParam), (int)HIWORD(lParam));
+		}
+		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		break;
 
 	}
@@ -1798,6 +1807,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	muga_windows_windows = muga_malloc(sizeof(muga_windows_window) * muga_windows_windows_length);
 	muga_windows_windows[0].active = MUGA_FALSE;
 	muga_windows_windows[0].framebuffer_resize_callback = MUGA_NULL_PTR;
+	muga_windows_windows[0].position_callback = MUGA_NULL_PTR;
 
 	muga_windows_original_time = muga_windows_get_current_time();
 
@@ -2206,7 +2216,20 @@ MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int 
 		return;
 	}
 
+	int rx = 0, ry = 0;
+	muga_window_get_position(result, win, &rx, &ry);
+	if (x == rx && y == ry) {
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_SUCCESS;
+		}
+		return;
+	}
+
 	SetWindowPos(muga_windows_windows[win].window_handle, HWND_TOP, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE );
+
+	if (muga_windows_windows[win].position_callback != MUGA_NULL_PTR) {
+		muga_windows_windows[win].position_callback(win, x, y);
+	}
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
@@ -2422,6 +2445,22 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
 
 	muga_windows_bind(win);
 	muga_windows_windows[win].framebuffer_resize_callback = framebuffer_resize_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_position_callback(MUGA_RESULT* result, muga_window win, void (*position_callback)(muga_window win, int x, int y)) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting position callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].position_callback = position_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
