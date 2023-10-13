@@ -391,6 +391,7 @@ MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window 
 MUGADEF void muga_window_set_dimensions_callback(MUGA_RESULT* result, muga_window win, void (*dimensions_callback)(muga_window win, int width, int height));
 MUGADEF void muga_window_set_position_callback  (MUGA_RESULT* result, muga_window win, void (*position_callback)  (muga_window win, int x, int y));
 MUGADEF void muga_window_set_focus_callback     (MUGA_RESULT* result, muga_window win, void (*focus_callback)     (muga_window win, MUGA_BOOL focused));
+MUGADEF void muga_window_set_maximize_callback  (MUGA_RESULT* result, muga_window win, void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized));
 
 /* opengl functions */
 
@@ -1609,6 +1610,8 @@ struct muga_windows_window {
 	MUGA_BOOL closed;
 	// visible or invisible
 	MUGA_BOOL visible;
+	// whether or not it's maximized for callback
+	MUGA_BOOL maximized;
 
 	// class name
 	wchar_m* class_name;
@@ -1630,6 +1633,7 @@ struct muga_windows_window {
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
 	void (*position_callback)  (muga_window win, int x, int y);
 	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
+	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -1681,6 +1685,18 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 	case WM_SIZE:
 		if (found_window_id && muga_windows_windows[win].dimensions_callback != MUGA_NULL_PTR) {
 			muga_windows_windows[win].dimensions_callback(win, (int)LOWORD(lParam), (int)HIWORD(lParam));
+		}
+		if (found_window_id && wParam == SIZE_MAXIMIZED && muga_windows_windows[win].maximize_callback != MUGA_NULL_PTR) {
+			muga_windows_windows[win].maximize_callback(win, MUGA_TRUE);
+			muga_windows_windows[win].maximized = MUGA_TRUE;
+		} else if (found_window_id && 
+			muga_windows_windows[win].maximized == MUGA_TRUE &&
+			wParam != SIZE_MAXIMIZED && 
+			wParam != SIZE_MAXHIDE && 
+			wParam != SIZE_MAXSHOW && 
+			muga_windows_windows[win].maximize_callback != MUGA_NULL_PTR) {
+			muga_windows_windows[win].maximize_callback(win, MUGA_FALSE);
+			muga_windows_windows[win].maximized = MUGA_FALSE;
 		}
 		PostMessage(hwnd, WM_PAINT, 0, 0);
 		return 0;
@@ -1830,6 +1846,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	muga_windows_windows[0].dimensions_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].position_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].focus_callback = MUGA_NULL_PTR;
+	muga_windows_windows[0].maximize_callback = MUGA_NULL_PTR;
 
 	muga_windows_original_time = muga_windows_get_current_time();
 
@@ -1901,6 +1918,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	muga_windows_window window_struct = {
 		.active = MUGA_FALSE,
 		.closed = MUGA_FALSE,
+		.maximized = MUGA_FALSE,
 		// (WNDCLASSEXW)
 		.window_class = {
 			.cbSize = sizeof(WNDCLASSEXW),                       // size of struct
@@ -1918,7 +1936,8 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		},
 		.dimensions_callback = MUGA_NULL_PTR,
 		.position_callback = MUGA_NULL_PTR,
-		.focus_callback = MUGA_NULL_PTR
+		.focus_callback = MUGA_NULL_PTR,
+		.maximize_callback = MUGA_NULL_PTR
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		muga_print("[MUGA] Failed to register window class.\n");
@@ -2488,6 +2507,22 @@ MUGADEF void muga_window_set_focus_callback(MUGA_RESULT* result, muga_window win
 	}
 
 	muga_windows_windows[win].focus_callback = focus_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_maximize_callback(MUGA_RESULT* result, muga_window win, void (*maximize_callback)(muga_window win, MUGA_BOOL maximized)) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting maximize callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].maximize_callback = maximize_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
