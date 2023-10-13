@@ -388,8 +388,8 @@ MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window 
 
 // callbacks
 
-MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height));
-MUGADEF void muga_window_set_position_callback          (MUGA_RESULT* result, muga_window win, void (*position_callback)          (muga_window win, int x, int y));
+MUGADEF void muga_window_set_dimensions_callback(MUGA_RESULT* result, muga_window win, void (*dimensions_callback)(muga_window win, int width, int height));
+MUGADEF void muga_window_set_position_callback  (MUGA_RESULT* result, muga_window win, void (*position_callback)          (muga_window win, int x, int y));
 
 /* opengl functions */
 
@@ -1626,7 +1626,7 @@ struct muga_windows_window {
 	MUGA_OPENGL_CALL(HGLRC opengl_context);
 
 	// callbacks
-	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height);
+	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
 	void (*position_callback)(muga_window win, int x, int y);
 };
 typedef struct muga_windows_window muga_windows_window;
@@ -1677,8 +1677,8 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 		break;
 
 	case WM_SIZE:
-		if (found_window_id && muga_windows_windows[win].framebuffer_resize_callback != MUGA_NULL_PTR) {
-			muga_windows_windows[win].framebuffer_resize_callback(win, (int)LOWORD(lParam), (int)HIWORD(lParam));
+		if (found_window_id && muga_windows_windows[win].dimensions_callback != MUGA_NULL_PTR) {
+			muga_windows_windows[win].dimensions_callback(win, (int)LOWORD(lParam), (int)HIWORD(lParam));
 		}
 		PostMessage(hwnd, WM_PAINT, 0, 0);
 		return 0;
@@ -1806,7 +1806,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	muga_windows_windows_length = 1;
 	muga_windows_windows = muga_malloc(sizeof(muga_windows_window) * muga_windows_windows_length);
 	muga_windows_windows[0].active = MUGA_FALSE;
-	muga_windows_windows[0].framebuffer_resize_callback = MUGA_NULL_PTR;
+	muga_windows_windows[0].dimensions_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].position_callback = MUGA_NULL_PTR;
 
 	muga_windows_original_time = muga_windows_get_current_time();
@@ -1894,7 +1894,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 			.lpszClassName = class_name,                         // class name
 			.hIconSm =       0                                   // small window icon
 		},
-		.framebuffer_resize_callback = MUGA_NULL_PTR
+		.dimensions_callback = MUGA_NULL_PTR
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		muga_print("[MUGA] Failed to register window class.\n");
@@ -2054,7 +2054,7 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 	// open up to overriding
 	muga_windows_windows[win].active = MUGA_FALSE;
 	muga_windows_windows[win].closed = MUGA_FALSE;
-	muga_windows_windows[win].framebuffer_resize_callback = MUGA_NULL_PTR;
+	muga_windows_windows[win].dimensions_callback = MUGA_NULL_PTR;
 	muga_windows_input_flush(&muga_windows_windows[win].input);
 
 	if (result != MUGA_NULL_PTR) {
@@ -2434,7 +2434,7 @@ MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window 
 	return muga_windows_input_get_status(muga_windows_windows[win].input, key);
 }
 
-MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, muga_window win, void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height)) {
+MUGADEF void muga_window_set_dimensions_callback(MUGA_RESULT* result, muga_window win, void (*dimensions_callback)(muga_window win, int new_width, int new_height)) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting framebuffer resize callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -2444,7 +2444,7 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(MUGA_RESULT* result, mu
 	}
 
 	muga_windows_bind(win);
-	muga_windows_windows[win].framebuffer_resize_callback = framebuffer_resize_callback;
+	muga_windows_windows[win].dimensions_callback = dimensions_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
@@ -3492,7 +3492,7 @@ struct muga_linux_window {
 	MUGA_OPENGL_CALL(GLXContext opengl_context);
 
 	// callbacks
-	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height);
+	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
 };
 typedef struct muga_linux_window muga_linux_window;
 
@@ -3726,7 +3726,7 @@ MUGADEF muga_window muga_window_create(
 	);
 
 	// callbacks
-	muga_linux_windows[win].framebuffer_resize_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].dimensions_callback = MUGA_NULL_PTR;
 
 	// display window
 
@@ -3852,8 +3852,8 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		switch (muga_linux_windows[win].event.type) {
 
 		case Expose:
-			if (muga_linux_windows[win].framebuffer_resize_callback != MUGA_NULL_PTR) {
-				muga_linux_windows[win].framebuffer_resize_callback(win, attributes.width, attributes.height);
+			if (muga_linux_windows[win].dimensions_callback != MUGA_NULL_PTR) {
+				muga_linux_windows[win].dimensions_callback(win, attributes.width, attributes.height);
 			}
 			break;
 
@@ -4454,10 +4454,10 @@ MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window 
 	return muga_linux_input_get_status(muga_linux_windows[win].input, key);
 }
 
-MUGADEF void muga_window_set_framebuffer_resize_callback(
+MUGADEF void muga_window_set_dimensions_callback(
 	MUGA_RESULT* result, 
 	muga_window win, 
-	void (*framebuffer_resize_callback)(muga_window win, int new_width, int new_height)
+	void (*dimensions_callback)(muga_window win, int new_width, int new_height)
 ) {
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting framebuffer resize callback is invalid.\n");
@@ -4467,7 +4467,7 @@ MUGADEF void muga_window_set_framebuffer_resize_callback(
 		return;
 	}
 
-	muga_linux_windows[win].framebuffer_resize_callback = framebuffer_resize_callback;
+	muga_linux_windows[win].dimensions_callback = dimensions_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
