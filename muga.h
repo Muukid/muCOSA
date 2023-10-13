@@ -2315,10 +2315,14 @@ MUGADEF MUGA_BOOL muga_window_get_maximized(MUGA_RESULT* result, muga_window win
 		return MUGA_FALSE;
 	}
 
+	WINDOWPLACEMENT wndpl = {0};
+	wndpl.length = sizeof(wndpl);
+	GetWindowPlacement(muga_windows_windows[win].window_handle, &wndpl);
+
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
-	return IsIconic(muga_windows_windows[win].window_handle);
+	return wndpl.showCmd == SW_MAXIMIZE;
 }
 
 MUGADEF void muga_window_set_maximized(MUGA_RESULT* result, muga_window win, MUGA_BOOL maximized) {
