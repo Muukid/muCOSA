@@ -1700,7 +1700,12 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 
 	case WM_MOVE:
 		if (found_window_id && muga_windows_windows[win].position_callback != MUGA_NULL_PTR) {
-			muga_windows_windows[win].position_callback(win, (int)LOWORD(lParam), (int)HIWORD(lParam));
+			// https://www.autohotkey.com/boards/viewtopic.php?t=27857
+			muga_windows_windows[win].position_callback(
+				win,
+				( lParam      & 0x8000 ? - ((~lParam    )&0x7FFF)+1 :  lParam     &0x7FFF),
+				((lParam>>16) & 0x8000 ? - ((~lParam>>16)&0x7FFF)+1 : (lParam>>16)&0x7FFF)
+			);
 		}
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		break;
@@ -2216,20 +2221,7 @@ MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int 
 		return;
 	}
 
-	int rx = 0, ry = 0;
-	muga_window_get_position(result, win, &rx, &ry);
-	if (x == rx && y == ry) {
-		if (result != MUGA_NULL_PTR) {
-			*result = MUGA_SUCCESS;
-		}
-		return;
-	}
-
 	SetWindowPos(muga_windows_windows[win].window_handle, HWND_TOP, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE );
-
-	if (muga_windows_windows[win].position_callback != MUGA_NULL_PTR) {
-		muga_windows_windows[win].position_callback(win, x, y);
-	}
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
