@@ -389,7 +389,8 @@ MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window 
 // callbacks
 
 MUGADEF void muga_window_set_dimensions_callback(MUGA_RESULT* result, muga_window win, void (*dimensions_callback)(muga_window win, int width, int height));
-MUGADEF void muga_window_set_position_callback  (MUGA_RESULT* result, muga_window win, void (*position_callback)          (muga_window win, int x, int y));
+MUGADEF void muga_window_set_position_callback  (MUGA_RESULT* result, muga_window win, void (*position_callback)  (muga_window win, int x, int y));
+MUGADEF void muga_window_set_focus_callback     (MUGA_RESULT* result, muga_window win, void (*focus_callback)     (muga_window win, MUGA_BOOL focused));
 
 /* opengl functions */
 
@@ -1627,7 +1628,8 @@ struct muga_windows_window {
 
 	// callbacks
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
-	void (*position_callback)(muga_window win, int x, int y);
+	void (*position_callback)  (muga_window win, int x, int y);
+	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -1706,6 +1708,20 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 				( lParam      & 0x8000 ? - ((~lParam    )&0x7FFF)+1 :  lParam     &0x7FFF),
 				((lParam>>16) & 0x8000 ? - ((~lParam>>16)&0x7FFF)+1 : (lParam>>16)&0x7FFF)
 			);
+		}
+		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+		break;
+
+	case WM_SETFOCUS:
+		if (found_window_id && muga_windows_windows[win].focus_callback != MUGA_NULL_PTR) {
+			muga_windows_windows[win].focus_callback(win, MUGA_TRUE);
+		}
+		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+		break;
+	
+	case WM_KILLFOCUS:
+		if (found_window_id && muga_windows_windows[win].focus_callback != MUGA_NULL_PTR) {
+			muga_windows_windows[win].focus_callback(win, MUGA_FALSE);
 		}
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		break;
@@ -1813,6 +1829,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	muga_windows_windows[0].active = MUGA_FALSE;
 	muga_windows_windows[0].dimensions_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].position_callback = MUGA_NULL_PTR;
+	muga_windows_windows[0].focus_callback = MUGA_NULL_PTR;
 
 	muga_windows_original_time = muga_windows_get_current_time();
 
@@ -1899,7 +1916,9 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 			.lpszClassName = class_name,                         // class name
 			.hIconSm =       0                                   // small window icon
 		},
-		.dimensions_callback = MUGA_NULL_PTR
+		.dimensions_callback = MUGA_NULL_PTR,
+		.position_callback = MUGA_NULL_PTR,
+		.focus_callback = MUGA_NULL_PTR
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		muga_print("[MUGA] Failed to register window class.\n");
@@ -2453,6 +2472,22 @@ MUGADEF void muga_window_set_position_callback(MUGA_RESULT* result, muga_window 
 	}
 
 	muga_windows_windows[win].position_callback = position_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_focus_callback(MUGA_RESULT* result, muga_window win, void (*focus_callback)(muga_window win, MUGA_BOOL focused)) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting focus callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].focus_callback = focus_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
