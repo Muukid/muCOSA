@@ -311,6 +311,8 @@ struct muga_pixel_format {
 
 	unsigned int depth_bits;
 	unsigned int stencil_bits;
+
+	unsigned int samples;
 };
 typedef struct muga_pixel_format muga_pixel_format;
 
@@ -343,7 +345,8 @@ muga_window_settings_struct muga_window_settings = {
 		.blue_bits =    8,
 		.alpha_bits =   8,
 		.depth_bits =   24,
-		.stencil_bits = 8
+		.stencil_bits = 8,
+		.samples =      1
 	},
 
 	.visible =   MUGA_TRUE,
@@ -2781,14 +2784,34 @@ MUGA_RESULT muga_linux_init_opengl(Display* display, GLXContext* context, muga_g
 
 	// choose framebuffer pixel format stuff
 
+	/*
+		WGL_DRAW_TO_WINDOW_ARB, MUGA_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, MUGA_TRUE,
+        WGL_DOUBLE_BUFFER_ARB,  muga_window_settings.pixel_format.doublebuffer,
+        WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
+        WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+        WGL_RED_BITS_ARB,       muga_window_settings.pixel_format.red_bits,
+        WGL_GREEN_BITS_ARB,     muga_window_settings.pixel_format.green_bits,
+        WGL_BLUE_BITS_ARB,      muga_window_settings.pixel_format.blue_bits,
+        WGL_ALPHA_BITS_ARB,     muga_window_settings.pixel_format.alpha_bits,
+        WGL_DEPTH_BITS_ARB,     muga_window_settings.pixel_format.depth_bits,
+        WGL_STENCIL_BITS_ARB,   muga_window_settings.pixel_format.stencil_bits,
+        0
+	*/
+
 	// @TODO customizability here
-	static int pixel_format_attributes[] = {
-		GLX_RENDER_TYPE,   GLX_RGBA_BIT,
-		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-		GLX_DOUBLEBUFFER,  MUGA_TRUE,
-		GLX_RED_SIZE,      1,
-		GLX_GREEN_SIZE,    1,
-		GLX_BLUE_SIZE,     1,
+	int pixel_format_attributes[] = {
+		GLX_RENDER_TYPE,    GLX_RGBA_BIT,
+		GLX_DRAWABLE_TYPE,  GLX_WINDOW_BIT,
+		GLX_SAMPLE_BUFFERS, MUGA_TRUE,
+		GLX_DOUBLEBUFFER,   muga_window_settings.pixel_format.doublebuffer,
+		GLX_RED_SIZE,       muga_window_settings.pixel_format.red_bits,
+		GLX_GREEN_SIZE,     muga_window_settings.pixel_format.green_bits,
+		GLX_BLUE_SIZE,      muga_window_settings.pixel_format.blue_bits,
+		GLX_ALPHA_SIZE,     muga_window_settings.pixel_format.alpha_bits,
+		GLX_DEPTH_SIZE,     muga_window_settings.pixel_format.depth_bits,
+		GLX_STENCIL_SIZE,   muga_window_settings.pixel_format.stencil_bits,
+		GLX_SAMPLES,        muga_window_settings.pixel_format.samples,
 		None
 	};
 
