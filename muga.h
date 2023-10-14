@@ -2634,7 +2634,7 @@ MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window 
 
 MUGADEF void muga_window_set_dimensions_callback(MUGA_RESULT* result, muga_window win, void (*dimensions_callback)(muga_window win, int new_width, int new_height)) {
 	if (!muga_windows_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for setting framebuffer resize callback is invalid.\n");
+		muga_print("[MUGA] Requested window ID for setting dimensions callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -3755,6 +3755,11 @@ struct muga_linux_window {
 
 	// callbacks
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
+	void (*position_callback)  (muga_window win, int x, int y);
+
+	// last-frame checks
+	int x;
+	int y;
 };
 typedef struct muga_linux_window muga_linux_window;
 
@@ -3937,7 +3942,11 @@ MUGADEF muga_window muga_window_create(
 		0, 0,                        // border width and border color
 		0                            // background
 	);
-	XSelectInput(muga_linux_windows[win].display, muga_linux_windows[win].window, ExposureMask | KeyPressMask | KeyReleaseMask);
+	XSelectInput(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask
+	);
 
 	// api initialization
 
@@ -3989,6 +3998,11 @@ MUGADEF muga_window muga_window_create(
 
 	// callbacks
 	muga_linux_windows[win].dimensions_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].position_callback = MUGA_NULL_PTR;
+
+	// last checks
+	muga_linux_windows[win].x = muga_window_settings.x;
+	muga_linux_windows[win].y = muga_window_settings.y;
 
 	// display window
 
@@ -4140,6 +4154,18 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 				XkbKeycodeToKeysym(muga_linux_windows[win].display, muga_linux_windows[win].event.xkey.keycode, 0, 0),
 				MUGA_KEY_DOWN
 			);
+			break;
+
+		case ConfigureNotify:
+			if (muga_linux_windows[win].event.xconfigure.x != muga_linux_windows[win].x ||
+				muga_linux_windows[win].event.xconfigure.y != muga_linux_windows[win].y
+			) {
+				muga_linux_windows[win].x = muga_linux_windows[win].event.xconfigure.x;
+				muga_linux_windows[win].y = muga_linux_windows[win].event.xconfigure.y;
+				if (muga_linux_windows[win].position_callback != MUGA_NULL_PTR) {
+					muga_linux_windows[win].position_callback(win, muga_linux_windows[win].x, muga_linux_windows[win].y);
+				}
+			}
 			break;
 
 		default:
@@ -4722,7 +4748,7 @@ MUGADEF void muga_window_set_dimensions_callback(
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height)
 ) {
 	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for setting framebuffer resize callback is invalid.\n");
+		muga_print("[MUGA] Requested window ID for setting dimensions callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -4730,6 +4756,22 @@ MUGADEF void muga_window_set_dimensions_callback(
 	}
 
 	muga_linux_windows[win].dimensions_callback = dimensions_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_position_callback(MUGA_RESULT* result, muga_window win, void (*position_callback)(muga_window win, int x, int y)) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for settings position callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].position_callback = position_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
