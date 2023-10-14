@@ -3758,11 +3758,13 @@ struct muga_linux_window {
 	void (*position_callback)  (muga_window win, int x, int y);
 	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
 	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
+	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
 
 	// last-frame checks
 	int x;
 	int y;
 	MUGA_BOOL maximized;
+	MUGA_BOOL minimized;
 };
 typedef struct muga_linux_window muga_linux_window;
 
@@ -4004,6 +4006,7 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].position_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].focus_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].maximize_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].minimize_callback = MUGA_NULL_PTR;
 
 	// last checks
 	muga_linux_windows[win].x = muga_window_settings.x;
@@ -4069,6 +4072,9 @@ MUGADEF muga_window muga_window_create(
 			return MUGA_NO_WINDOW;
 	    }
 	}
+
+	muga_linux_windows[win].maximized = muga_window_settings.maximized;
+	muga_linux_windows[win].minimized = muga_window_settings.minimized;
 
 	// return success
 
@@ -4205,6 +4211,14 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		muga_linux_windows[win].maximized = maximized;
 		if (muga_linux_windows[win].maximize_callback != MUGA_NULL_PTR) {
 			muga_linux_windows[win].maximize_callback(win, maximized);
+		}
+	}
+
+	MUGA_BOOL minimized = muga_window_get_minimized(result, win);
+	if (muga_linux_windows[win].minimized != minimized) {
+		muga_linux_windows[win].minimized = minimized;
+		if (muga_linux_windows[win].minimize_callback != MUGA_NULL_PTR) {
+			muga_linux_windows[win].minimize_callback(win, minimized);
 		}
 	}
 
@@ -4831,6 +4845,22 @@ MUGADEF void muga_window_set_maximize_callback(MUGA_RESULT* result, muga_window 
 	}
 
 	muga_linux_windows[win].maximize_callback = maximize_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_minimize_callback(MUGA_RESULT* result, muga_window win, void (*minimize_callback)(muga_window win, MUGA_BOOL minimized)) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting minimize callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].minimize_callback = minimize_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
