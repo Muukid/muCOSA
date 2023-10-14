@@ -3759,6 +3759,7 @@ struct muga_linux_window {
 	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
 	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
 	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
+	void (*key_callback)       (muga_window win, muga_input_method method, muga_input_key key, MUGA_KEY_BIT bit);
 
 	// last-frame checks
 	int x;
@@ -4007,6 +4008,7 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].focus_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].maximize_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].minimize_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].key_callback = MUGA_NULL_PTR;
 
 	// last checks
 	muga_linux_windows[win].x = muga_window_settings.x;
@@ -4127,6 +4129,8 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		return;
 	}
 
+	muga_linux_input pre_input = muga_linux_windows[win].input;
+
 	XWindowAttributes attributes;
 	XGetWindowAttributes(
 		muga_linux_windows[win].display,
@@ -4219,6 +4223,20 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		muga_linux_windows[win].minimized = minimized;
 		if (muga_linux_windows[win].minimize_callback != MUGA_NULL_PTR) {
 			muga_linux_windows[win].minimize_callback(win, minimized);
+		}
+	}
+
+	muga_linux_input post_input = muga_linux_windows[win].input;
+	for (size_m i = 0; i < MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1; i++) {
+		if (pre_input.keyboard_down_status[i] != post_input.keyboard_down_status[i]) {
+			if (muga_linux_windows[win].key_callback != MUGA_NULL_PTR) {
+				muga_linux_windows[win].key_callback(
+					win,
+					MUGA_KEYBOARD,
+					i+MUGA_KEYBOARD_FIRST,
+					post_input.keyboard_down_status[i]
+				);
+			}
 		}
 	}
 
@@ -4861,6 +4879,22 @@ MUGADEF void muga_window_set_minimize_callback(MUGA_RESULT* result, muga_window 
 	}
 
 	muga_linux_windows[win].minimize_callback = minimize_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_key_callback(MUGA_RESULT* result, muga_window win, void (*key_callback)(muga_window win, muga_input_method method, muga_input_key key, MUGA_KEY_BIT bit)) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for settings key callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].key_callback = key_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
