@@ -4079,9 +4079,11 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].minimized = muga_window_settings.minimized;
 
 	XSizeHints* sizeHints = XAllocSizeHints();
-	sizeHints->flags = PMinSize;
+	sizeHints->flags = PMinSize | PMaxSize;
 	sizeHints->min_width = muga_window_settings.minimum_width;
 	sizeHints->min_height = muga_window_settings.minimum_height;
+	sizeHints->max_width = muga_window_settings.maximum_width;
+	sizeHints->max_height = muga_window_settings.maximum_height;
 	XSetWMNormalHints(
 		muga_linux_windows[win].display,
 		muga_linux_windows[win].window,
