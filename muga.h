@@ -3756,6 +3756,7 @@ struct muga_linux_window {
 	// callbacks
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
 	void (*position_callback)  (muga_window win, int x, int y);
+	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
 
 	// last-frame checks
 	int x;
@@ -3945,7 +3946,7 @@ MUGADEF muga_window muga_window_create(
 	XSelectInput(
 		muga_linux_windows[win].display,
 		muga_linux_windows[win].window,
-		ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask
+		ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask | FocusChangeMask
 	);
 
 	// api initialization
@@ -3999,6 +4000,7 @@ MUGADEF muga_window muga_window_create(
 	// callbacks
 	muga_linux_windows[win].dimensions_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].position_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].focus_callback = MUGA_NULL_PTR;
 
 	// last checks
 	muga_linux_windows[win].x = muga_window_settings.x;
@@ -4165,6 +4167,20 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 				if (muga_linux_windows[win].position_callback != MUGA_NULL_PTR) {
 					muga_linux_windows[win].position_callback(win, muga_linux_windows[win].x, muga_linux_windows[win].y);
 				}
+			}
+			break;
+
+		// @TODO FocusIn/Out get called when window is being dragged,
+		// might wanna change that but there's no easy way to
+		case FocusIn:
+			if (muga_linux_windows[win].focus_callback != MUGA_NULL_PTR) {
+				muga_linux_windows[win].focus_callback(win, MUGA_TRUE);
+			}
+			break;
+
+		case FocusOut:
+			if (muga_linux_windows[win].focus_callback != MUGA_NULL_PTR) {
+				muga_linux_windows[win].focus_callback(win, MUGA_FALSE);
 			}
 			break;
 
@@ -4764,7 +4780,7 @@ MUGADEF void muga_window_set_dimensions_callback(
 
 MUGADEF void muga_window_set_position_callback(MUGA_RESULT* result, muga_window win, void (*position_callback)(muga_window win, int x, int y)) {
 	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for settings position callback is invalid.\n");
+		muga_print("[MUGA] Requested window ID for setting position callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -4772,6 +4788,22 @@ MUGADEF void muga_window_set_position_callback(MUGA_RESULT* result, muga_window 
 	}
 
 	muga_linux_windows[win].position_callback = position_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_focus_callback(MUGA_RESULT* result, muga_window win, void (*focus_callback)(muga_window win, MUGA_BOOL focused)) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting focus callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].focus_callback = focus_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
