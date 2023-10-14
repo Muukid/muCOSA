@@ -3757,10 +3757,12 @@ struct muga_linux_window {
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
 	void (*position_callback)  (muga_window win, int x, int y);
 	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
+	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
 
 	// last-frame checks
 	int x;
 	int y;
+	MUGA_BOOL maximized;
 };
 typedef struct muga_linux_window muga_linux_window;
 
@@ -4001,6 +4003,7 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].dimensions_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].position_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].focus_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].maximize_callback = MUGA_NULL_PTR;
 
 	// last checks
 	muga_linux_windows[win].x = muga_window_settings.x;
@@ -4195,6 +4198,14 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 
 	if (focused_window != muga_linux_windows[win].window) {
 		muga_linux_input_flush(&muga_linux_windows[win].input);
+	}
+
+	MUGA_BOOL maximized = muga_window_get_maximized(result, win);
+	if (muga_linux_windows[win].maximized != maximized) {
+		muga_linux_windows[win].maximized = maximized;
+		if (muga_linux_windows[win].maximize_callback != MUGA_NULL_PTR) {
+			muga_linux_windows[win].maximize_callback(win, maximized);
+		}
 	}
 
 	if (result != MUGA_NULL_PTR) {
@@ -4804,6 +4815,22 @@ MUGADEF void muga_window_set_focus_callback(MUGA_RESULT* result, muga_window win
 	}
 
 	muga_linux_windows[win].focus_callback = focus_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_maximize_callback(MUGA_RESULT* result, muga_window win, void (*maximize_callback)(muga_window win, MUGA_BOOL maximized)) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting maximize callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].maximize_callback = maximize_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
