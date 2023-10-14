@@ -388,6 +388,9 @@ MUGADEF void      muga_window_set_maximized(MUGA_RESULT* result, muga_window win
 MUGADEF MUGA_BOOL muga_window_get_minimized(MUGA_RESULT* result, muga_window win);
 MUGADEF void      muga_window_set_minimized(MUGA_RESULT* result, muga_window win, MUGA_BOOL minimized);
 
+MUGADEF void muga_window_get_minimum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int* width, unsigned int* height);
+MUGADEF void muga_window_set_minimum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int  width, unsigned int  height);
+
 // input
 
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
@@ -2440,6 +2443,44 @@ MUGADEF void muga_window_set_minimized(MUGA_RESULT* result, muga_window win, MUG
 	} else {
 		OpenIcon(muga_windows_windows[win].window_handle);
 	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_get_minimum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int* width, unsigned int* height) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting minimum dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (width != MUGA_NULL_PTR) {
+		*width = muga_windows_windows[win].minimum_width;
+	}
+	if (height != MUGA_NULL_PTR) {
+		*height = muga_windows_windows[win].minimum_height;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_minimum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int width, unsigned int height) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting minimum dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].minimum_width = width;
+	muga_windows_windows[win].minimum_height = height;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
