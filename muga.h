@@ -355,8 +355,8 @@ muga_window_settings_struct muga_window_settings = {
 	.x = 400,
 	.y = 200,
 
-	.minimum_width = 120,   // min/max on Windows
-	.minimum_height = 0,
+	.minimum_width = 120,   // minimum width for Windows
+	.minimum_height = 1,    // minimum height for Linux
 	.maximum_width = 30720, // (32k 16:9)
 	.maximum_height = 17280
 };
@@ -4077,6 +4077,17 @@ MUGADEF muga_window muga_window_create(
 
 	muga_linux_windows[win].maximized = muga_window_settings.maximized;
 	muga_linux_windows[win].minimized = muga_window_settings.minimized;
+
+	XSizeHints* sizeHints = XAllocSizeHints();
+	sizeHints->flags = PMinSize;
+	sizeHints->min_width = muga_window_settings.minimum_width;
+	sizeHints->min_height = muga_window_settings.minimum_height;
+	XSetWMNormalHints(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		sizeHints
+	);
+	XFree(sizeHints);
 
 	// return success
 
