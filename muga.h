@@ -327,6 +327,8 @@ struct muga_window_settings_struct {
 
 	unsigned int minimum_width;
 	unsigned int minimum_height;
+	unsigned int maximum_width;
+	unsigned int maximum_height;
 };
 typedef struct muga_window_settings_struct muga_window_settings_struct;
 
@@ -347,8 +349,10 @@ muga_window_settings_struct muga_window_settings = {
 	.x = 400,
 	.y = 200,
 
-	.minimum_width = 120,
-	.minimum_height = 0
+	.minimum_width = 120,   // min/max on Windows
+	.minimum_height = 0,
+	.maximum_width = 30720, // (32k 16:9)
+	.maximum_height = 17280
 };
 
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
@@ -1645,6 +1649,8 @@ struct muga_windows_window {
 	// mins/maxs
 	unsigned int minimum_width;
 	unsigned int minimum_height;
+	unsigned int maximum_width;
+	unsigned int maximum_height;
 
 	// callbacks
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
@@ -1792,6 +1798,8 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 			// maybe other things about the window like the titlebar?
 			lpmmi->ptMinTrackSize.x = muga_windows_windows[win].minimum_width + 16;
 			lpmmi->ptMinTrackSize.y = muga_windows_windows[win].minimum_height + 39;
+			lpmmi->ptMaxTrackSize.x = muga_windows_windows[win].maximum_width + 16;
+			lpmmi->ptMaxTrackSize.y = muga_windows_windows[win].maximum_height + 39;
 		}
 
 		return 0;
@@ -2123,6 +2131,8 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 
 	muga_windows_windows[win].minimum_width = muga_window_settings.minimum_width;
 	muga_windows_windows[win].minimum_height = muga_window_settings.minimum_height;
+	muga_windows_windows[win].maximum_width = muga_window_settings.maximum_width;
+	muga_windows_windows[win].maximum_height = muga_window_settings.maximum_height;
 
 	UpdateWindow(muga_windows_windows[win].window_handle);
 
