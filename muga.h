@@ -324,6 +324,9 @@ struct muga_window_settings_struct {
 	// @TODO test negative values
 	int x;
 	int y;
+
+	unsigned int minimum_width;
+	unsigned int minimum_height;
 };
 typedef struct muga_window_settings_struct muga_window_settings_struct;
 
@@ -342,7 +345,10 @@ muga_window_settings_struct muga_window_settings = {
 	.resizable = MUGA_TRUE,
 
 	.x = 400,
-	.y = 200
+	.y = 200,
+
+	.minimum_width = 120,
+	.minimum_height = 0
 };
 
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
@@ -1633,6 +1639,10 @@ struct muga_windows_window {
 	// opengl context
 	MUGA_OPENGL_CALL(HGLRC opengl_context);
 
+	// mins/maxs
+	unsigned int minimum_width;
+	unsigned int minimum_height;
+
 	// callbacks
 	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
 	void (*position_callback)  (muga_window win, int x, int y);
@@ -1770,6 +1780,18 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 			muga_windows_windows[win].focus_callback(win, MUGA_FALSE);
 		}
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+		break;
+
+	case WM_GETMINMAXINFO:
+		if (found_window_id) {
+			LPMINMAXINFO lpmmi = (LPMINMAXINFO)lParam;
+			// no clue why 16 and 39 have to be added here.
+			// maybe other things about the window like the titlebar?
+			lpmmi->ptMinTrackSize.x = muga_windows_windows[win].minimum_width + 16;
+			lpmmi->ptMinTrackSize.y = muga_windows_windows[win].minimum_height + 39;
+		}
+
+		return 0;
 		break;
 
 	}
@@ -2087,12 +2109,17 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 
 	muga_windows_bind(win);
 
+	// settings stuff
+
 	muga_windows_windows[win].visible = muga_window_settings.visible;
 	if (muga_windows_windows[win].visible) {
 		ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
 	} else {
 		ShowWindow(muga_windows_windows[win].window_handle, SW_HIDE);
 	}
+
+	muga_windows_windows[win].minimum_width = muga_window_settings.minimum_width;
+	muga_windows_windows[win].minimum_height = muga_window_settings.minimum_height;
 
 	UpdateWindow(muga_windows_windows[win].window_handle);
 
