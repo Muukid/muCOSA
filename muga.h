@@ -4854,6 +4854,61 @@ MUGADEF void muga_window_set_minimum_dimensions(MUGA_RESULT* result, muga_window
 	}
 }
 
+MUGADEF void muga_window_get_maximum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int* width, unsigned int* height) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting maximum dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	XSizeHints* sizeHints = XAllocSizeHints();
+	long supplied_return;
+	XGetWMNormalHints(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		sizeHints,
+		&supplied_return
+	);
+	if (width != MUGA_NULL_PTR) {
+		*width = sizeHints->max_width;
+	}
+	if (height != MUGA_NULL_PTR) {
+		*height = sizeHints->max_height;
+	}
+	XFree(sizeHints);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int width, unsigned int height) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting maximum dimensions is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	XSizeHints* sizeHints = XAllocSizeHints();
+	sizeHints->flags = PMaxSize;
+	sizeHints->max_width = width;
+	sizeHints->max_height = height;
+	XSetWMNormalHints(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		sizeHints
+	);
+	XFree(sizeHints);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting input bit is invalid.\n");
