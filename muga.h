@@ -321,6 +321,9 @@ struct muga_window_settings_struct {
 	MUGA_BOOL visible;
 	MUGA_BOOL resizable;
 
+	MUGA_BOOL minimized;
+	MUGA_BOOL maximized;
+
 	// @TODO test negative values
 	int x;
 	int y;
@@ -345,6 +348,9 @@ muga_window_settings_struct muga_window_settings = {
 
 	.visible =   MUGA_TRUE,
 	.resizable = MUGA_TRUE,
+
+	.minimized = MUGA_FALSE,
+	.maximized = MUGA_FALSE,
 
 	.x = 400,
 	.y = 200,
@@ -2121,21 +2127,25 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	muga_windows_windows[win].class_name = class_name;
 	muga_windows_windows[win].active = MUGA_TRUE;
 
-	muga_windows_bind(win);
-
-	// settings stuff
-
-	muga_windows_windows[win].visible = muga_window_settings.visible;
-	if (muga_windows_windows[win].visible) {
-		ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
-	} else {
-		ShowWindow(muga_windows_windows[win].window_handle, SW_HIDE);
-	}
-
 	muga_windows_windows[win].minimum_width = muga_window_settings.minimum_width;
 	muga_windows_windows[win].minimum_height = muga_window_settings.minimum_height;
 	muga_windows_windows[win].maximum_width = muga_window_settings.maximum_width;
 	muga_windows_windows[win].maximum_height = muga_window_settings.maximum_height;
+
+	muga_windows_bind(win);
+
+	muga_windows_windows[win].visible = muga_window_settings.visible;
+	if (muga_windows_windows[win].visible) {
+		if (muga_window_settings.maximized) {
+			ShowWindow(muga_windows_windows[win].window_handle, SW_MAXIMIZE);
+		} else if (muga_window_settings.minimized) {
+			ShowWindow(muga_windows_windows[win].window_handle, SW_MINIMIZE);
+		} else {
+			ShowWindow(muga_windows_windows[win].window_handle, SW_NORMAL);
+		}
+	} else {
+		ShowWindow(muga_windows_windows[win].window_handle, SW_HIDE);
+	}
 
 	UpdateWindow(muga_windows_windows[win].window_handle);
 
