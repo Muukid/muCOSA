@@ -1724,6 +1724,7 @@ struct muga_windows_window {
 	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
 	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
 	void (*keyboard_callback)  (muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit);
+	void (*mouse_callback)     (muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit);
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -1873,36 +1874,54 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 	case WM_LBUTTONDOWN:
 		if (found_window_id) {
 			muga_windows_input_mouse_set_status(&muga_windows_windows[win].input, VK_LBUTTON, MUGA_MOUSE_DOWN);
+			if (muga_windows_windows[win].mouse_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].mouse_callback(win, muga_windows_windows_key_to_muga_mouse(VK_LBUTTON), MUGA_MOUSE_DOWN);
+			}
 		}
 		return 0;
 		break;
 	case WM_LBUTTONUP:
 		if (found_window_id) {
 			muga_windows_input_mouse_set_status(&muga_windows_windows[win].input, VK_LBUTTON, MUGA_MOUSE_UP);
+			if (muga_windows_windows[win].mouse_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].mouse_callback(win, muga_windows_windows_key_to_muga_mouse(VK_LBUTTON), MUGA_MOUSE_UP);
+			}
 		}
 		return 0;
 		break;
 	case WM_RBUTTONDOWN:
 		if (found_window_id) {
 			muga_windows_input_mouse_set_status(&muga_windows_windows[win].input, VK_RBUTTON, MUGA_MOUSE_DOWN);
+			if (muga_windows_windows[win].mouse_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].mouse_callback(win, muga_windows_windows_key_to_muga_mouse(VK_RBUTTON), MUGA_MOUSE_DOWN);
+			}
 		}
 		return 0;
 		break;
 	case WM_RBUTTONUP:
 		if (found_window_id) {
 			muga_windows_input_mouse_set_status(&muga_windows_windows[win].input, VK_RBUTTON, MUGA_MOUSE_UP);
+			if (muga_windows_windows[win].mouse_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].mouse_callback(win, muga_windows_windows_key_to_muga_mouse(VK_RBUTTON), MUGA_MOUSE_UP);
+			}
 		}
 		return 0;
 		break;
 	case WM_MBUTTONDOWN:
 		if (found_window_id) {
 			muga_windows_input_mouse_set_status(&muga_windows_windows[win].input, VK_MBUTTON, MUGA_MOUSE_DOWN);
+			if (muga_windows_windows[win].mouse_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].mouse_callback(win, muga_windows_windows_key_to_muga_mouse(VK_MBUTTON), MUGA_MOUSE_DOWN);
+			}
 		}
 		return 0;
 		break;
 	case WM_MBUTTONUP:
 		if (found_window_id) {
 			muga_windows_input_mouse_set_status(&muga_windows_windows[win].input, VK_MBUTTON, MUGA_MOUSE_UP);
+			if (muga_windows_windows[win].mouse_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].mouse_callback(win, muga_windows_windows_key_to_muga_mouse(VK_MBUTTON), MUGA_MOUSE_UP);
+			}
 		}
 		return 0;
 		break;
@@ -2107,7 +2126,8 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		.focus_callback = MUGA_NULL_PTR,
 		.maximize_callback = MUGA_NULL_PTR,
 		.minimize_callback = MUGA_NULL_PTR,
-		.keyboard_callback = MUGA_NULL_PTR
+		.keyboard_callback = MUGA_NULL_PTR,
+		.mouse_callback = MUGA_NULL_PTR
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		muga_print("[MUGA] Failed to register window class.\n");
@@ -2831,6 +2851,22 @@ MUGADEF void muga_window_set_keyboard_callback(MUGA_RESULT* result, muga_window 
 	}
 
 	muga_windows_windows[win].keyboard_callback = keyboard_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_mouse_callback(MUGA_RESULT* result, muga_window win, void (*mouse_callback)(muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit)) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting mouse callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].mouse_callback = mouse_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
