@@ -479,6 +479,9 @@ MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win
 MUGADEF muga_cursor_style muga_window_get_cursor_style(MUGA_RESULT* result, muga_window win);
 MUGADEF void              muga_window_set_cursor_style(MUGA_RESULT* result, muga_window win, muga_cursor_style style);
 
+MUGADEF int  muga_window_get_scroll_level(MUGA_RESULT* result, muga_window win);
+MUGADEF void muga_window_set_scroll_level(MUGA_RESULT* result, muga_window win, int scroll_level);
+
 // input
 
 MUGADEF MUGA_KEYBOARD_BIT muga_window_get_keyboard_bit(MUGA_RESULT* result, muga_window win, muga_keyboard_key key);
@@ -496,6 +499,7 @@ MUGADEF void muga_window_set_minimize_callback      (MUGA_RESULT* result, muga_w
 MUGADEF void muga_window_set_keyboard_callback      (MUGA_RESULT* result, muga_window win, void (*keyboard_callback)      (muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit));
 MUGADEF void muga_window_set_keyboard_state_callback(MUGA_RESULT* result, muga_window win, void (*keyboard_state_callback)(muga_window win, muga_keyboard_state state, MUGA_KEYBOARD_STATE_BIT bit));
 MUGADEF void muga_window_set_mouse_callback         (MUGA_RESULT* result, muga_window win, void (*mouse_callback)         (muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit));
+MUGADEF void muga_window_set_scroll_callback        (MUGA_RESULT* result, muga_window win, void (*scroll_callback)        (muga_window win, int scroll_level_add));
 
 /* opengl functions */
 
@@ -1955,10 +1959,12 @@ struct muga_windows_window {
 	void (*keyboard_callback)      (muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit);
 	void (*keyboard_state_callback)(muga_window win, muga_keyboard_state state, MUGA_KEYBOARD_STATE_BIT bit);
 	void (*mouse_callback)         (muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit);
+	void (*scroll_callback)        (muga_window win, int scroll_level_add);
 
-	// cursor
+	// cursor/mouse stuff
 	muga_cursor_style cursor_style;
 	HCURSOR cursor;
+	int scroll_level;
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -2188,6 +2194,16 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 		}
 		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		break;
+	
+	case WM_MOUSEWHEEL:
+		if (found_window_id) {
+			muga_windows_windows[win].scroll_level += GET_WHEEL_DELTA_WPARAM(wParam);
+			if (muga_windows_windows[win].scroll_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].scroll_callback(win, GET_WHEEL_DELTA_WPARAM(wParam));
+			}
+		}
+		return 0;
+		break;
 
 	}
 }
@@ -2298,6 +2314,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	muga_windows_windows[0].keyboard_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].keyboard_state_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].mouse_callback = MUGA_NULL_PTR;
+	muga_windows_windows[0].scroll_callback = MUGA_NULL_PTR;
 
 	muga_windows_original_time = muga_windows_get_current_time();
 
@@ -2471,7 +2488,10 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		.minimize_callback = MUGA_NULL_PTR,
 		.keyboard_callback = MUGA_NULL_PTR,
 		.keyboard_state_callback = MUGA_NULL_PTR,
-		.mouse_callback = MUGA_NULL_PTR
+		.mouse_callback = MUGA_NULL_PTR,
+		.scroll_callback = MUGA_NULL_PTR,
+
+		.scroll_level = 0
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		muga_print("[MUGA] Failed to register window class.\n");
@@ -3090,6 +3110,37 @@ MUGADEF void muga_window_set_cursor_style(MUGA_RESULT* result, muga_window win, 
 	}
 }
 
+MUGADEF int muga_window_get_scroll_level(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting scroll level is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return 0;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_windows_windows[win].scroll_level;
+}
+
+MUGADEF void muga_window_set_scroll_level(MUGA_RESULT* result, muga_window win, int scroll_level) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting scroll level is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].scroll_level = scroll_level;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting context is invalid.\n");
@@ -3327,6 +3378,22 @@ MUGADEF void muga_window_set_mouse_callback(MUGA_RESULT* result, muga_window win
 	}
 
 	muga_windows_windows[win].mouse_callback = mouse_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_scroll_callback(MUGA_RESULT* result, muga_window win, void (*scroll_callback)(muga_window win, int scroll_level_add)) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting scroll callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].scroll_callback = scroll_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
