@@ -350,6 +350,9 @@ MUGADEF void muga_term(MUGA_RESULT* result);
 MUGADEF double muga_time_get(MUGA_RESULT* result);
 MUGADEF void   muga_time_set(MUGA_RESULT* result, double time);
 
+MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m len);
+MUGADEF void   muga_clipboard_set(MUGA_RESULT* result, wchar_m* string);
+
 /* window */
 
 typedef size_m muga_window;
@@ -2348,6 +2351,84 @@ MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
 		*result = MUGA_SUCCESS;
 	}
 	muga_windows_original_time = muga_windows_original_time + muga_time_get(result) - time;
+}
+
+MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m len) {
+	// https://stackoverflow.com/questions/14762456/getclipboarddatacf-text
+	if (!OpenClipboard(MUGA_NULL_PTR)) {
+		muga_print("[MUGA] Failed to get clipboard; couldn't open clipboard.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return 0;
+	}
+
+	HANDLE data = GetClipboardData(CF_UNICODETEXT);
+	if (data == MUGA_NULL_PTR) {
+		muga_print("[MUGA] Failed to get clipboard; couldn't retrieve clipboard data in a Unicode text format.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		CloseClipboard();
+		return 0;
+	}
+
+	wchar_m* ptext = (wchar_m*)GlobalLock(data);
+	if (ptext == MUGA_NULL_PTR) {
+		muga_print("[MUGA] Failed to get clipboard; couldn't retrieve clipboard text pointer.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		CloseClipboard();
+		return 0;
+	}
+
+	size_m ptext_len = muga_wstrlen(ptext);
+	if (buffer == MUGA_NULL_PTR) {
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_SUCCESS;
+		}
+		GlobalUnlock(data);
+		CloseClipboard();
+		return ptext_len;
+	}
+
+	if (len < ptext_len) {
+		muga_print("[MUGA] Failed to get clipboard; buffer length is too small to store.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		GlobalUnlock(data);
+		CloseClipboard();
+		return ptext_len;
+	}
+
+	for (size_m i = 0; i < ptext_len; i++) {
+		buffer[i] = ptext[i];
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return ptext_len;
+}
+
+MUGADEF void muga_clipboard_set(MUGA_RESULT* result, wchar_m* string) {
+	// https://stackoverflow.com/questions/1264137/how-to-copy-string-to-clipboard-in-c
+	// not sure if the "len * sizeof(wchar_m)" usage is correct here...
+	size_m len = muga_wstrlen(string) + 1;
+	
+	HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, len * sizeof(wchar_m));
+	memcpy(GlobalLock(mem), string, len * sizeof(wchar_m));
+	GlobalUnlock(mem);
+	OpenClipboard(MUGA_NULL_PTR);
+	EmptyClipboard();
+	SetClipboardData(CF_UNICODETEXT, mem);
+	CloseClipboard();
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
 }
 
 /* basic window funcs */
