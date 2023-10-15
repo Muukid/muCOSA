@@ -146,17 +146,8 @@ typedef enum muga_graphics_api muga_graphics_api;
 
 /* input */
 
-enum muga_input_method {
-	MUGA_NO_INPUT_METHOD,
-	MUGA_KEYBOARD
-};
-typedef enum muga_input_method muga_input_method;
-
-enum muga_input_key {
+enum muga_keyboard_key {
 	MUGA_NO_INPUT_KEY,
-
-	// keyboard
-	// (https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes)
 
 	MUGA_KEYBOARD_KEY_BACKSPACE,
 	MUGA_KEYBOARD_KEY_TAB,
@@ -277,7 +268,7 @@ enum muga_input_key {
 #define MUGA_KEYBOARD_LAST MUGA_KEYBOARD_KEY_PA1
 #define MUGA_IS_KEYBOARD(key) (key >= MUGA_KEYBOARD_FIRST && key <= MUGA_KEYBOARD_LAST)
 };
-typedef enum muga_input_key muga_input_key;
+typedef enum muga_keyboard_key muga_keyboard_key;
 
 #define MUGA_KEY_BIT  MUGA_BOOL
 #define MUGA_KEY_UP   MUGA_FALSE
@@ -409,7 +400,7 @@ MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window
 
 // input
 
-MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key);
+MUGADEF MUGA_KEY_BIT muga_window_get_keyboard_bit(MUGA_RESULT* result, muga_window win, muga_keyboard_key key);
 
 // callbacks
 
@@ -418,7 +409,7 @@ MUGADEF void muga_window_set_position_callback  (MUGA_RESULT* result, muga_windo
 MUGADEF void muga_window_set_focus_callback     (MUGA_RESULT* result, muga_window win, void (*focus_callback)     (muga_window win, MUGA_BOOL focused));
 MUGADEF void muga_window_set_maximize_callback  (MUGA_RESULT* result, muga_window win, void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized));
 MUGADEF void muga_window_set_minimize_callback  (MUGA_RESULT* result, muga_window win, void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized));
-MUGADEF void muga_window_set_key_callback       (MUGA_RESULT* result, muga_window win, void (*key_callback)       (muga_window win, muga_input_method method, muga_input_key key, MUGA_KEY_BIT bit));
+MUGADEF void muga_window_set_keyboard_callback  (MUGA_RESULT* result, muga_window win, void (*keyboard_callback)  (muga_window win, muga_keyboard_key key, MUGA_KEY_BIT bit));
 
 /* opengl functions */
 
@@ -907,7 +898,7 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
 
 /* keyboard input */
 
-int muga_windows_muga_key_to_windows_key(muga_input_key key) {
+int muga_windows_muga_key_to_windows_key(muga_keyboard_key key) {
 	switch (key) {
 	default:
 		return VK_NONAME;
@@ -1257,7 +1248,7 @@ int muga_windows_muga_key_to_windows_key(muga_input_key key) {
 	}
 }
 
-muga_input_key muga_windows_windows_key_to_muga_key(int key) {
+muga_keyboard_key muga_windows_windows_key_to_muga_key(int key) {
 	switch (key) {
 	default:
 		return MUGA_NO_INPUT_KEY;
@@ -1613,13 +1604,13 @@ struct muga_windows_input {
 typedef struct muga_windows_input muga_windows_input;
 
 void muga_windows_input_set_status(muga_windows_input* input, int windows_key, MUGA_KEY_BIT bit) {
-	muga_input_key key = muga_windows_windows_key_to_muga_key(windows_key);
+	muga_keyboard_key key = muga_windows_windows_key_to_muga_key(windows_key);
 	if (MUGA_IS_KEYBOARD(key)) {
 		input->keyboard_down_status[key-MUGA_KEYBOARD_FIRST] = bit;
 	}
 }
 
-MUGA_KEY_BIT muga_windows_input_get_status(muga_windows_input input, muga_input_key key) {
+MUGA_KEY_BIT muga_windows_input_get_status(muga_windows_input input, muga_keyboard_key key) {
 	if (MUGA_IS_KEYBOARD(key)) {
 		return input.keyboard_down_status[key-MUGA_KEYBOARD_FIRST];
 	}
@@ -1676,7 +1667,7 @@ struct muga_windows_window {
 	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
 	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
 	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
-	void (*key_callback)       (muga_window win, muga_input_method method, muga_input_key key, MUGA_KEY_BIT bit);
+	void (*keyboard_callback)  (muga_window win, muga_keyboard_key key, MUGA_KEY_BIT bit);
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -1763,10 +1754,10 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 	case WM_KEYDOWN:
 		if (found_window_id) {
 			if (
-				muga_windows_windows[win].key_callback != MUGA_NULL_PTR &&
+				muga_windows_windows[win].keyboard_callback != MUGA_NULL_PTR &&
 				muga_windows_input_get_status(muga_windows_windows[win].input, muga_windows_windows_key_to_muga_key(wParam)) == MUGA_FALSE
 			) {
-				muga_windows_windows[win].key_callback(win, MUGA_KEYBOARD, muga_windows_windows_key_to_muga_key(wParam), MUGA_KEY_DOWN);
+				muga_windows_windows[win].keyboard_callback(win, muga_windows_windows_key_to_muga_key(wParam), MUGA_KEY_DOWN);
 			}
 			muga_windows_input_set_status(&muga_windows_windows[win].input, wParam, MUGA_KEY_DOWN);
 		}
@@ -1776,8 +1767,8 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 	case WM_KEYUP:
 		if (found_window_id) {
 			muga_windows_input_set_status(&muga_windows_windows[win].input, wParam, MUGA_KEY_UP);
-			if (muga_windows_windows[win].key_callback != MUGA_NULL_PTR) {
-				muga_windows_windows[win].key_callback(win, MUGA_KEYBOARD, muga_windows_windows_key_to_muga_key(wParam), MUGA_KEY_UP);
+			if (muga_windows_windows[win].keyboard_callback != MUGA_NULL_PTR) {
+				muga_windows_windows[win].keyboard_callback(win, muga_windows_windows_key_to_muga_key(wParam), MUGA_KEY_UP);
 			}
 		}
 		return 0;
@@ -1929,7 +1920,7 @@ MUGADEF void muga_init(MUGA_RESULT* result) {
 	muga_windows_windows[0].focus_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].maximize_callback = MUGA_NULL_PTR;
 	muga_windows_windows[0].minimize_callback = MUGA_NULL_PTR;
-	muga_windows_windows[0].key_callback = MUGA_NULL_PTR;
+	muga_windows_windows[0].keyboard_callback = MUGA_NULL_PTR;
 
 	muga_windows_original_time = muga_windows_get_current_time();
 
@@ -2023,7 +2014,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		.focus_callback = MUGA_NULL_PTR,
 		.maximize_callback = MUGA_NULL_PTR,
 		.minimize_callback = MUGA_NULL_PTR,
-		.key_callback = MUGA_NULL_PTR
+		.keyboard_callback = MUGA_NULL_PTR
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		muga_print("[MUGA] Failed to register window class.\n");
@@ -2626,7 +2617,7 @@ MUGADEF void muga_window_set_visible(MUGA_RESULT* result, muga_window win, MUGA_
 	}
 }
 
-MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
+MUGADEF MUGA_KEY_BIT muga_window_get_keyboard_bit(MUGA_RESULT* result, muga_window win, muga_keyboard_key key) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting input bit is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -2722,7 +2713,7 @@ MUGADEF void muga_window_set_minimize_callback(MUGA_RESULT* result, muga_window 
 	}
 }
 
-MUGADEF void muga_window_set_key_callback(MUGA_RESULT* result, muga_window win, void (*key_callback)(muga_window win, muga_input_method method, muga_input_key key, MUGA_KEY_BIT bit)) {
+MUGADEF void muga_window_set_keyboard_callback(MUGA_RESULT* result, muga_window win, void (*keyboard_callback)(muga_window win, muga_keyboard_key key, MUGA_KEY_BIT bit)) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting key callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -2731,7 +2722,7 @@ MUGADEF void muga_window_set_key_callback(MUGA_RESULT* result, muga_window win, 
 		return;
 	}
 
-	muga_windows_windows[win].key_callback = key_callback;
+	muga_windows_windows[win].keyboard_callback = keyboard_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
@@ -3019,7 +3010,7 @@ MUGA_RESULT muga_linux_init_opengl(Display* display, GLXContext* context, muga_g
 /* keyboard input */
 
 // https://www.cl.cam.ac.uk/~mgk25/ucs/keysymdef.h
-int muga_linux_muga_key_to_linux_key(muga_input_key key) {
+int muga_linux_muga_key_to_linux_key(muga_keyboard_key key) {
 	switch (key) {
 	default:
 		return XK_VoidSymbol;
@@ -3369,7 +3360,7 @@ int muga_linux_muga_key_to_linux_key(muga_input_key key) {
 	}
 }
 
-muga_input_key muga_linux_linux_key_to_muga_key(int key) {
+muga_keyboard_key muga_linux_linux_key_to_muga_key(int key) {
 	switch (key) {
 	default:
 		return MUGA_NO_INPUT_KEY;
@@ -3722,13 +3713,13 @@ struct muga_linux_input {
 typedef struct muga_linux_input muga_linux_input;
 
 void muga_linux_input_set_status(muga_linux_input* input, int linux_key, MUGA_KEY_BIT bit) {
-	muga_input_key key = muga_linux_linux_key_to_muga_key(linux_key);
+	muga_keyboard_key key = muga_linux_linux_key_to_muga_key(linux_key);
 	if (MUGA_IS_KEYBOARD(key)) {
 		input->keyboard_down_status[key-MUGA_KEYBOARD_FIRST] = bit;
 	}
 }
 
-MUGA_KEY_BIT muga_linux_input_get_status(muga_linux_input input, muga_input_key key) {
+MUGA_KEY_BIT muga_linux_input_get_status(muga_linux_input input, muga_keyboard_key key) {
 	if (MUGA_IS_KEYBOARD(key)) {
 		return input.keyboard_down_status[key-MUGA_KEYBOARD_FIRST];
 	}
@@ -3773,7 +3764,7 @@ struct muga_linux_window {
 	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
 	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
 	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
-	void (*key_callback)       (muga_window win, muga_input_method method, muga_input_key key, MUGA_KEY_BIT bit);
+	void (*keyboard_callback)  (muga_window win, muga_keyboard_key key, MUGA_KEY_BIT bit);
 
 	// last-frame checks
 	int x;
@@ -4022,7 +4013,7 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].focus_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].maximize_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].minimize_callback = MUGA_NULL_PTR;
-	muga_linux_windows[win].key_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].keyboard_callback = MUGA_NULL_PTR;
 
 	// last checks
 	muga_linux_windows[win].x = muga_window_settings.x;
@@ -4256,8 +4247,8 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	muga_linux_input post_input = muga_linux_windows[win].input;
 	for (size_m i = 0; i < MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1; i++) {
 		if (pre_input.keyboard_down_status[i] != post_input.keyboard_down_status[i]) {
-			if (muga_linux_windows[win].key_callback != MUGA_NULL_PTR) {
-				muga_linux_windows[win].key_callback(
+			if (muga_linux_windows[win].keyboard_callback != MUGA_NULL_PTR) {
+				muga_linux_windows[win].keyboard_callback(
 					win,
 					MUGA_KEYBOARD,
 					i+MUGA_KEYBOARD_FIRST,
@@ -4923,7 +4914,7 @@ MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window
 	}
 }
 
-MUGADEF MUGA_KEY_BIT muga_window_get_input_bit(MUGA_RESULT* result, muga_window win, muga_input_method method, muga_input_key key) {
+MUGADEF MUGA_KEY_BIT muga_window_get_keyboard_bit(MUGA_RESULT* result, muga_window win, muga_keyboard_key key) {
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting input bit is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -5022,7 +5013,7 @@ MUGADEF void muga_window_set_minimize_callback(MUGA_RESULT* result, muga_window 
 	}
 }
 
-MUGADEF void muga_window_set_key_callback(MUGA_RESULT* result, muga_window win, void (*key_callback)(muga_window win, muga_input_method method, muga_input_key key, MUGA_KEY_BIT bit)) {
+MUGADEF void muga_window_set_keyboard_callback(MUGA_RESULT* result, muga_window win, void (*keyboard_callback)(muga_window win, muga_keyboard_key key, MUGA_KEY_BIT bit)) {
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for settings key callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -5031,7 +5022,7 @@ MUGADEF void muga_window_set_key_callback(MUGA_RESULT* result, muga_window win, 
 		return;
 	}
 
-	muga_linux_windows[win].key_callback = key_callback;
+	muga_linux_windows[win].keyboard_callback = keyboard_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
