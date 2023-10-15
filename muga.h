@@ -564,6 +564,10 @@ HINSTANCE muga_windows_get_hinstance() {
 #define WGL_TYPE_RGBA_ARB                       0x202B
 #define WGL_TYPE_COLORINDEX_ARB                 0x202C
 
+// https://nehe.gamedev.net/tutorial/fullscreen_antialiasing/16008/
+#define WGL_SAMPLE_BUFFERS_ARB  0x2041
+#define WGL_SAMPLES_ARB     0x2042
+
 // wgl variables
 
 typedef HGLRC WINAPI wglCreateContextAttribsARB_type(HDC hdc, HGLRC hShareContext, const int *attribList);
@@ -678,6 +682,7 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
 		WGL_DRAW_TO_WINDOW_ARB, MUGA_TRUE,
         WGL_SUPPORT_OPENGL_ARB, MUGA_TRUE,
         WGL_DOUBLE_BUFFER_ARB,  muga_window_settings.pixel_format.doublebuffer,
+		WGL_SAMPLE_BUFFERS_ARB, MUGA_TRUE,
         WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
         WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
         WGL_RED_BITS_ARB,       muga_window_settings.pixel_format.red_bits,
@@ -686,6 +691,7 @@ MUGA_RESULT muga_windows_create_opengl_context(HDC device_context, HGLRC* contex
         WGL_ALPHA_BITS_ARB,     muga_window_settings.pixel_format.alpha_bits,
         WGL_DEPTH_BITS_ARB,     muga_window_settings.pixel_format.depth_bits,
         WGL_STENCIL_BITS_ARB,   muga_window_settings.pixel_format.stencil_bits,
+		WGL_SAMPLES_ARB,        16,
         0
 	};
 
@@ -2783,21 +2789,6 @@ MUGA_RESULT muga_linux_init_opengl(Display* display, GLXContext* context, muga_g
 	}
 
 	// choose framebuffer pixel format stuff
-
-	/*
-		WGL_DRAW_TO_WINDOW_ARB, MUGA_TRUE,
-        WGL_SUPPORT_OPENGL_ARB, MUGA_TRUE,
-        WGL_DOUBLE_BUFFER_ARB,  muga_window_settings.pixel_format.doublebuffer,
-        WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
-        WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-        WGL_RED_BITS_ARB,       muga_window_settings.pixel_format.red_bits,
-        WGL_GREEN_BITS_ARB,     muga_window_settings.pixel_format.green_bits,
-        WGL_BLUE_BITS_ARB,      muga_window_settings.pixel_format.blue_bits,
-        WGL_ALPHA_BITS_ARB,     muga_window_settings.pixel_format.alpha_bits,
-        WGL_DEPTH_BITS_ARB,     muga_window_settings.pixel_format.depth_bits,
-        WGL_STENCIL_BITS_ARB,   muga_window_settings.pixel_format.stencil_bits,
-        0
-	*/
 
 	// @TODO customizability here
 	int pixel_format_attributes[] = {
