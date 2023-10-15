@@ -278,6 +278,7 @@ typedef enum muga_keyboard_key muga_keyboard_key;
 
 enum muga_mouse_key {
 	MUGA_MOUSE_KEY_UNKNOWN,
+
 	MUGA_MOUSE_KEY_LEFT,
 	MUGA_MOUSE_KEY_RIGHT,
 	MUGA_MOUSE_KEY_MIDDLE
@@ -291,6 +292,34 @@ typedef enum muga_mouse_key muga_mouse_key;
 #define MUGA_MOUSE_BIT  MUGA_BOOL
 #define MUGA_MOUSE_UP   MUGA_FALSE
 #define MUGA_MOUSE_DOWN MUGA_TRUE
+
+/* mouse style */
+
+enum muga_cursor_style {
+	MUGA_CURSOR_STYLE_UNKNOWN,
+
+	// taken from LÖVE
+	// https://love2d.org/wiki/CursorType
+	// @TODO add invisible
+	MUGA_CURSOR_STYLE_DEFAULT,
+	MUGA_CURSOR_STYLE_ARROW,
+	MUGA_CURSOR_STYLE_IBEAM,
+	MUGA_CURSOR_STYLE_WAIT,
+	MUGA_CURSOR_STYLE_WAIT_ARROW,
+	MUGA_CURSOR_STYLE_CROSSHAIR,
+	MUGA_CURSOR_STYLE_HAND,
+	MUGA_CURSOR_STYLE_SIZE_EAST_WEST,
+	MUGA_CURSOR_STYLE_SIZE_NORTH_SOUTH,
+	MUGA_CURSOR_STYLE_SIZE_NORTH_EAST_SOUTH_WEST,
+	MUGA_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST,
+	MUGA_CURSOR_STYLE_SIZE_ALL,
+	MUGA_CURSOR_STYLE_NO
+
+#define MUGA_CURSOR_STYLE_FIRST MUGA_CURSOR_STYLE_ARROW
+#define MUGA_CURSOR_STYLE_LAST MUGA_CURSOR_STYLE_NO
+#define MUGA_IS_CURSOR_STYLE(style) (style >= MUGA_CURSOR_STYLE_FIRST && style <= MUGA_CURSOR_STYLE_LAST)
+};
+typedef enum muga_cursor_style muga_cursor_style;
 
 /* general */
 
@@ -343,6 +372,8 @@ struct muga_window_settings_struct {
 	unsigned int minimum_height;
 	unsigned int maximum_width;
 	unsigned int maximum_height;
+
+	muga_cursor_style cursor_style;
 };
 typedef struct muga_window_settings_struct muga_window_settings_struct;
 
@@ -370,7 +401,9 @@ muga_window_settings_struct muga_window_settings = {
 	.minimum_width = 120,   // minimum width for Windows
 	.minimum_height = 1,    // minimum height for Linux
 	.maximum_width = 30720, // (32k 16:9)
-	.maximum_height = 17280
+	.maximum_height = 17280,
+
+	.cursor_style = MUGA_CURSOR_STYLE_DEFAULT
 };
 
 MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
@@ -418,6 +451,9 @@ MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window
 
 MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win, int* x, int* y);
 MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win, int  x, int  y);
+
+MUGADEF muga_cursor_style muga_window_get_cursor_style(MUGA_RESULT* result, muga_window win);
+MUGADEF void              muga_window_set_cursor_style(MUGA_RESULT* result, muga_window win, muga_cursor_style style);
 
 // input
 
@@ -1639,6 +1675,94 @@ muga_mouse_key muga_windows_windows_key_to_muga_mouse(int key) {
 	}
 }
 
+void* muga_windows_muga_cursor_to_windows_cursor(muga_cursor_style style) {
+	switch (style) {
+	default:
+		return IDC_ARROW;
+		break;
+	case MUGA_CURSOR_STYLE_ARROW:
+		return IDC_ARROW;
+		break;
+	case MUGA_CURSOR_STYLE_IBEAM:
+		return IDC_IBEAM;
+		break;
+	case MUGA_CURSOR_STYLE_WAIT:
+		return IDC_WAIT;
+		break;
+	case MUGA_CURSOR_STYLE_WAIT_ARROW:
+		return IDC_APPSTARTING;
+		break;
+	case MUGA_CURSOR_STYLE_CROSSHAIR:
+		return IDC_CROSS;
+		break;
+	case MUGA_CURSOR_STYLE_HAND:
+		return IDC_HAND;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_EAST_WEST:
+		return IDC_SIZEWE;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_NORTH_SOUTH:
+		return IDC_SIZENS;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_NORTH_EAST_SOUTH_WEST:
+		return IDC_SIZENESW;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST:
+		return IDC_SIZENWSE;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_ALL:
+		return IDC_SIZEALL;
+		break;
+	case MUGA_CURSOR_STYLE_NO:
+		return IDC_NO;
+		break;
+	}
+}
+
+muga_cursor_style muga_windows_cursor_to_muga_cursor(void* cursor) {
+	switch ((int)cursor) {
+	default:
+		return MUGA_CURSOR_STYLE_IBEAM;
+		break;
+	case (int)IDC_ARROW:
+		return MUGA_CURSOR_STYLE_ARROW;
+		break;
+	case (int)IDC_IBEAM:
+		return MUGA_CURSOR_STYLE_IBEAM;
+		break;
+	case (int)IDC_WAIT:
+		return MUGA_CURSOR_STYLE_WAIT;
+		break;
+	case (int)IDC_APPSTARTING:
+		return MUGA_CURSOR_STYLE_WAIT_ARROW;
+		break;
+	case (int)IDC_CROSS:
+		return MUGA_CURSOR_STYLE_CROSSHAIR;
+		break;
+	case (int)IDC_HAND:
+		return MUGA_CURSOR_STYLE_HAND;
+		break;
+	case (int)IDC_SIZEWE:
+		return MUGA_CURSOR_STYLE_SIZE_EAST_WEST;
+		break;
+	case (int)IDC_SIZENS:
+		return MUGA_CURSOR_STYLE_SIZE_NORTH_SOUTH;
+		break;
+	case (int)IDC_SIZENESW:
+		return MUGA_CURSOR_STYLE_SIZE_NORTH_EAST_SOUTH_WEST;
+		break;
+	case (int)IDC_SIZENWSE:
+		return MUGA_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST;
+		break;
+	case (int)IDC_SIZEALL:
+		return MUGA_CURSOR_STYLE_SIZE_ALL;
+		break;
+	case (int)IDC_NO:
+		return MUGA_CURSOR_STYLE_NO;
+		break;
+	}
+}
+
 struct muga_windows_input {
 	MUGA_KEYBOARD_BIT keyboard_down_status[MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1];
 	MUGA_MOUSE_BIT mouse_down_status[MUGA_MOUSE_LAST-MUGA_MOUSE_FIRST+1];
@@ -1728,6 +1852,10 @@ struct muga_windows_window {
 	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
 	void (*keyboard_callback)  (muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit);
 	void (*mouse_callback)     (muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit);
+
+	// cursor
+	muga_cursor_style cursor_style;
+	HCURSOR cursor;
 };
 typedef struct muga_windows_window muga_windows_window;
 
@@ -1927,6 +2055,18 @@ LRESULT CALLBACK muga_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM w
 			}
 		}
 		return 0;
+		break;
+
+	case WM_SETCURSOR:
+		if (found_window_id && LOWORD(lParam) == HTCLIENT) {
+			if (muga_windows_windows[win].cursor_style != MUGA_CURSOR_STYLE_DEFAULT) {
+				DestroyCursor(muga_windows_windows[win].cursor);
+				muga_windows_windows[win].cursor = LoadCursor(MUGA_NULL_PTR, muga_windows_muga_cursor_to_windows_cursor(muga_windows_windows[win].cursor_style));
+				SetCursor(muga_windows_windows[win].cursor);
+				return TRUE;
+			}
+		}
+		return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		break;
 
 	}
@@ -2179,6 +2319,9 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 
 	// get some more info
 	muga_windows_windows[win].device_context = GetDC(muga_windows_windows[win].window_handle);
+	muga_windows_windows[win].cursor_style = muga_window_settings.cursor_style;
+	muga_windows_windows[win].cursor = LoadCursor(MUGA_NULL_PTR, muga_windows_muga_cursor_to_windows_cursor(muga_windows_windows[win].cursor_style));
+	SetCursor(muga_windows_windows[win].cursor);
 
 	// make api context
 
@@ -2706,6 +2849,40 @@ MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win
 	int win_x=0, win_y=0;
 	muga_window_get_position(result, win, &win_x, &win_y);
 	SetCursorPos(win_x+x, win_y+y);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF muga_cursor_style muga_window_get_cursor_style(MUGA_RESULT* result, muga_window win) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting cursor style is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_CURSOR_STYLE_UNKNOWN;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_windows_windows[win].cursor_style;
+}
+
+MUGADEF void muga_window_set_cursor_style(MUGA_RESULT* result, muga_window win, muga_cursor_style style) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting cursor style is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_windows_windows[win].cursor_style = style;
+	DestroyCursor(muga_windows_windows[win].cursor);
+	muga_windows_windows[win].cursor = LoadCursor(MUGA_NULL_PTR, muga_windows_muga_cursor_to_windows_cursor(muga_windows_windows[win].cursor_style));
+	SetCursor(muga_windows_windows[win].cursor);
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
