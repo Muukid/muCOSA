@@ -416,6 +416,9 @@ MUGADEF void muga_window_set_minimum_dimensions(MUGA_RESULT* result, muga_window
 MUGADEF void muga_window_get_maximum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int* width, unsigned int* height);
 MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window win, unsigned int  width, unsigned int  height);
 
+MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win, int* x, int* y);
+MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win, int  x, int  y);
+
 // input
 
 MUGADEF MUGA_KEYBOARD_BIT muga_window_get_keyboard_bit(MUGA_RESULT* result, muga_window win, muga_keyboard_key key);
@@ -2440,10 +2443,13 @@ MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int*
 	GetWindowRect(muga_windows_windows[win].window_handle, &rect);
 
 	if (x != MUGA_NULL_PTR) {
-		*x = (int)rect.left;
+		// https://stackoverflow.com/questions/431470/window-border-width-and-height-in-win32-how-do-i-get-it
+		*x = (int)rect.left + (int)(GetSystemMetrics(SM_CXSIZEFRAME));
 	}
 	if (y != MUGA_NULL_PTR) {
-		*y = (int)rect.top;
+		// https://stackoverflow.com/questions/28524463/how-to-get-the-default-caption-bar-height-of-a-window-in-windows/28524464#28524464
+		// 92 = SM_CXPADDEDBORDER
+		*y = (int)rect.top + (int)((GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(92)));
 	}
 
 	if (result != MUGA_NULL_PTR) {
@@ -2655,6 +2661,51 @@ MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window
 
 	muga_windows_windows[win].maximum_width = width;
 	muga_windows_windows[win].maximum_height = height;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win, int* x, int* y) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting mouse position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	POINT point = {0};
+	GetCursorPos(&point);
+	int window_pos_x = 0, window_pos_y = 0;
+	muga_window_get_position(result, win, &window_pos_x, &window_pos_y);
+
+	if (x != MUGA_NULL_PTR) {
+		*x = point.x - window_pos_x;
+	}
+
+	if (y != MUGA_NULL_PTR) {
+		*y = point.y - window_pos_y;
+	}
+	
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win, int x, int y) {
+	if (!muga_windows_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting mouse position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	int win_x=0, win_y=0;
+	muga_window_get_position(result, win, &win_x, &win_y);
+	SetCursorPos(win_x+x, win_y+y);
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
