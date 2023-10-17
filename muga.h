@@ -4886,6 +4886,16 @@ MUGADEF muga_window muga_window_create(
 	);
 	XFree(sizeHints);
 
+	// handle maximized/minimized
+
+	if (muga_window_settings.maximized) {
+		muga_window_set_maximized(result, win, MUGA_TRUE);
+	}
+
+	if (muga_window_settings.minimized) {
+		muga_window_set_minimized(result, win, MUGA_TRUE);
+	}
+
 	// return success
 
 	if (result != MUGA_NULL_PTR) {
