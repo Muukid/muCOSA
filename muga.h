@@ -3031,6 +3031,8 @@ MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window
 	}
 }
 
+//MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win, int x, int y);
+
 MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win, int* x, int* y) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting mouse position is invalid.\n");
@@ -4482,6 +4484,13 @@ struct muga_linux_window {
 
 	// total values
 	int scroll_level;
+
+	// window deco stuff
+	MUGA_BOOL gotten_deco;
+	long left;
+	long right;
+	long top;
+	long bottom;
 };
 typedef struct muga_linux_window muga_linux_window;
 
@@ -4742,6 +4751,7 @@ MUGADEF muga_window muga_window_create(
 
 	// reset values
 	muga_linux_windows[win].scroll_level = 0;
+	muga_linux_windows[win].gotten_deco = MUGA_FALSE;
 
 	// display window
 
@@ -4885,6 +4895,34 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	muga_window_set_position(result, win, x, y);
 
 	while (XPending(muga_linux_windows[win].display)) {
+		// https://stackoverflow.com/questions/36188154/get-x11-window-caption-height
+		if (muga_linux_windows[win].gotten_deco == MUGA_FALSE) {
+			Atom a = XInternAtom(muga_linux_windows[win].display, "_NET_FRAME_EXTENTS", True);
+			Atom t;
+			int f;
+			unsigned long _n, b;
+			unsigned char* data = 0;
+
+			int r = XGetWindowProperty(
+				muga_linux_windows[win].display,
+				muga_linux_windows[win].window,
+				a, 
+				0, 4, False, AnyPropertyType,
+				&t, &f, &_n, &b, &data
+			);
+
+			if (r == Success && _n == 4 && b == 0) {
+				long* extents = (long*)data;
+
+				muga_linux_windows[win].left = extents[0];
+				muga_linux_windows[win].right = extents[1];
+				muga_linux_windows[win].top = extents[2];
+				muga_linux_windows[win].bottom = extents[3];
+
+				muga_linux_windows[win].gotten_deco = MUGA_TRUE;
+			}
+		}
+
 		XNextEvent(muga_linux_windows[win].display, &muga_linux_windows[win].event);
 
 		switch (muga_linux_windows[win].event.type) {
@@ -5390,11 +5428,11 @@ MUGADEF void muga_window_get_position(MUGA_RESULT* result, muga_window win, int*
 	XGetWindowAttributes(muga_linux_windows[win].display, muga_linux_windows[win].window, &xwa);
 
 	if (x != MUGA_NULL_PTR) {
-		*x = (int)(rx - xwa.x);
+		*x = (int)(rx - xwa.x) + (int)muga_linux_windows[win].left;
 	}
 
 	if (y != MUGA_NULL_PTR) {
-		*y = (int)(ry - xwa.y);
+		*y = (int)(ry - xwa.y) + (int)muga_linux_windows[win].top;
 	}
 
 	if (result != MUGA_NULL_PTR) {
@@ -5414,7 +5452,8 @@ MUGADEF void muga_window_set_position(MUGA_RESULT* result, muga_window win, int 
 	XMoveWindow(
 		muga_linux_windows[win].display, 
 		muga_linux_windows[win].window, 
-		x, y
+		x - (int)muga_linux_windows[win].left,
+		y - (int)muga_linux_windows[win].top
 	);
 
 	if (result != MUGA_NULL_PTR) {
@@ -5771,6 +5810,67 @@ MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window
 		sizeHints
 	);
 	XFree(sizeHints);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win, int* x, int* y) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting mouse position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	// https://stackoverflow.com/questions/3585871/how-can-i-get-the-current-mouse-pointer-position-co-ordinates-in-x
+	int number_of_screens = XScreenCount(muga_linux_windows[win].display);
+	Window* root_windows = muga_malloc(sizeof(Window) * number_of_screens);
+
+	for (size_m i = 0; i < number_of_screens; i++) {
+		root_windows[i] = XRootWindow(muga_linux_windows[win].display, i);
+	}
+
+	Bool oresult = False;
+	int root_x, root_y;
+	for (size_m i = 0; i < number_of_screens; i++) {
+		Window window_returned;
+		int win_x, win_y;
+		unsigned int mask_return;
+
+		oresult = XQueryPointer(
+			muga_linux_windows[win].display,
+			root_windows[i],
+			&window_returned,
+			&window_returned,
+			&root_x, &root_y,
+			&win_x, &win_y,
+			&mask_return
+		);
+
+		if (oresult == True) {
+			break;
+		}
+	}
+
+	muga_free(root_windows);
+
+	if (oresult != True) {
+		// @TODO handle this case
+		return;
+	}
+
+	int wx=0, wy=0;
+	muga_window_get_position(result, win, &wx, &wy);
+
+	if (x != MUGA_NULL_PTR) {
+		*x = root_x - wx;
+	}
+	if (y != MUGA_NULL_PTR) {
+		*y = root_y - wy;
+	}
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
