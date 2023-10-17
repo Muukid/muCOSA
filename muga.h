@@ -4404,6 +4404,13 @@ void muga_linux_input_mouse_set_status(muga_linux_input* input, muga_mouse_key m
 	}
 }
 
+MUGA_MOUSE_BIT muga_linux_input_mouse_get_status(muga_linux_input input, muga_mouse_key key) {
+	if (MUGA_IS_MOUSE(key)) {
+		return input.mouse_down_status[key-MUGA_MOUSE_FIRST];
+	}
+	return MUGA_MOUSE_UP;
+}
+
 void muga_linux_input_flush(muga_linux_input* input) {
 	for (size_m i = 0; i < MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1; i++) {
 		input->keyboard_down_status[i] = MUGA_KEYBOARD_UP;
@@ -5707,9 +5714,15 @@ MUGADEF MUGA_MOUSE_BIT muga_window_get_mouse_bit(MUGA_RESULT* result, muga_windo
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting mouse bit is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
-
+			*result = MUGA_FAILURE;
 		}
+		return MUGA_MOUSE_UP;
 	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_linux_input_mouse_get_status(muga_linux_windows[win].input, key);
 }
 
 MUGADEF void muga_window_set_dimensions_callback(
