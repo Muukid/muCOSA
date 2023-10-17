@@ -4380,6 +4380,7 @@ muga_keyboard_key muga_linux_linux_key_to_muga_key(int key) {
 
 struct muga_linux_input {
 	MUGA_KEYBOARD_BIT keyboard_down_status[MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1];
+	MUGA_KEYBOARD_STATE_BIT keyboard_state_status[MUGA_KEYBOARD_STATE_LAST-MUGA_KEYBOARD_STATE_FIRST+1];
 	MUGA_MOUSE_BIT mouse_down_status[MUGA_MOUSE_LAST-MUGA_MOUSE_FIRST+1];
 };
 typedef struct muga_linux_input muga_linux_input;
@@ -4396,6 +4397,19 @@ MUGA_KEYBOARD_BIT muga_linux_input_keyboard_get_status(muga_linux_input input, m
 		return input.keyboard_down_status[key-MUGA_KEYBOARD_FIRST];
 	}
 	return MUGA_KEYBOARD_UP;
+}
+
+void muga_linux_input_keyboard_state_set_status(muga_linux_input* input, muga_keyboard_state state, MUGA_KEYBOARD_STATE_BIT bit) {
+	if (MUGA_IS_KEYBOARD_STATE(state)) {
+		input->keyboard_state_status[state-MUGA_KEYBOARD_STATE_FIRST] = bit;
+	}
+}
+
+MUGA_KEYBOARD_STATE_BIT muga_linux_input_keyboard_state_get_status(muga_linux_input input, muga_keyboard_state state) {
+	if (MUGA_IS_KEYBOARD_STATE(state)) {
+		return input.keyboard_state_status[state-MUGA_KEYBOARD_STATE_FIRST];
+	}
+	return MUGA_KEYBOARD_STATE_ON;
 }
 
 void muga_linux_input_mouse_set_status(muga_linux_input* input, muga_mouse_key mouse, MUGA_MOUSE_BIT bit) {
@@ -4649,7 +4663,7 @@ MUGADEF muga_window muga_window_create(
 		FocusChangeMask |
 		PointerMotionMask |
 		ButtonPressMask |
-		ButtonReleaseMask
+		ButtonReleaseMask | KeymapStateMask
 	);
 
 	// api initialization
@@ -4850,8 +4864,13 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		&attributes
 	);
 
+	int x, y;
+	muga_window_get_position(result, win, &x, &y);
+	muga_window_set_position(result, win, x, y);
+
 	while (XPending(muga_linux_windows[win].display)) {
 		XNextEvent(muga_linux_windows[win].display, &muga_linux_windows[win].event);
+
 		switch (muga_linux_windows[win].event.type) {
 
 		case Expose:
@@ -5000,6 +5019,30 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		default:
 			break;
 		}
+	}
+
+	// http://levonp.blogspot.com/2010/08/retrieving-caps-lock-info-using-xlib.html
+	unsigned int n;
+	XkbGetIndicatorState(muga_linux_windows[win].display, XkbUseCoreKbd, &n);
+
+	MUGA_BOOL check = (n & (XInternAtom(muga_linux_windows[win].display, "Caps Lock", False) - 1)) != 0;
+	if (check != muga_linux_input_keyboard_state_get_status(muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_CAPS_LOCK)) {
+		muga_linux_input_keyboard_state_set_status(&muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_CAPS_LOCK, check);
+		// callback
+	}
+
+	check = (n & (XInternAtom(muga_linux_windows[win].display, "Num Lock", False) - 1)) != 0;
+	if (check != muga_linux_input_keyboard_state_get_status(muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_NUM_LOCK)) {
+		muga_linux_input_keyboard_state_set_status(&muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_NUM_LOCK, check);
+		// callback
+	}
+
+	// can't get scroll lock to register... don't know why?
+	// maybe name isn't "Scroll Lock"
+	check = (n & (XInternAtom(muga_linux_windows[win].display, "Scroll Lock", False) - 1)) != 0;
+	if (check != muga_linux_input_keyboard_state_get_status(muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_SCROLL_LOCK)) {
+		muga_linux_input_keyboard_state_set_status(&muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_SCROLL_LOCK, check);
+		// callback
 	}
 
 	Window focused_window;
@@ -5708,6 +5751,21 @@ MUGADEF MUGA_KEYBOARD_BIT muga_window_get_keyboard_bit(MUGA_RESULT* result, muga
 		*result = MUGA_SUCCESS;
 	}
 	return muga_linux_input_keyboard_get_status(muga_linux_windows[win].input, key);
+}
+
+MUGADEF MUGA_KEYBOARD_STATE_BIT muga_window_get_keyboard_state_bit(MUGA_RESULT* result, muga_window win, muga_keyboard_state state) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting keyboard state bit is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_KEYBOARD_STATE_OFF;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_linux_input_keyboard_state_get_status(muga_linux_windows[win].input, state);
 }
 
 MUGADEF MUGA_MOUSE_BIT muga_window_get_mouse_bit(MUGA_RESULT* result, muga_window win, muga_mouse_key key) {
