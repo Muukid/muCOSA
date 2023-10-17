@@ -4890,9 +4890,9 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		&attributes
 	);
 
-	int x, y;
+	/*int x, y;
 	muga_window_get_position(result, win, &x, &y);
-	muga_window_set_position(result, win, x, y);
+	muga_window_set_position(result, win, x, y);*/
 
 	while (XPending(muga_linux_windows[win].display)) {
 		// https://stackoverflow.com/questions/36188154/get-x11-window-caption-height
@@ -5871,6 +5871,29 @@ MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win
 	if (y != MUGA_NULL_PTR) {
 		*y = root_y - wy;
 	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win, int x, int y) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting mouse position is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	XWarpPointer(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		muga_linux_windows[win].window,
+		0, 0, 0, 0,
+		x, y
+	);
+	XFlush(muga_linux_windows[win].display);
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
