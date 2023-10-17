@@ -3031,8 +3031,6 @@ MUGADEF void muga_window_set_maximum_dimensions(MUGA_RESULT* result, muga_window
 	}
 }
 
-//MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win, int x, int y);
-
 MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win, int* x, int* y) {
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for getting mouse position is invalid.\n");
@@ -4380,6 +4378,48 @@ muga_keyboard_key muga_linux_linux_key_to_muga_key(int key) {
 	}
 }
 
+// https://tronche.com/gui/x/xlib/appendix/b/
+int muga_linux_get_linux_cursor_style(muga_cursor_style style) {
+	switch (style) {
+	default:
+		return 2;
+		break;
+	case MUGA_CURSOR_STYLE_IBEAM:
+		return 152;
+		break;
+	case MUGA_CURSOR_STYLE_WAIT:
+		return 150;
+		break;
+	case MUGA_CURSOR_STYLE_WAIT_ARROW:
+		return 150;
+		break;
+	case MUGA_CURSOR_STYLE_CROSSHAIR:
+		return 34;
+		break;
+	case MUGA_CURSOR_STYLE_HAND:
+		return 58;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_EAST_WEST:
+		return 108;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_NORTH_SOUTH:
+		return 116;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_NORTH_EAST_SOUTH_WEST:
+		return 120;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST:
+		return 120;
+		break;
+	case MUGA_CURSOR_STYLE_SIZE_ALL:
+		return 52;
+		break;
+	case MUGA_CURSOR_STYLE_NO:
+		return 0;
+		break;
+	}
+}
+
 struct muga_linux_input {
 	MUGA_KEYBOARD_BIT keyboard_down_status[MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1];
 	MUGA_KEYBOARD_STATE_BIT keyboard_state_status[MUGA_KEYBOARD_STATE_LAST-MUGA_KEYBOARD_STATE_FIRST+1];
@@ -4454,6 +4494,10 @@ struct muga_linux_window {
 	Window window;
 	// graphics api
 	muga_graphics_api api;
+	// cursor style
+	muga_cursor_style cursor_style;
+	// cursor
+	Cursor cursor;
 
 	// event handling
 	XEvent event;
@@ -4686,6 +4730,12 @@ MUGADEF muga_window muga_window_create(
 		ButtonReleaseMask
 	);
 
+	// cursor
+
+	muga_linux_windows[win].cursor_style = muga_window_settings.cursor_style;
+	muga_linux_windows[win].cursor = XCreateFontCursor(muga_linux_windows[win].display, muga_linux_get_linux_cursor_style(muga_linux_windows[win].cursor_style));
+	XDefineCursor(muga_linux_windows[win].display, muga_linux_windows[win].window, muga_linux_windows[win].cursor);
+
 	// api initialization
 
 	muga_linux_windows[win].api = api;
@@ -4699,6 +4749,8 @@ MUGADEF muga_window muga_window_create(
 				if (result != MUGA_NULL_PTR) {
 					*result = MUGA_FAILURE;
 				}
+				XUndefineCursor(muga_linux_windows[win].display, muga_linux_windows[win].window);
+				XFreeCursor(muga_linux_windows[win].display, muga_linux_windows[win].cursor);
 				XDestroyWindow(
 					muga_linux_windows[win].display,
 					muga_linux_windows[win].window
@@ -4712,6 +4764,8 @@ MUGADEF muga_window muga_window_create(
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
+		XUndefineCursor(muga_linux_windows[win].display, muga_linux_windows[win].window);
+		XFreeCursor(muga_linux_windows[win].display, muga_linux_windows[win].cursor);
 		XDestroyWindow(
 			muga_linux_windows[win].display,
 			muga_linux_windows[win].window
@@ -4805,6 +4859,8 @@ MUGADEF muga_window muga_window_create(
 					glXDestroyContext(muga_linux_windows[win].display, muga_linux_windows[win].opengl_context);
 				);
 			}
+			XUndefineCursor(muga_linux_windows[win].display, muga_linux_windows[win].window);
+			XFreeCursor(muga_linux_windows[win].display, muga_linux_windows[win].cursor);
 			XDestroyWindow(
 				muga_linux_windows[win].display,
 				muga_linux_windows[win].window
@@ -4857,6 +4913,10 @@ MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win) {
 			glXDestroyContext(muga_linux_windows[win].display, muga_linux_windows[win].opengl_context);
 		);
 	}
+
+	XUndefineCursor(muga_linux_windows[win].display, muga_linux_windows[win].window);
+	XFreeCursor(muga_linux_windows[win].display, muga_linux_windows[win].cursor);
+
 	XDestroyWindow(
 		muga_linux_windows[win].display,
 		muga_linux_windows[win].window
@@ -5894,6 +5954,54 @@ MUGADEF void muga_window_set_mouse_position(MUGA_RESULT* result, muga_window win
 		x, y
 	);
 	XFlush(muga_linux_windows[win].display);
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF muga_cursor_style muga_window_get_cursor_style(MUGA_RESULT* result, muga_window win) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting cursor style is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return MUGA_CURSOR_STYLE_UNKNOWN;
+	}
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+	return muga_linux_windows[win].cursor_style;
+}
+
+MUGADEF void muga_window_set_cursor_style(MUGA_RESULT* result, muga_window win, muga_cursor_style style) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting cursor style is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	if (style == muga_linux_windows[win].cursor_style) {
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_SUCCESS;
+		}
+		return;
+	}
+
+	XUndefineCursor(muga_linux_windows[win].display, muga_linux_windows[win].window);
+	XFreeCursor(muga_linux_windows[win].display, muga_linux_windows[win].cursor);
+
+	muga_linux_windows[win].cursor = XCreateFontCursor(muga_linux_windows[win].display, muga_linux_get_linux_cursor_style(style));
+	XDefineCursor(
+		muga_linux_windows[win].display,
+		muga_linux_windows[win].window,
+		muga_linux_windows[win].cursor
+	);
+
+	muga_linux_windows[win].cursor_style = style;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
