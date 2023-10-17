@@ -4380,21 +4380,28 @@ muga_keyboard_key muga_linux_linux_key_to_muga_key(int key) {
 
 struct muga_linux_input {
 	MUGA_KEYBOARD_BIT keyboard_down_status[MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1];
+	MUGA_MOUSE_BIT mouse_down_status[MUGA_MOUSE_LAST-MUGA_MOUSE_FIRST+1];
 };
 typedef struct muga_linux_input muga_linux_input;
 
-void muga_linux_input_set_status(muga_linux_input* input, int linux_key, MUGA_KEYBOARD_BIT bit) {
+void muga_linux_input_keyboard_set_status(muga_linux_input* input, int linux_key, MUGA_KEYBOARD_BIT bit) {
 	muga_keyboard_key key = muga_linux_linux_key_to_muga_key(linux_key);
 	if (MUGA_IS_KEYBOARD(key)) {
 		input->keyboard_down_status[key-MUGA_KEYBOARD_FIRST] = bit;
 	}
 }
 
-MUGA_KEYBOARD_BIT muga_linux_input_get_status(muga_linux_input input, muga_keyboard_key key) {
+MUGA_KEYBOARD_BIT muga_linux_input_keyboard_get_status(muga_linux_input input, muga_keyboard_key key) {
 	if (MUGA_IS_KEYBOARD(key)) {
 		return input.keyboard_down_status[key-MUGA_KEYBOARD_FIRST];
 	}
 	return MUGA_KEYBOARD_UP;
+}
+
+void muga_linux_input_mouse_set_status(muga_linux_input* input, muga_mouse_key mouse, MUGA_MOUSE_BIT bit) {
+	if (MUGA_IS_MOUSE(mouse)) {
+		input->mouse_down_status[mouse-MUGA_MOUSE_FIRST] = bit;
+	}
 }
 
 void muga_linux_input_flush(muga_linux_input* input) {
@@ -4436,6 +4443,7 @@ struct muga_linux_window {
 	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
 	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
 	void (*keyboard_callback)  (muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit);
+	void (*mouse_callback)     (muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit);
 
 	// last-frame checks
 	int x;
@@ -4627,7 +4635,14 @@ MUGADEF muga_window muga_window_create(
 	XSelectInput(
 		muga_linux_windows[win].display,
 		muga_linux_windows[win].window,
-		ExposureMask | KeyPressMask | KeyReleaseMask | StructureNotifyMask | FocusChangeMask
+		ExposureMask | 
+		KeyPressMask | 
+		KeyReleaseMask | 
+		StructureNotifyMask | 
+		FocusChangeMask |
+		PointerMotionMask |
+		ButtonPressMask |
+		ButtonReleaseMask
 	);
 
 	// api initialization
@@ -4685,6 +4700,7 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].maximize_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].minimize_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].keyboard_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].mouse_callback = MUGA_NULL_PTR;
 
 	// last checks
 	muga_linux_windows[win].x = muga_window_settings.x;
@@ -4845,7 +4861,7 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 			break;
 
 		case KeyRelease:
-			muga_linux_input_set_status(
+			muga_linux_input_keyboard_set_status(
 				&muga_linux_windows[win].input,
 				XkbKeycodeToKeysym(muga_linux_windows[win].display, muga_linux_windows[win].event.xkey.keycode, 0, 0),
 				MUGA_KEYBOARD_UP
@@ -4853,7 +4869,7 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 			break;
 
 		case KeyPress:
-			muga_linux_input_set_status(
+			muga_linux_input_keyboard_set_status(
 				&muga_linux_windows[win].input,
 				XkbKeycodeToKeysym(muga_linux_windows[win].display, muga_linux_windows[win].event.xkey.keycode, 0, 0),
 				MUGA_KEYBOARD_DOWN
@@ -4883,6 +4899,94 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 		case FocusOut:
 			if (muga_linux_windows[win].focus_callback != MUGA_NULL_PTR) {
 				muga_linux_windows[win].focus_callback(win, MUGA_FALSE);
+			}
+			break;
+
+		case ButtonPress:
+			switch (muga_linux_windows[win].event.xbutton.button) {
+
+			default:
+				break;
+
+			// https://stackoverflow.com/questions/16185286/how-to-detect-mouse-click-events-in-all-applications-in-x11
+			// jesus i hate the x11/xlib api so much
+			case 1:
+				muga_linux_input_mouse_set_status(
+					&muga_linux_windows[win].input,
+					MUGA_MOUSE_KEY_LEFT,
+					MUGA_MOUSE_DOWN
+				);
+				if (muga_linux_windows[win].mouse_callback != MUGA_NULL_PTR) {
+					muga_linux_windows[win].mouse_callback(win, MUGA_MOUSE_KEY_LEFT, MUGA_MOUSE_DOWN);
+				}
+				break;
+
+			case 2:
+				muga_linux_input_mouse_set_status(
+					&muga_linux_windows[win].input,
+					MUGA_MOUSE_KEY_MIDDLE,
+					MUGA_MOUSE_DOWN
+				);
+				if (muga_linux_windows[win].mouse_callback != MUGA_NULL_PTR) {
+					muga_linux_windows[win].mouse_callback(win, MUGA_MOUSE_KEY_MIDDLE, MUGA_MOUSE_DOWN);
+				}
+				break;
+
+			case 3:
+				muga_linux_input_mouse_set_status(
+					&muga_linux_windows[win].input,
+					MUGA_MOUSE_KEY_RIGHT,
+					MUGA_MOUSE_DOWN
+				);
+				if (muga_linux_windows[win].mouse_callback != MUGA_NULL_PTR) {
+					muga_linux_windows[win].mouse_callback(win, MUGA_MOUSE_KEY_RIGHT, MUGA_MOUSE_DOWN);
+				}
+				break;
+
+			}
+			break;
+
+		case ButtonRelease:
+			switch (muga_linux_windows[win].event.xbutton.button) {
+
+			default:
+				break;
+
+			// https://stackoverflow.com/questions/16185286/how-to-detect-mouse-click-events-in-all-applications-in-x11
+			// jesus i hate the x11/xlib api so much
+			case 1:
+				muga_linux_input_mouse_set_status(
+					&muga_linux_windows[win].input,
+					MUGA_MOUSE_KEY_LEFT,
+					MUGA_MOUSE_UP
+				);
+				if (muga_linux_windows[win].mouse_callback != MUGA_NULL_PTR) {
+					muga_linux_windows[win].mouse_callback(win, MUGA_MOUSE_KEY_LEFT, MUGA_MOUSE_UP);
+				}
+				break;
+
+			case 2:
+				muga_linux_input_mouse_set_status(
+					&muga_linux_windows[win].input,
+					MUGA_MOUSE_KEY_MIDDLE,
+					MUGA_MOUSE_UP
+				);
+				if (muga_linux_windows[win].mouse_callback != MUGA_NULL_PTR) {
+					muga_linux_windows[win].mouse_callback(win, MUGA_MOUSE_KEY_MIDDLE, MUGA_MOUSE_UP);
+				}
+				break;
+
+			case 3:
+				muga_linux_input_mouse_set_status(
+					&muga_linux_windows[win].input,
+					MUGA_MOUSE_KEY_RIGHT,
+					MUGA_MOUSE_UP
+				);
+				if (muga_linux_windows[win].mouse_callback != MUGA_NULL_PTR) {
+					muga_linux_windows[win].mouse_callback(win, MUGA_MOUSE_KEY_RIGHT, MUGA_MOUSE_UP);
+				}
+				break;
+
 			}
 			break;
 
@@ -4921,7 +5025,6 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 			if (muga_linux_windows[win].keyboard_callback != MUGA_NULL_PTR) {
 				muga_linux_windows[win].keyboard_callback(
 					win,
-					MUGA_KEYBOARD,
 					i+MUGA_KEYBOARD_FIRST,
 					post_input.keyboard_down_status[i]
 				);
@@ -5597,7 +5700,16 @@ MUGADEF MUGA_KEYBOARD_BIT muga_window_get_keyboard_bit(MUGA_RESULT* result, muga
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
-	return muga_linux_input_get_status(muga_linux_windows[win].input, key);
+	return muga_linux_input_keyboard_get_status(muga_linux_windows[win].input, key);
+}
+
+MUGADEF MUGA_MOUSE_BIT muga_window_get_mouse_bit(MUGA_RESULT* result, muga_window win, muga_mouse_key key) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for getting mouse bit is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+
+		}
+	}
 }
 
 MUGADEF void muga_window_set_dimensions_callback(
@@ -5686,7 +5798,7 @@ MUGADEF void muga_window_set_minimize_callback(MUGA_RESULT* result, muga_window 
 
 MUGADEF void muga_window_set_keyboard_callback(MUGA_RESULT* result, muga_window win, void (*keyboard_callback)(muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit)) {
 	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for settings key callback is invalid.\n");
+		muga_print("[MUGA] Requested window ID for setting key callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -5694,6 +5806,22 @@ MUGADEF void muga_window_set_keyboard_callback(MUGA_RESULT* result, muga_window 
 	}
 
 	muga_linux_windows[win].keyboard_callback = keyboard_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_mouse_callback(MUGA_RESULT* result, muga_window win, void (*mouse_callback)(muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit)) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting mouse callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].mouse_callback = mouse_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
