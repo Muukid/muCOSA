@@ -2510,7 +2510,6 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	}
 
 	window_struct.window_handle = CreateWindowExW(
-		// @TODO make default position customizable
 		0,                                    // extra window style
 		class_name,                           // class name
 		name,                                 // window name
@@ -3452,7 +3451,6 @@ MUGA_RESULT muga_linux_init_opengl(Display* display, GLXContext* context, muga_g
 
 	// choose framebuffer pixel format stuff
 
-	// @TODO customizability here
 	int pixel_format_attributes[] = {
 		GLX_RENDER_TYPE,    GLX_RGBA_BIT,
 		GLX_DRAWABLE_TYPE,  GLX_WINDOW_BIT,
@@ -4501,7 +4499,7 @@ struct muga_linux_window {
 
 	// event handling
 	XEvent event;
-	// delete message @TODO make sure this is the correct way of doing this
+	// delete message
 	Atom delete_message;
 	// input
 	muga_linux_input input;
@@ -5928,7 +5926,10 @@ MUGADEF void muga_window_get_mouse_position(MUGA_RESULT* result, muga_window win
 	muga_free(root_windows);
 
 	if (oresult != True) {
-		// @TODO handle this case
+		muga_print("[MUGA] Failed to get mouse position; failed to find mouse.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
 		return;
 	}
 
