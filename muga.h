@@ -4429,6 +4429,12 @@ void muga_linux_input_flush(muga_linux_input* input) {
 	for (size_m i = 0; i < MUGA_KEYBOARD_LAST-MUGA_KEYBOARD_FIRST+1; i++) {
 		input->keyboard_down_status[i] = MUGA_KEYBOARD_UP;
 	}
+	for (size_m i = 0; i < MUGA_KEYBOARD_STATE_LAST-MUGA_KEYBOARD_STATE_FIRST+1; i++) {
+		input->keyboard_state_status[i] = MUGA_KEYBOARD_STATE_OFF;
+	}
+	for (size_m i = 0; i < MUGA_MOUSE_LAST-MUGA_MOUSE_FIRST+1; i++) {
+		input->mouse_down_status[i] = MUGA_MOUSE_UP;
+	}
 }
 
 /* window setup */
@@ -4458,13 +4464,14 @@ struct muga_linux_window {
 	MUGA_OPENGL_CALL(GLXContext opengl_context);
 
 	// callbacks
-	void (*dimensions_callback)(muga_window win, int new_width, int new_height);
-	void (*position_callback)  (muga_window win, int x, int y);
-	void (*focus_callback)     (muga_window win, MUGA_BOOL focused);
-	void (*maximize_callback)  (muga_window win, MUGA_BOOL maximized);
-	void (*minimize_callback)  (muga_window win, MUGA_BOOL minimized);
-	void (*keyboard_callback)  (muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit);
-	void (*mouse_callback)     (muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit);
+	void (*dimensions_callback)    (muga_window win, int new_width, int new_height);
+	void (*position_callback)      (muga_window win, int x, int y);
+	void (*focus_callback)         (muga_window win, MUGA_BOOL focused);
+	void (*maximize_callback)      (muga_window win, MUGA_BOOL maximized);
+	void (*minimize_callback)      (muga_window win, MUGA_BOOL minimized);
+	void (*keyboard_callback)      (muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit);
+	void (*keyboard_state_callback)(muga_window win, muga_keyboard_state state, MUGA_KEYBOARD_STATE_BIT bit);
+	void (*mouse_callback)         (muga_window win, muga_mouse_key key, MUGA_MOUSE_BIT bit);
 
 	// last-frame checks
 	int x;
@@ -4663,7 +4670,7 @@ MUGADEF muga_window muga_window_create(
 		FocusChangeMask |
 		PointerMotionMask |
 		ButtonPressMask |
-		ButtonReleaseMask | KeymapStateMask
+		ButtonReleaseMask
 	);
 
 	// api initialization
@@ -4721,6 +4728,7 @@ MUGADEF muga_window muga_window_create(
 	muga_linux_windows[win].maximize_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].minimize_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].keyboard_callback = MUGA_NULL_PTR;
+	muga_linux_windows[win].keyboard_state_callback = MUGA_NULL_PTR;
 	muga_linux_windows[win].mouse_callback = MUGA_NULL_PTR;
 
 	// last checks
@@ -5028,21 +5036,27 @@ MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win) {
 	MUGA_BOOL check = (n & (XInternAtom(muga_linux_windows[win].display, "Caps Lock", False) - 1)) != 0;
 	if (check != muga_linux_input_keyboard_state_get_status(muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_CAPS_LOCK)) {
 		muga_linux_input_keyboard_state_set_status(&muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_CAPS_LOCK, check);
-		// callback
+		if (muga_linux_windows[win].keyboard_state_callback != MUGA_NULL_PTR) {
+			muga_linux_windows[win].keyboard_state_callback(win, MUGA_KEYBOARD_STATE_CAPS_LOCK, check);
+		}
 	}
 
 	check = (n & (XInternAtom(muga_linux_windows[win].display, "Num Lock", False) - 1)) != 0;
 	if (check != muga_linux_input_keyboard_state_get_status(muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_NUM_LOCK)) {
 		muga_linux_input_keyboard_state_set_status(&muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_NUM_LOCK, check);
-		// callback
+		if (muga_linux_windows[win].keyboard_state_callback != MUGA_NULL_PTR) {
+			muga_linux_windows[win].keyboard_state_callback(win, MUGA_KEYBOARD_STATE_NUM_LOCK, check);
+		}
 	}
 
 	// can't get scroll lock to register... don't know why?
 	// maybe name isn't "Scroll Lock"
-	check = (n & (XInternAtom(muga_linux_windows[win].display, "Scroll Lock", False) - 1)) != 0;
+	check = (n & (XInternAtom(muga_linux_windows[win].display, "Scroll Lock", False)));
 	if (check != muga_linux_input_keyboard_state_get_status(muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_SCROLL_LOCK)) {
 		muga_linux_input_keyboard_state_set_status(&muga_linux_windows[win].input, MUGA_KEYBOARD_STATE_SCROLL_LOCK, check);
-		// callback
+		if (muga_linux_windows[win].keyboard_state_callback != MUGA_NULL_PTR) {
+			muga_linux_windows[win].keyboard_state_callback(win, MUGA_KEYBOARD_STATE_SCROLL_LOCK, check);
+		}
 	}
 
 	Window focused_window;
@@ -5869,7 +5883,7 @@ MUGADEF void muga_window_set_minimize_callback(MUGA_RESULT* result, muga_window 
 
 MUGADEF void muga_window_set_keyboard_callback(MUGA_RESULT* result, muga_window win, void (*keyboard_callback)(muga_window win, muga_keyboard_key key, MUGA_KEYBOARD_BIT bit)) {
 	if (!muga_linux_is_id_valid(win)) {
-		muga_print("[MUGA] Requested window ID for setting key callback is invalid.\n");
+		muga_print("[MUGA] Requested window ID for setting keyboard callback is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
@@ -5877,6 +5891,22 @@ MUGADEF void muga_window_set_keyboard_callback(MUGA_RESULT* result, muga_window 
 	}
 
 	muga_linux_windows[win].keyboard_callback = keyboard_callback;
+
+	if (result != MUGA_NULL_PTR) {
+		*result = MUGA_SUCCESS;
+	}
+}
+
+MUGADEF void muga_window_set_keyboard_state_callback(MUGA_RESULT* result, muga_window win, void (*keyboard_state_callback)(muga_window win, muga_keyboard_state state, MUGA_KEYBOARD_STATE_BIT bit)) {
+	if (!muga_linux_is_id_valid(win)) {
+		muga_print("[MUGA] Requested window ID for setting keyboard state callback is invalid.\n");
+		if (result != MUGA_NULL_PTR) {
+			*result = MUGA_FAILURE;
+		}
+		return;
+	}
+
+	muga_linux_windows[win].keyboard_state_callback = keyboard_state_callback;
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
