@@ -430,7 +430,7 @@ muga_window_settings_struct muga_window_settings = {
 	.cursor_style = MUGA_CURSOR_STYLE_DEFAULT
 };
 
-MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height);
+MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const char* name, unsigned int width, unsigned int height);
 MUGADEF void muga_window_destroy(MUGA_RESULT* result, muga_window win);
 
 MUGADEF void muga_window_update(MUGA_RESULT* result, muga_window win);
@@ -3427,6 +3427,108 @@ MUGADEF void* muga_get_opengl_function_address(const char* name) {
 
 #include <time.h>
 
+// from mus
+
+#if !defined(muga_mbstowcs)  || \
+    !defined(muga_mbsrtowcs) || \
+    !defined(muga_wcstombs)  || \
+    !defined(muga_wcsrtombs)
+
+    #include <stdlib.h>
+   
+    #ifndef muga_mbstowcs
+        #define muga_mbstowcs mbstowcs
+    #endif
+    #ifndef muga_mbsrtowcs
+        #define muga_mbsrtowcs mbsrtowcs
+    #endif
+    #ifndef muga_wcstombs
+        #define muga_wcstombs wcstombs
+    #endif
+    #ifndef muga_wcsrtombs
+        #define muga_wcsrtombs wcsrtombs
+    #endif
+#endif
+
+int muga_wstring_to_string(char* dest, wchar_m* src, size_m dest_len) {
+    if (dest == MUGA_NULL) return (size_m)muga_wcsrtombs(MUGA_NULL, (const wchar_m**)&src, 1, MUGA_NULL);
+    return (size_m)muga_wcstombs(dest, src, dest_len);
+}
+int muga_string_to_wstring(wchar_m* dest, char* src, size_m dest_len) {
+    if (dest == MUGA_NULL) return (size_m)muga_mbsrtowcs(MUGA_NULL, (const char**)&src, 1, MUGA_NULL);
+    return (size_m)muga_mbstowcs(dest, src, dest_len);
+}
+
+size_m wchar_to_utf8_size(wchar_m* in) {
+	size_m size;
+	unsigned int codepoint = 0;
+	for (; *in != 0; ++in) {
+		if (*in >= 0xd800 && *in <= 0xdbff) {
+			codepoint = ((*in - 0xd800) << 10) + 0x10000;
+		} else {
+			if (*in >= 0xdc00 && *in <= 0xdfff) {
+				codepoint |= *in - 0xdc00;
+			} else {
+				codepoint = *in;
+			}
+
+			if (codepoint <= 0x7f) {
+				size++;
+			} else if (codepoint <= 0x7ff) {
+				size += 2;
+			} else if (codepoint <= 0xffff) {
+				size += 3;
+			} else {
+				size += 4;
+			}
+
+			codepoint = 0;
+		}
+	}
+	return size;
+}
+
+char* wchar_to_utf8(wchar_m* in) {
+	char* string = muga_malloc(wchar_to_utf8_size(in) + 1);
+	size_m string_index = 0;
+	unsigned int codepoint = 0;
+	for (; *in != 0; ++in) {
+		if (*in >= 0xd800 && *in <= 0xdbff) {
+			codepoint = ((*in - 0xd800) << 10) + 0x10000;
+		} else {
+			if (*in >= 0xdc00 && *in <= 0xdfff) {
+				codepoint |= *in - 0xdc00;
+			} else {
+				codepoint = *in;
+			}
+
+			if (codepoint <= 0x7f) {
+				string[string_index] = (char)codepoint;
+				string_index++;
+			} else if (codepoint <= 0x7ff) {
+				string[string_index]   = (char)(0xc0 | ((codepoint >> 6) & 0x1f));
+				string[string_index+1] = (char)(0x80 | (codepoint & 0x3f));
+				string_index += 2;
+			} else if (codepoint <= 0xffff) {
+				string[string_index]   = (char)(0xe0 | ((codepoint >> 12) & 0x0f));
+				string[string_index+1] = (char)(0x80 | ((codepoint >> 6) & 0x3f));
+				string[string_index+2] = (char)(0x80 | (codepoint & 0x3f));
+				string_index += 3;
+			} else {
+				string[string_index]   = (char)(0xf0 | ((codepoint >> 18) & 0x07));
+				string[string_index+1] = (char)(0x80 | ((codepoint >> 12) & 0x3f));
+				string[string_index+2] = (char)(0x80 | ((codepoint >> 6) & 0x3f));
+				string[string_index+3] = (char)(0x80 | (codepoint & 0x3f));
+				string_index += 4;
+			}
+
+			codepoint = 0;
+		}
+	}
+	string[string_index] = '\0';
+	return string;
+}
+
 /* OPENGL SETUP */
 #ifndef MUGA_NO_OPENGL
 
@@ -4693,7 +4795,7 @@ MUGADEF muga_window muga_window_create(
 	MUGA_RESULT* result, 
 	muga_graphics_api api, 
 	MUGA_BOOL (*load_functions)(void), 
-	const wchar_m* name, 
+	const char* name, 
 	unsigned int width, unsigned int height
 ) {
 	// window creation
@@ -4705,7 +4807,6 @@ MUGADEF muga_window muga_window_create(
 	// Would like to not use XCreateSimpleWindow here but doing
 	// otherwise makes me pick pixel formatting before picking
 	// it with an API, so I'm kinda stuck here
-	//int black_color = BlackPixel(muga_linux_windows[win].display, muga_linux_windows[win].parent_window);
 	muga_linux_windows[win].window = XCreateSimpleWindow(
 		muga_linux_windows[win].display,       // display
 		muga_linux_windows[win].parent_window, // parent window
@@ -4833,14 +4934,14 @@ MUGADEF muga_window muga_window_create(
 		XMapWindow(muga_linux_windows[win].display, muga_linux_windows[win].window);
 	}
 
-	// convert name from wchar_m* to char*
-	size_m len = 0;
-	for (size_m i = 0; name[i] != 0; i++) len++;
-	char* name_c = muga_malloc(sizeof(char) * (len+1));
-	for (size_m i = 0; i < len; i++) name_c[i] = (char)name[i];
-	name_c[len] = 0;
-	XStoreName(muga_linux_windows[win].display, muga_linux_windows[win].window, name_c);
-	muga_free(name_c);
+	// window title
+
+	XChangeProperty(
+		muga_linux_windows[win].display, muga_linux_windows[win].window,
+		XInternAtom(muga_linux_windows[win].display, "_NET_WM_NAME", False),
+		XInternAtom(muga_linux_windows[win].display, "UTF8_STRING", False),
+		8, PropModeReplace, (unsigned char*)name, strlen(name)
+	);
 
 	muga_linux_window_bind(win);
 
