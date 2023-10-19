@@ -46,9 +46,22 @@ More explicit license information at the end of the file.
 
 #endif
 
-#ifndef muga_strlen
+#ifndef wchar_m
+	#define wchar_m wchar_t
+#endif
+
+#if !defined(muga_strlen)  || \
+	!defined(muga_wstrlen)
+
     #include <string.h>
-    #define muga_strlen strlen
+	
+	#ifndef muga_strlen
+    	#define muga_strlen strlen
+	#endif
+
+	#ifndef muga_wstrlen
+		#define muga_wstrlen wcslen
+	#endif
 #endif
 
 #if !defined(muga_malloc)  || \
@@ -2282,6 +2295,13 @@ double muga_windows_get_current_time() {
 	return (double)ll_now / (double)1.0e7;
 }
 
+wchar_m* muga_windows_utf8_to_wchar(char* str) {
+	int len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+	wchar_m* wstr = muga_malloc(len * sizeof(wchar_m));
+	MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, len);
+	return wstr;
+}
+
 /* initiation/termination */
 
 MUGA_BOOL muga_windows_has_initiated = MUGA_FALSE;
@@ -2366,13 +2386,15 @@ MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
 	muga_windows_original_time = muga_windows_original_time + muga_time_get(result) - time;
 }
 
-MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m len) {
+MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, char* buffer_c, size_m len) {
+	wchar_m* buffer = muga_windows_utf8_to_wchar(buffer_c);
 	// https://stackoverflow.com/questions/14762456/getclipboarddatacf-text
 	if (!OpenClipboard(MUGA_NULL_PTR)) {
 		muga_print("[MUGA] Failed to get clipboard; couldn't open clipboard.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
+		free(buffer);
 		return 0;
 	}
 
@@ -2383,6 +2405,7 @@ MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m l
 			*result = MUGA_FAILURE;
 		}
 		CloseClipboard();
+		free(buffer);
 		return 0;
 	}
 
@@ -2393,6 +2416,7 @@ MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m l
 			*result = MUGA_FAILURE;
 		}
 		CloseClipboard();
+		free(buffer);
 		return 0;
 	}
 
@@ -2403,6 +2427,7 @@ MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m l
 		}
 		GlobalUnlock(data);
 		CloseClipboard();
+		free(buffer);
 		return ptext_len;
 	}
 
@@ -2413,6 +2438,7 @@ MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m l
 		}
 		GlobalUnlock(data);
 		CloseClipboard();
+		free(buffer);
 		return ptext_len;
 	}
 
@@ -2420,13 +2446,15 @@ MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m l
 		buffer[i] = ptext[i];
 	}
 
+	free(buffer);
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
 	return ptext_len;
 }
 
-MUGADEF void muga_clipboard_set(MUGA_RESULT* result, wchar_m* string) {
+MUGADEF void muga_clipboard_set(MUGA_RESULT* result, char* string_c) {
+	wchar_m* string = muga_windows_utf8_to_wchar(string_c);
 	// https://stackoverflow.com/questions/1264137/how-to-copy-string-to-clipboard-in-c
 	// not sure if the "len * sizeof(wchar_m)" usage is correct here...
 	size_m len = muga_wstrlen(string) + 1;
@@ -2442,11 +2470,13 @@ MUGADEF void muga_clipboard_set(MUGA_RESULT* result, wchar_m* string) {
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
+	muga_free(string);
 }
 
 /* basic window funcs */
 
-MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const wchar_m* name, unsigned int width, unsigned int height) {
+MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api api, MUGA_BOOL (*load_functions)(void), const char* name_c, unsigned int width, unsigned int height) {
+	wchar_m* name = muga_windows_utf8_to_wchar((char*)name_c);
 	muga_windows_unbind();
 
 	// allocate class name
@@ -2495,6 +2525,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
+		muga_free(name);
 		return MUGA_NO_WINDOW;
 	}
 
@@ -2526,6 +2557,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
+		muga_free(name);
 		return MUGA_NO_WINDOW;
 	}
 
@@ -2562,6 +2594,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 				);
 				DestroyWindow(muga_windows_windows[win].window_handle);
 				muga_free(class_name);
+				muga_free(name);
 				return MUGA_NO_WINDOW;
 			}
 		);
@@ -2577,6 +2610,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 		);
 		DestroyWindow(muga_windows_windows[win].window_handle);
 		muga_free(class_name);
+		muga_free(name);
 		return MUGA_NO_WINDOW;
 	}
 
@@ -2595,6 +2629,7 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 			}
 			DestroyWindow(muga_windows_windows[win].window_handle);
 			muga_free(class_name);
+			muga_free(name);
 			return MUGA_NO_WINDOW;
 	    }
 	}
@@ -2625,6 +2660,8 @@ MUGADEF muga_window muga_window_create(MUGA_RESULT* result, muga_graphics_api ap
 	UpdateWindow(muga_windows_windows[win].window_handle);
 
 	// return
+	muga_free(name);
+
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
@@ -3152,17 +3189,20 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
-MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const wchar_m* title) {
+MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const char* title_c) {
+	wchar_m* title = muga_windows_utf8_to_wchar((char*)title_c);
 	if (!muga_windows_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting title is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
 			*result = MUGA_FAILURE;
 		}
+		muga_free(title);
 		return;
 	}
 
 	SetWindowTextW(muga_windows_windows[win].window_handle, title);
 
+	muga_free(title);
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
 	}
@@ -3422,6 +3462,7 @@ MUGADEF void* muga_get_opengl_function_address(const char* name) {
 #include <X11/XKBlib.h>
 
 #include <time.h>
+#include <pthread.h>
 
 /* OPENGL SETUP */
 #ifndef MUGA_NO_OPENGL
@@ -4856,8 +4897,6 @@ void muga_linux_clipboard_set(char* string) {
 	XCloseDisplay(d);
 	muga_linux_clipboard_thread_is_running = MUGA_FALSE;
 }
-
-#include <pthread.h>
 
 pthread_t muga_linux_clipboard_set_thread;
 
