@@ -46,13 +46,9 @@ More explicit license information at the end of the file.
 
 #endif
 
-#ifndef wchar_m
-    #define wchar_m wchar_t
-#endif
-
-#ifndef muga_wstrlen
-    #include <wchar.h>
-    #define muga_wstrlen wcslen
+#ifndef muga_strlen
+    #include <string.h>
+    #define muga_strlen strlen
 #endif
 
 #if !defined(muga_malloc)  || \
@@ -350,8 +346,8 @@ MUGADEF void muga_term(MUGA_RESULT* result);
 MUGADEF double muga_time_get(MUGA_RESULT* result);
 MUGADEF void   muga_time_set(MUGA_RESULT* result, double time);
 
-MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, wchar_m* buffer, size_m len);
-MUGADEF void   muga_clipboard_set(MUGA_RESULT* result, wchar_m* string);
+MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, char* buffer, size_m len);
+MUGADEF void   muga_clipboard_set(MUGA_RESULT* result, char* string);
 
 /* window */
 
@@ -440,7 +436,7 @@ MUGADEF void muga_window_swap_buffers(MUGA_RESULT* result, muga_window win);
 
 MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win);
 
-MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const wchar_m* title);
+MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const char* title);
 
 // get / toggle functions
 
@@ -3427,108 +3423,6 @@ MUGADEF void* muga_get_opengl_function_address(const char* name) {
 
 #include <time.h>
 
-// from mus
-
-#if !defined(muga_mbstowcs)  || \
-    !defined(muga_mbsrtowcs) || \
-    !defined(muga_wcstombs)  || \
-    !defined(muga_wcsrtombs)
-
-    #include <stdlib.h>
-   
-    #ifndef muga_mbstowcs
-        #define muga_mbstowcs mbstowcs
-    #endif
-    #ifndef muga_mbsrtowcs
-        #define muga_mbsrtowcs mbsrtowcs
-    #endif
-    #ifndef muga_wcstombs
-        #define muga_wcstombs wcstombs
-    #endif
-    #ifndef muga_wcsrtombs
-        #define muga_wcsrtombs wcsrtombs
-    #endif
-#endif
-
-int muga_wstring_to_string(char* dest, wchar_m* src, size_m dest_len) {
-    if (dest == MUGA_NULL) return (size_m)muga_wcsrtombs(MUGA_NULL, (const wchar_m**)&src, 1, MUGA_NULL);
-    return (size_m)muga_wcstombs(dest, src, dest_len);
-}
-int muga_string_to_wstring(wchar_m* dest, char* src, size_m dest_len) {
-    if (dest == MUGA_NULL) return (size_m)muga_mbsrtowcs(MUGA_NULL, (const char**)&src, 1, MUGA_NULL);
-    return (size_m)muga_mbstowcs(dest, src, dest_len);
-}
-
-size_m wchar_to_utf8_size(wchar_m* in) {
-	size_m size;
-	unsigned int codepoint = 0;
-	for (; *in != 0; ++in) {
-		if (*in >= 0xd800 && *in <= 0xdbff) {
-			codepoint = ((*in - 0xd800) << 10) + 0x10000;
-		} else {
-			if (*in >= 0xdc00 && *in <= 0xdfff) {
-				codepoint |= *in - 0xdc00;
-			} else {
-				codepoint = *in;
-			}
-
-			if (codepoint <= 0x7f) {
-				size++;
-			} else if (codepoint <= 0x7ff) {
-				size += 2;
-			} else if (codepoint <= 0xffff) {
-				size += 3;
-			} else {
-				size += 4;
-			}
-
-			codepoint = 0;
-		}
-	}
-	return size;
-}
-
-char* wchar_to_utf8(wchar_m* in) {
-	char* string = muga_malloc(wchar_to_utf8_size(in) + 1);
-	size_m string_index = 0;
-	unsigned int codepoint = 0;
-	for (; *in != 0; ++in) {
-		if (*in >= 0xd800 && *in <= 0xdbff) {
-			codepoint = ((*in - 0xd800) << 10) + 0x10000;
-		} else {
-			if (*in >= 0xdc00 && *in <= 0xdfff) {
-				codepoint |= *in - 0xdc00;
-			} else {
-				codepoint = *in;
-			}
-
-			if (codepoint <= 0x7f) {
-				string[string_index] = (char)codepoint;
-				string_index++;
-			} else if (codepoint <= 0x7ff) {
-				string[string_index]   = (char)(0xc0 | ((codepoint >> 6) & 0x1f));
-				string[string_index+1] = (char)(0x80 | (codepoint & 0x3f));
-				string_index += 2;
-			} else if (codepoint <= 0xffff) {
-				string[string_index]   = (char)(0xe0 | ((codepoint >> 12) & 0x0f));
-				string[string_index+1] = (char)(0x80 | ((codepoint >> 6) & 0x3f));
-				string[string_index+2] = (char)(0x80 | (codepoint & 0x3f));
-				string_index += 3;
-			} else {
-				string[string_index]   = (char)(0xf0 | ((codepoint >> 18) & 0x07));
-				string[string_index+1] = (char)(0x80 | ((codepoint >> 12) & 0x3f));
-				string[string_index+2] = (char)(0x80 | ((codepoint >> 6) & 0x3f));
-				string[string_index+3] = (char)(0x80 | (codepoint & 0x3f));
-				string_index += 4;
-			}
-
-			codepoint = 0;
-		}
-	}
-	string[string_index] = '\0';
-	return string;
-}
-
 /* OPENGL SETUP */
 #ifndef MUGA_NO_OPENGL
 
@@ -4789,6 +4683,101 @@ MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
 	muga_linux_original_time = muga_linux_original_time + muga_time_get(result) - time;
 }
 
+MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, char* buffer, size_m len) {
+	Display* d;
+	Window w;
+
+	if (muga_linux_windows_length != 0) {
+		d = muga_linux_windows[0].display;
+		w = muga_linux_windows[0].window;
+	} else {
+		d = XOpenDisplay(NULL);
+		w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), -10, -10, 1, 1, 0, 0, 0);
+	}
+
+	Atom sel = XInternAtom(d, "CLIPBOARD", False);
+	Atom utf8 = XInternAtom(d, "UTF8_STRING", False);
+
+	Window owner = XGetSelectionOwner(d, sel);
+	if (owner == None) {
+		muga_print("[MUGA] Failed to get clipboard; no clipboard found.\n");
+		return 0;
+	}
+
+	// maybe needs to be different per window
+	Atom p = XInternAtom(d, "PENGUIN", False);
+
+	XConvertSelection(
+		d, sel, utf8, p, w, CurrentTime
+	);
+
+	XEvent ev;
+	MUGA_BOOL got_notify = MUGA_FALSE;
+	while (!got_notify) {
+		XNextEvent(d, &ev);
+		switch (ev.type) {
+			case SelectionNotify: {
+				got_notify = MUGA_TRUE;
+				XSelectionEvent* sev = (XSelectionEvent*)&ev.xselection;
+				if (sev->property == None) {
+					muga_print("[MUGA] Failed to get clipboard; failed to get clipboard in UTF-8 format.\n");
+					return 0;
+				} else {
+					Atom da, incr, type;
+					int di;
+					unsigned long size, dul;
+					unsigned char* prop_ret = NULL;
+
+					XGetWindowProperty(
+						d, w, p, 0, 0, False, AnyPropertyType,
+						&type, &di, &dul, &size, &prop_ret
+					);
+					XFree(prop_ret);
+
+					incr = XInternAtom(d, "INCR", False);
+					if (type == incr) {
+						// @TODO INCR
+						muga_print("[MUGA] Failed to get clipboard; data too large, implement INCR later please!\n");
+						return 0;
+					}
+
+					if (size == 0) {
+						muga_print("[MUGA} Failed to get clipboard; failed to retrieve data.\n");
+						return 0;
+					}
+					
+					if (buffer == MUGA_NULL_PTR) {
+						return size;
+					}
+
+					XGetWindowProperty(
+						d, w, p, 0, size, False, AnyPropertyType,
+						&da, &di, &dul, &dul, &prop_ret
+					);
+
+					for (size_m i = 0; i < len && i < size; i++) {
+						buffer[i] = (char)prop_ret[i];
+					}
+					
+					XFree(prop_ret);
+
+					XDeleteProperty(d, w, p);
+				}
+				break;
+			}
+		}
+	}
+
+	if (muga_linux_windows_length == 0) {
+		XDestroyWindow(d, w);
+		XCloseDisplay(d);
+	}
+}
+
+/*MUGADEF void muga_clipboard_set(MUGA_RESULT* result, char* string) {
+
+}*/
+
 /* window functions */
 
 MUGADEF muga_window muga_window_create(
@@ -4940,7 +4929,7 @@ MUGADEF muga_window muga_window_create(
 		muga_linux_windows[win].display, muga_linux_windows[win].window,
 		XInternAtom(muga_linux_windows[win].display, "_NET_WM_NAME", False),
 		XInternAtom(muga_linux_windows[win].display, "UTF8_STRING", False),
-		8, PropModeReplace, (unsigned char*)name, strlen(name)
+		8, PropModeReplace, (unsigned char*)name, muga_strlen(name)
 	);
 
 	muga_linux_window_bind(win);
@@ -5509,7 +5498,7 @@ MUGADEF void muga_window_set_context(MUGA_RESULT* result, muga_window win) {
 	}
 }
 
-MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const wchar_m* title) {
+MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const char* title) {
 	if (!muga_linux_is_id_valid(win)) {
 		muga_print("[MUGA] Requested window ID for setting title is invalid.\n");
 		if (result != MUGA_NULL_PTR) {
@@ -5519,13 +5508,13 @@ MUGADEF void muga_window_set_title(MUGA_RESULT* result, muga_window win, const w
 	}
 
 	// convert title from wchar_m* to char*
-	size_m len = 0;
-	for (size_m i = 0; title[i] != 0; i++) len++;
-	char* name_c = muga_malloc(sizeof(char) * (len+1));
-	for (size_m i = 0; i < len; i++) name_c[i] = (char)title[i];
-	name_c[len] = 0;
-	XStoreName(muga_linux_windows[win].display, muga_linux_windows[win].window, name_c);
-	muga_free(name_c);
+
+	XChangeProperty(
+		muga_linux_windows[win].display, muga_linux_windows[win].window,
+		XInternAtom(muga_linux_windows[win].display, "_NET_WM_NAME", False),
+		XInternAtom(muga_linux_windows[win].display, "UTF8_STRING", False),
+		8, PropModeReplace, (unsigned char*)title, muga_strlen(title)
+	);
 
 	if (result != MUGA_NULL_PTR) {
 		*result = MUGA_SUCCESS;
