@@ -4684,6 +4684,7 @@ MUGADEF void muga_time_set(MUGA_RESULT* result, double time) {
 }
 
 MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, char* buffer, size_m len) {
+	// https://www.uninformativ.de/blog/postings/2017-04-02/0/POSTING-en.html
 	Display* d;
 	Window w;
 
@@ -4772,11 +4773,101 @@ MUGADEF size_m muga_clipboard_get(MUGA_RESULT* result, char* buffer, size_m len)
 		XDestroyWindow(d, w);
 		XCloseDisplay(d);
 	}
+	return 0;
 }
 
-/*MUGADEF void muga_clipboard_set(MUGA_RESULT* result, char* string) {
+MUGA_BOOL muga_linux_global_clipboard_stop = MUGA_FALSE;
+MUGA_BOOL muga_linux_clipboard_thread_is_running = MUGA_FALSE;
 
-}*/
+void muga_linux_clipboard_set(char* string) {
+	muga_linux_clipboard_thread_is_running = MUGA_TRUE;
+	// https://www.uninformativ.de/blog/postings/2017-04-02/0/POSTING-en.html
+	Display* d;
+	Window w;
+
+	d = XOpenDisplay(NULL);
+	w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), -10, -10, 1, 1, 0, 0, 0);
+
+	Atom sel = XInternAtom(d, "CLIPBOARD", False);
+	Atom utf8 = XInternAtom(d, "UTF8_STRING", False);
+
+	XSetSelectionOwner(d, sel, w, CurrentTime);
+
+	XEvent ev;
+	MUGA_BOOL got_event = MUGA_FALSE;
+	while (!got_event && !muga_linux_global_clipboard_stop) {
+		XNextEvent(d, &ev);
+		switch (ev.type) {
+			// we lost our ownership
+			case SelectionClear: {
+				got_event = MUGA_TRUE;
+				break;
+			}
+			// somebody has asked for the clipboard
+			case SelectionRequest: {
+				XSelectionRequestEvent* sev = (XSelectionRequestEvent*)&ev.xselectionrequest;
+				if (sev->target != utf8 || sev->property == None) {
+					// "sorry i can't give you it"
+					XSelectionEvent ssev;
+					char* an;
+
+					an = XGetAtomName(d, sev->target);
+					if (an) {
+						XFree(an);
+					}
+
+					ssev.type = SelectionNotify;
+					ssev.requestor = sev->requestor;
+					ssev.selection = sev->selection;
+					ssev.target = sev->target;
+					ssev.property = None;
+					ssev.time = sev->time;
+
+					XSendEvent(d, sev->requestor, True, NoEventMask, (XEvent*)&ssev);
+				} else {
+					// "ok here"
+					XSelectionEvent ssev;
+					char* an;
+
+					an = XGetAtomName(d, sev->property);
+					if (an) {
+						XFree(an);
+					}
+					XChangeProperty(
+						d, sev->requestor, sev->property, utf8, 8, PropModeReplace,
+						(unsigned char*)string, muga_strlen(string)
+					);
+
+					ssev.type = SelectionNotify;
+					ssev.requestor = sev->requestor;
+					ssev.selection = sev->selection;
+					ssev.target = sev->target;
+					ssev.property = sev->property;
+					ssev.time= sev->time;
+
+					XSendEvent(d, sev->requestor, True, NoEventMask, (XEvent*)&ssev);
+				}
+				break;
+			}
+		}
+	}
+
+	XDestroyWindow(d, w);
+	XCloseDisplay(d);
+	muga_linux_clipboard_thread_is_running = MUGA_FALSE;
+}
+
+#include <pthread.h>
+
+pthread_t muga_linux_clipboard_set_thread;
+
+MUGADEF void muga_clipboard_set(MUGA_RESULT* result, char* string) {
+	if (muga_linux_clipboard_thread_is_running) {
+		muga_linux_global_clipboard_stop = MUGA_TRUE;
+		pthread_join(muga_linux_clipboard_set_thread, NULL);
+	}
+	/*int ret = */pthread_create(&muga_linux_clipboard_set_thread, NULL, (void*)muga_linux_clipboard_set, (void*)string);
+}
 
 /* window functions */
 
