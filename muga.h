@@ -1792,45 +1792,59 @@ void* muga_windows_muga_cursor_to_windows_cursor(muga_cursor_style style) {
 	}
 }
 
+// done to avoid non-integer constant case label
+#define MUGA_IDC_ARROW       32512
+#define MUGA_IDC_IBEAM       32513
+#define MUGA_IDC_WAIT        32514
+#define MUGA_IDC_APPSTARTING 32650
+#define MUGA_IDC_CROSS       32515
+#define MUGA_IDC_HAND        32649
+#define MUGA_IDC_SIZEWE      32644
+#define MUGA_IDC_SIZENS      32645
+#define MUGA_IDC_SIZENESW    32643
+#define MUGA_IDC_SIZENWSE    32642
+#define MUGA_IDC_SIZEALL     32646
+#define MUGA_IDC_NO          32648
+
 muga_cursor_style muga_windows_cursor_to_muga_cursor(void* cursor) {
 	switch ((int)cursor) {
 	default:
 		return MUGA_CURSOR_STYLE_IBEAM;
 		break;
-	case (int)IDC_ARROW:
+	case MUGA_IDC_ARROW:
 		return MUGA_CURSOR_STYLE_ARROW;
 		break;
-	case (int)IDC_IBEAM:
+	case MUGA_IDC_IBEAM:
 		return MUGA_CURSOR_STYLE_IBEAM;
 		break;
-	case (int)IDC_WAIT:
+	case MUGA_IDC_WAIT:
 		return MUGA_CURSOR_STYLE_WAIT;
 		break;
-	case (int)IDC_APPSTARTING:
+	case MUGA_IDC_APPSTARTING:
 		return MUGA_CURSOR_STYLE_WAIT_ARROW;
 		break;
-	case (int)IDC_CROSS:
+	case MUGA_IDC_CROSS:
 		return MUGA_CURSOR_STYLE_CROSSHAIR;
 		break;
-	case (int)IDC_HAND:
+	case MUGA_IDC_HAND:
 		return MUGA_CURSOR_STYLE_HAND;
 		break;
-	case (int)IDC_SIZEWE:
+	case MUGA_IDC_SIZEWE:
 		return MUGA_CURSOR_STYLE_SIZE_EAST_WEST;
 		break;
-	case (int)IDC_SIZENS:
+	case MUGA_IDC_SIZENS:
 		return MUGA_CURSOR_STYLE_SIZE_NORTH_SOUTH;
 		break;
-	case (int)IDC_SIZENESW:
+	case MUGA_IDC_SIZENESW:
 		return MUGA_CURSOR_STYLE_SIZE_NORTH_EAST_SOUTH_WEST;
 		break;
-	case (int)IDC_SIZENWSE:
+	case MUGA_IDC_SIZENWSE:
 		return MUGA_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST;
 		break;
-	case (int)IDC_SIZEALL:
+	case MUGA_IDC_SIZEALL:
 		return MUGA_CURSOR_STYLE_SIZE_ALL;
 		break;
-	case (int)IDC_NO:
+	case MUGA_IDC_NO:
 		return MUGA_CURSOR_STYLE_NO;
 		break;
 	}
@@ -3437,17 +3451,17 @@ MUGADEF void muga_window_set_scroll_callback(MUGA_RESULT* result, muga_window wi
 
 /* opengl functions */
 
-// https://stackoverflow.com/questions/76638441/how-to-init-glad-without-the-glfw-loader-using-windows-headers
 MUGADEF void* muga_get_opengl_function_address(const char* name) {
-	void *p = (void *)wglGetProcAddress(name);
+	// https://stackoverflow.com/questions/76638441/how-to-init-glad-without-the-glfw-loader-using-windows-headers
+	PROC p = wglGetProcAddress(name);
 
 	if (p == 0 ||
-	   (p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
-	   (p == (void*)-1)) {
+	   (p == (PROC)0x1) || (p == (PROC)0x2) || (p == (PROC)0x3) ||
+	   (p == (PROC)-1)) {
 		HMODULE module = LoadLibraryA("opengl32.dll"); 
-		p = (void *)GetProcAddress(module, name);
+		p = (PROC)GetProcAddress(module, name);
 	}
-
+	
 	return p;
 }
 
