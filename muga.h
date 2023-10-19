@@ -532,10 +532,12 @@ MUGADEF void* muga_get_opengl_function_address(const char* name);
 
 #ifndef muga_print
     #ifdef MUGA_NO_PRINT
-    	#define muga_print(msg, ...)
+    	#define muga_print(msg)
+		#define muga_printf(msg, ...)
     #else
     	#include <stdio.h>
     	#define muga_print printf
+		#define muga_printf printf
     #endif
 #endif
 
