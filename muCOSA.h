@@ -4970,6 +4970,10 @@ MUDEF muWindow mu_window_create(
 		0, 0,                        // border width and border color
 		0                            // background
 	);
+	// (to adjust for window decoration)
+	mu_linux_windows[win].active = MU_TRUE;
+	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
+	mu_linux_windows[win].active = MU_FALSE;
 	XSelectInput(
 		mu_linux_windows[win].display,
 		mu_linux_windows[win].window,
@@ -5119,6 +5123,7 @@ MUDEF muWindow mu_window_create(
 				mu_linux_windows[win].window
 			);
 			XCloseDisplay(mu_linux_windows[win].display);
+			mu_linux_windows[win].active = MU_FALSE;
 			return MU_NO_WINDOW;
 	    }
 	}
@@ -5213,10 +5218,6 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 		&attributes
 	);
 
-	/*int x, y;
-	mu_window_get_position(result, win, &x, &y);
-	mu_window_set_position(result, win, x, y);*/
-
 	while (XPending(mu_linux_windows[win].display)) {
 		// https://stackoverflow.com/questions/36188154/get-x11-window-caption-height
 		if (mu_linux_windows[win].gotten_deco == MU_FALSE) {
@@ -5285,6 +5286,10 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 			) {
 				mu_linux_windows[win].x = mu_linux_windows[win].event.xconfigure.x;
 				mu_linux_windows[win].y = mu_linux_windows[win].event.xconfigure.y;
+				XWindowAttributes xwa;
+				XGetWindowAttributes(mu_linux_windows[win].display, mu_linux_windows[win].window, &xwa);
+				mu_linux_windows[win].x += xwa.x;
+				mu_linux_windows[win].y += xwa.y;
 				if (mu_linux_windows[win].position_callback != MU_NULL_PTR) {
 					mu_linux_windows[win].position_callback(win, mu_linux_windows[win].x, mu_linux_windows[win].y);
 				}
@@ -5751,11 +5756,11 @@ MUDEF void mu_window_get_position(muResult* result, muWindow win, int* x, int* y
 	XGetWindowAttributes(mu_linux_windows[win].display, mu_linux_windows[win].window, &xwa);
 
 	if (x != MU_NULL_PTR) {
-		*x = (int)(rx - xwa.x) + (int)mu_linux_windows[win].left;
+		*x = mu_linux_windows[win].left - xwa.x;
 	}
 
 	if (y != MU_NULL_PTR) {
-		*y = (int)(ry - xwa.y) + (int)mu_linux_windows[win].top;
+		*y = mu_linux_windows[win].top - xwa.y;
 	}
 
 	if (result != MU_NULL_PTR) {
@@ -5772,11 +5777,15 @@ MUDEF void mu_window_set_position(muResult* result, muWindow win, int x, int y) 
 		return;
 	}
 
+	// https://stackoverflow.com/questions/3806872/window-position-in-xlib
+	XWindowAttributes xwa;
+	XGetWindowAttributes(mu_linux_windows[win].display, mu_linux_windows[win].window, &xwa);
+
 	XMoveWindow(
 		mu_linux_windows[win].display, 
 		mu_linux_windows[win].window, 
-		x - (int)mu_linux_windows[win].left,
-		y - (int)mu_linux_windows[win].top
+		x - (int)mu_linux_windows[win].left - xwa.x,
+		y - (int)mu_linux_windows[win].top - xwa.y
 	);
 
 	if (result != MU_NULL_PTR) {
