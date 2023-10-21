@@ -5067,23 +5067,6 @@ MUDEF muWindow mu_window_create(
 
 	// display window
 
-	XSizeHints    my_hints = {0};
-
-	my_hints.flags  = PPosition | PSize;
-	my_hints.x      = 0;
-	my_hints.y      = 0;
-	my_hints.width  = 0; // not sure if setting width and
-	my_hints.height = 0; // height to 0 here is safe...
-	if (!mu_window_settings.resizable) {
-		my_hints.flags |= PMinSize | PMaxSize;
-		my_hints.min_width =  width;
-		my_hints.min_height = height;
-		my_hints.max_width =  width;
-		my_hints.max_height = height;
-	}
-
-	XSetNormalHints(mu_linux_windows[win].display, mu_linux_windows[win].window, &my_hints);
-
 	mu_linux_windows[win].active = MU_TRUE;
 	mu_linux_windows[win].closed = MU_FALSE;
 	mu_linux_windows[win].input = (mu_linux_input){0};
@@ -5141,6 +5124,12 @@ MUDEF muWindow mu_window_create(
 	sizeHints->min_height = mu_window_settings.minimum_height;
 	sizeHints->max_width = mu_window_settings.maximum_width;
 	sizeHints->max_height = mu_window_settings.maximum_height;
+	if (!mu_window_settings.resizable) {
+		sizeHints->min_width = width;
+		sizeHints->min_height = height;
+		sizeHints->max_width = width;
+		sizeHints->max_height = height;
+	}
 	XSetWMNormalHints(
 		mu_linux_windows[win].display,
 		mu_linux_windows[win].window,
