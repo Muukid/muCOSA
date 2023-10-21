@@ -30,28 +30,28 @@ More explicit license information at the end of the file.
 
 /* C standard library dependencies */
 
-#if !defined(size_m)
+// types
+
+#if !defined(size_m)  || \
+	!defined(wchar_m)
 	
 	#include <stddef.h>
 
-	#define size_m size_t
+	#ifndef size_m
+		#define size_m size_t
+	#endif
+
+	#ifndef wchar_m
+		#define wchar_m wchar_t
+	#endif
 
 #endif
 
-#if !defined(SIZE_MAX_M)
+// functions
 
-    #include <stdint.h>
-
-    #define SIZE_MAX_M SIZE_MAX
-
-#endif
-
-#ifndef wchar_m
-	#define wchar_m wchar_t
-#endif
-
-#if !defined(mu_strlen)  || \
-	!defined(mu_wstrlen)
+#if !defined(mu_strlen) || \
+	!defined(mu_strcmp) || \
+	!defined(mu_memset)
 
     #include <string.h>
 	
@@ -59,9 +59,19 @@ More explicit license information at the end of the file.
     	#define mu_strlen strlen
 	#endif
 
-	#ifndef mu_wstrlen
-		#define mu_wstrlen wcslen
-	#endif
+	#ifndef mu_strcmp
+    	#define mu_strcmp strcmp
+    #endif
+
+    #ifndef mu_memset
+    	#define mu_memset memset
+    #endif
+
+#endif
+
+#ifndef mu_wstrlen
+	#include <wchar.h>
+	#define mu_wstrlen wcslen
 #endif
 
 #if !defined(mu_malloc)  || \
@@ -84,18 +94,13 @@ More explicit license information at the end of the file.
 
 #endif
 
-#if !defined(mu_strcmp) || \
-    !defined(mu_memset)
+// defines
 
-    #include <string.h>
+#if !defined(SIZE_MAX_M)
 
-    #ifndef mu_strcmp
-    	#define mu_strcmp strcmp
-    #endif
+    #include <stdint.h>
 
-    #ifndef mu_memset
-    	#define mu_memset memset
-    #endif
+    #define SIZE_MAX_M SIZE_MAX
 
 #endif
 
