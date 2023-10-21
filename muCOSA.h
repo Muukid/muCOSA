@@ -4970,10 +4970,7 @@ MUDEF muWindow mu_window_create(
 		0, 0,                        // border width and border color
 		0                            // background
 	);
-	// (to adjust for window decoration)
-	mu_linux_windows[win].active = MU_TRUE;
-	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
-	mu_linux_windows[win].active = MU_FALSE;
+	
 	XSelectInput(
 		mu_linux_windows[win].display,
 		mu_linux_windows[win].window,
@@ -5092,6 +5089,11 @@ MUDEF muWindow mu_window_create(
 		XMapWindow(mu_linux_windows[win].display, mu_linux_windows[win].window);
 	}
 
+	mu_linux_window_bind(win);
+
+	// (to adjust for window decoration)
+	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
+
 	// window title
 
 	XChangeProperty(
@@ -5100,8 +5102,6 @@ MUDEF muWindow mu_window_create(
 		XInternAtom(mu_linux_windows[win].display, "UTF8_STRING", False),
 		8, PropModeReplace, (unsigned char*)name, mu_strlen(name)
 	);
-
-	mu_linux_window_bind(win);
 
 	// load api
 
@@ -5144,7 +5144,7 @@ MUDEF muWindow mu_window_create(
 	);
 	XFree(sizeHints);
 
-	// handle maximized/minimized
+	// handle more window settings
 
 	if (mu_window_settings.maximized) {
 		mu_window_set_maximized(result, win, MU_TRUE);
