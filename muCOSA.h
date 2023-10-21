@@ -5072,6 +5072,27 @@ MUDEF muWindow mu_window_create(
 	mu_linux_windows[win].input = (mu_linux_input){0};
 	mu_linux_windows[win].visible = mu_window_settings.visible;
 
+	XSizeHints* sizeHints = XAllocSizeHints();
+	sizeHints->flags = PPosition | PMinSize | PMaxSize;
+	sizeHints->x = mu_window_settings.x;
+	sizeHints->y = mu_window_settings.y;
+	sizeHints->min_width = mu_window_settings.minimum_width;
+	sizeHints->min_height = mu_window_settings.minimum_height;
+	sizeHints->max_width = mu_window_settings.maximum_width;
+	sizeHints->max_height = mu_window_settings.maximum_height;
+	if (!mu_window_settings.resizable) {
+		sizeHints->min_width = width;
+		sizeHints->min_height = height;
+		sizeHints->max_width = width;
+		sizeHints->max_height = height;
+	}
+	XSetWMNormalHints(
+		mu_linux_windows[win].display,
+		mu_linux_windows[win].window,
+		sizeHints
+	);
+	XFree(sizeHints);
+
 	if (mu_linux_windows[win].visible) {
 		XMapWindow(mu_linux_windows[win].display, mu_linux_windows[win].window);
 	}
@@ -5118,25 +5139,6 @@ MUDEF muWindow mu_window_create(
 	mu_linux_windows[win].maximized = mu_window_settings.maximized;
 	mu_linux_windows[win].minimized = mu_window_settings.minimized;
 
-	XSizeHints* sizeHints = XAllocSizeHints();
-	sizeHints->flags = PMinSize | PMaxSize;
-	sizeHints->min_width = mu_window_settings.minimum_width;
-	sizeHints->min_height = mu_window_settings.minimum_height;
-	sizeHints->max_width = mu_window_settings.maximum_width;
-	sizeHints->max_height = mu_window_settings.maximum_height;
-	if (!mu_window_settings.resizable) {
-		sizeHints->min_width = width;
-		sizeHints->min_height = height;
-		sizeHints->max_width = width;
-		sizeHints->max_height = height;
-	}
-	XSetWMNormalHints(
-		mu_linux_windows[win].display,
-		mu_linux_windows[win].window,
-		sizeHints
-	);
-	XFree(sizeHints);
-
 	mu_linux_windows[win].minimum_width = mu_window_settings.minimum_width;
 	mu_linux_windows[win].minimum_height = mu_window_settings.minimum_height;
 	mu_linux_windows[win].maximum_width = mu_window_settings.maximum_width;
@@ -5151,6 +5153,12 @@ MUDEF muWindow mu_window_create(
 	if (mu_window_settings.minimized) {
 		mu_window_set_minimized(result, win, MU_TRUE);
 	}
+
+	// The window doesn't show up in the correct position when no API is specified unless i do this.
+	// I hate X11 beyond belief
+	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
+	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
+	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
 
 	// return success
 
