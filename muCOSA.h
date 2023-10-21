@@ -4598,6 +4598,10 @@ struct mu_linux_window {
 
 	// total values
 	int scroll_level;
+	unsigned int minimum_width;
+	unsigned int minimum_height;
+	unsigned int maximum_width;
+	unsigned int maximum_height;
 
 	// window deco stuff
 	muBool gotten_deco;
@@ -5143,6 +5147,11 @@ MUDEF muWindow mu_window_create(
 		sizeHints
 	);
 	XFree(sizeHints);
+
+	mu_linux_windows[win].minimum_width = mu_window_settings.minimum_width;
+	mu_linux_windows[win].minimum_height = mu_window_settings.minimum_height;
+	mu_linux_windows[win].maximum_width = mu_window_settings.maximum_width;
+	mu_linux_windows[win].maximum_height = mu_window_settings.maximum_height;
 
 	// handle more window settings
 
@@ -6065,15 +6074,20 @@ MUDEF void mu_window_set_minimum_dimensions(muResult* result, muWindow win, unsi
 	}
 
 	XSizeHints* sizeHints = XAllocSizeHints();
-	sizeHints->flags = PMinSize;
+	sizeHints->flags = PMinSize | PMaxSize;
 	sizeHints->min_width = width;
 	sizeHints->min_height = height;
+	sizeHints->max_width = mu_linux_windows[win].maximum_width;
+	sizeHints->max_height = mu_linux_windows[win].maximum_height;
 	XSetWMNormalHints(
 		mu_linux_windows[win].display,
 		mu_linux_windows[win].window,
 		sizeHints
 	);
 	XFree(sizeHints);
+
+	mu_linux_windows[win].minimum_width = width;
+	mu_linux_windows[win].minimum_height = height;
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
@@ -6120,7 +6134,9 @@ MUDEF void mu_window_set_maximum_dimensions(muResult* result, muWindow win, unsi
 	}
 
 	XSizeHints* sizeHints = XAllocSizeHints();
-	sizeHints->flags = PMaxSize;
+	sizeHints->flags = PMinSize | PMaxSize;
+	sizeHints->min_width = mu_linux_windows[win].minimum_width;
+	sizeHints->min_height = mu_linux_windows[win].minimum_height;
 	sizeHints->max_width = width;
 	sizeHints->max_height = height;
 	XSetWMNormalHints(
@@ -6129,6 +6145,9 @@ MUDEF void mu_window_set_maximum_dimensions(muResult* result, muWindow win, unsi
 		sizeHints
 	);
 	XFree(sizeHints);
+
+	mu_linux_windows[win].maximum_width = width;
+	mu_linux_windows[win].maximum_height = height;
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
