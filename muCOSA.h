@@ -5286,10 +5286,6 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 			) {
 				mu_linux_windows[win].x = mu_linux_windows[win].event.xconfigure.x;
 				mu_linux_windows[win].y = mu_linux_windows[win].event.xconfigure.y;
-				XWindowAttributes xwa;
-				XGetWindowAttributes(mu_linux_windows[win].display, mu_linux_windows[win].window, &xwa);
-				mu_linux_windows[win].x += xwa.x;
-				mu_linux_windows[win].y += xwa.y;
 				if (mu_linux_windows[win].position_callback != MU_NULL_PTR) {
 					mu_linux_windows[win].position_callback(win, mu_linux_windows[win].x, mu_linux_windows[win].y);
 				}
@@ -5742,25 +5738,16 @@ MUDEF void mu_window_get_position(muResult* result, muWindow win, int* x, int* y
 	}
 
 	// https://stackoverflow.com/questions/3806872/window-position-in-xlib
-	int rx = 0, ry = 0;
+	int rx, ry;
 	Window child;
-	XWindowAttributes xwa;
-	XTranslateCoordinates(
-		mu_linux_windows[win].display,
-		mu_linux_windows[win].window,
-		mu_linux_windows[win].parent_window,
-		0, 0,
-		&rx, &ry,
-		&child
-	);
-	XGetWindowAttributes(mu_linux_windows[win].display, mu_linux_windows[win].window, &xwa);
+	XTranslateCoordinates(mu_linux_windows[win].display, mu_linux_windows[win].window, mu_linux_windows[win].parent_window, 0, 0, &rx, &ry, &child);
 
 	if (x != MU_NULL_PTR) {
-		*x = mu_linux_windows[win].left - xwa.x;
+		*x = rx;
 	}
 
 	if (y != MU_NULL_PTR) {
-		*y = mu_linux_windows[win].top - xwa.y;
+		*y = ry;
 	}
 
 	if (result != MU_NULL_PTR) {
@@ -5784,8 +5771,8 @@ MUDEF void mu_window_set_position(muResult* result, muWindow win, int x, int y) 
 	XMoveWindow(
 		mu_linux_windows[win].display, 
 		mu_linux_windows[win].window, 
-		x - (int)mu_linux_windows[win].left - xwa.x,
-		y - (int)mu_linux_windows[win].top - xwa.y
+		x-xwa.x,
+		y-xwa.y
 	);
 
 	if (result != MU_NULL_PTR) {
