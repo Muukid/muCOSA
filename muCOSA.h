@@ -291,7 +291,7 @@ enum muKeyboardKey {
 };
 typedef enum muKeyboardKey muKeyboardKey;
 
-#define MU_KEYBOARD_BIT  muBool
+#define muKeyboardKeyBit  muBool
 #define MU_KEYBOARD_KEY_BIT_UP   MU_FALSE
 #define MU_KEYBOARD_KEY_BIT_DOWN MU_TRUE
 
@@ -310,28 +310,28 @@ enum muKeyboardState {
 };
 typedef enum muKeyboardState muKeyboardState;
 
-#define MU_KEYBOARD_STATE_BIT muBool
+#define muKeyboardStateBit muBool
 #define MU_KEYBOARD_STATE_BIT_ON MU_TRUE
 #define MU_KEYBOARD_STATE_BIT_OFF MU_FALSE
 
 /* mouse input */
 
-enum muMouseKey {
-	MU_MOUSE_KEY_UNKNOWN,
+enum muMouseButton {
+	MU_MOUSE_BUTTON_UNKNOWN,
 
-	MU_MOUSE_KEY_LEFT,
-	MU_MOUSE_KEY_RIGHT,
-	MU_MOUSE_KEY_MIDDLE
+	MU_MOUSE_BUTTON_LEFT,
+	MU_MOUSE_BUTTON_RIGHT,
+	MU_MOUSE_BUTTON_MIDDLE
 
-#define MU_MOUSE_KEY_FIRST MU_MOUSE_KEY_LEFT
-#define MU_MOUSE_KEY_LAST MU_MOUSE_KEY_MIDDLE
-#define MU_IS_MOUSE_KEY(key) (key >= MU_MOUSE_KEY_FIRST && key <= MU_MOUSE_KEY_LAST)
+#define MU_MOUSE_BUTTON_FIRST MU_MOUSE_BUTTON_LEFT
+#define MU_MOUSE_BUTTON_LAST MU_MOUSE_BUTTON_MIDDLE
+#define MU_IS_MOUSE_BUTTON(key) (key >= MU_MOUSE_BUTTON_FIRST && key <= MU_MOUSE_BUTTON_LAST)
 };
-typedef enum muMouseKey muMouseKey;
+typedef enum muMouseButton muMouseButton;
 
-#define MU_MOUSE_KEY_BIT  muBool
-#define MU_MOUSE_KEY_BIT_UP   MU_FALSE
-#define MU_MOUSE_KEY_BIT_DOWN MU_TRUE
+#define muMouseButtonBit  muBool
+#define MU_MOUSE_BUTTON_BIT_UP   MU_FALSE
+#define MU_MOUSE_BUTTON_BIT_DOWN MU_TRUE
 
 /* mouse style */
 
@@ -503,9 +503,9 @@ MUDEF void mu_window_set_scroll_level(muResult* result, muWindow win, int scroll
 
 // input
 
-MUDEF MU_KEYBOARD_BIT mu_window_get_keyboard_bit(muResult* result, muWindow win, muKeyboardKey key);
-MUDEF MU_KEYBOARD_STATE_BIT mu_window_get_keyboard_state_bit(muResult* result, muWindow win, muKeyboardState state);
-MUDEF MU_MOUSE_KEY_BIT mu_window_get_mouse_bit(muResult* result, muWindow win, muMouseKey key);
+MUDEF muKeyboardKeyBit mu_window_get_keyboard_key_bit(muResult* result, muWindow win, muKeyboardKey key);
+MUDEF muKeyboardStateBit mu_window_get_keyboard_state_bit(muResult* result, muWindow win, muKeyboardState state);
+MUDEF muMouseButtonBit mu_window_get_mouse_button_bit(muResult* result, muWindow win, muMouseButton key);
 
 // callbacks
 
@@ -515,9 +515,9 @@ MUDEF void mu_window_set_focus_callback         (muResult* result, muWindow win,
 MUDEF void mu_window_set_maximize_callback      (muResult* result, muWindow win, void (*maximize_callback)      (muWindow win, muBool maximized));
 MUDEF void mu_window_set_minimize_callback      (muResult* result, muWindow win, void (*minimize_callback)      (muWindow win, muBool minimized));
 
-MUDEF void mu_window_set_keyboard_callback      (muResult* result, muWindow win, void (*keyboard_callback)      (muWindow win, muKeyboardKey key, MU_KEYBOARD_BIT bit));
-MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, MU_KEYBOARD_STATE_BIT bit));
-MUDEF void mu_window_set_mouse_callback         (muResult* result, muWindow win, void (*mouse_callback)         (muWindow win, muMouseKey key, MU_MOUSE_KEY_BIT bit));
+MUDEF void mu_window_set_keyboard_callback      (muResult* result, muWindow win, void (*keyboard_callback)      (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit));
+MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit));
+MUDEF void mu_window_set_mouse_callback         (muResult* result, muWindow win, void (*mouse_callback)         (muWindow win, muMouseButton key, muMouseButtonBit bit));
 MUDEF void mu_window_set_scroll_callback        (muResult* result, muWindow win, void (*scroll_callback)        (muWindow win, int scroll_level_add));
 
 /* opengl functions */
@@ -695,7 +695,7 @@ muResult mu_windows_init_opengl_extensions() {
 	};
 
 	if (!RegisterClassA(&win_class)) {
-		mu_print("[MUGA] Failed to register window class.\n");
+		mu_print("[muCOSA] Failed to register window class.\n");
 		return MU_FAILURE;
 	}
 
@@ -715,7 +715,7 @@ muResult mu_windows_init_opengl_extensions() {
 	);
 
 	if (!win) {
-		mu_print("[MUGA] Failed to create window.\n");
+		mu_print("[muCOSA] Failed to create window.\n");
 		return MU_FAILURE;
 	}
 
@@ -735,13 +735,13 @@ muResult mu_windows_init_opengl_extensions() {
 
 	int pixel_format = ChoosePixelFormat(dc, &format);
 	if (!pixel_format) {
-		mu_print("[MUGA] Failed to find a valid pixel format.\n");
+		mu_print("[muCOSA] Failed to find a valid pixel format.\n");
 		ReleaseDC(win, dc);
 		DestroyWindow(win);
 		return MU_FAILURE;
 	}
 	if (!SetPixelFormat(dc, pixel_format, &format)) {
-		mu_print("[MUGA] Failed to set a pixel format.\n");
+		mu_print("[muCOSA] Failed to set a pixel format.\n");
 		ReleaseDC(win, dc);
 		DestroyWindow(win);
 		return MU_FAILURE;
@@ -749,13 +749,13 @@ muResult mu_windows_init_opengl_extensions() {
 
 	HGLRC context = wglCreateContext(dc);
 	if (!context) {
-		mu_print("[MUGA] Failed to create a valid WGL context.\n");
+		mu_print("[muCOSA] Failed to create a valid WGL context.\n");
 		ReleaseDC(win, dc);
 		DestroyWindow(win);
 		return MU_FAILURE;
 	}
 	if (!wglMakeCurrent(dc, context)) {
-		mu_print("[MUGA] Failed to load a WGL context.\n");
+		mu_print("[muCOSA] Failed to load a WGL context.\n");
 		wglDeleteContext(context);
 		ReleaseDC(win, dc);
 		DestroyWindow(win);
@@ -802,7 +802,7 @@ muResult mu_windows_create_opengl_context(HDC device_context, HGLRC* context, mu
 	UINT format_count;
 	wglChoosePixelFormatARB(device_context, pixel_format_attributes, 0, 1, &pixel_format, &format_count);
 	if (!format_count) {
-		mu_print("[MUGA] Failed to find a compatible OpenGL pixel format.\n");
+		mu_print("[muCOSA] Failed to find a compatible OpenGL pixel format.\n");
 		return MU_FAILURE;
 	}
 
@@ -810,7 +810,7 @@ muResult mu_windows_create_opengl_context(HDC device_context, HGLRC* context, mu
 	PIXELFORMATDESCRIPTOR format;
 	DescribePixelFormat(device_context, pixel_format, sizeof(PIXELFORMATDESCRIPTOR), &format);
 	if (!SetPixelFormat(device_context, pixel_format, &format)) {
-		mu_print("[MUGA] Failed to set OpenGL pixel format.\n");
+		mu_print("[muCOSA] Failed to set OpenGL pixel format.\n");
 		return MU_FAILURE;
 	}
 
@@ -989,11 +989,11 @@ muResult mu_windows_create_opengl_context(HDC device_context, HGLRC* context, mu
 	// create and activate context
 	HGLRC opengl_context = wglCreateContextAttribsARB(device_context, 0, opengl_attributes);
 	if (!opengl_context) {
-		mu_print("[MUGA] Failed to create a valid OpenGL context.");
+		mu_print("[muCOSA] Failed to create a valid OpenGL context.");
 		return MU_FAILURE;
 	}
 	if (!wglMakeCurrent(device_context, opengl_context)) {
-		mu_print("[MUGA] Failed to activate OpenGL context.");
+		mu_print("[muCOSA] Failed to activate OpenGL context.");
 		return MU_FAILURE;
 	}
 	*context = opengl_context;
@@ -1743,19 +1743,19 @@ int mu_windows_muKeyboardState_to_windows_key(muKeyboardState state) {
 	}
 }
 
-muMouseKey mu_windows_windows_key_to_mu_mouse(int key) {
+muMouseButton mu_windows_windows_key_to_mu_mouse(int key) {
 	switch (key) {
 	default:
-		return MU_MOUSE_KEY_UNKNOWN;
+		return MU_MOUSE_BUTTON_UNKNOWN;
 		break;
 	case VK_LBUTTON:
-		return MU_MOUSE_KEY_LEFT;
+		return MU_MOUSE_BUTTON_LEFT;
 		break;
 	case VK_RBUTTON:
-		return MU_MOUSE_KEY_RIGHT;
+		return MU_MOUSE_BUTTON_RIGHT;
 		break;
 	case VK_MBUTTON:
-		return MU_MOUSE_KEY_MIDDLE;
+		return MU_MOUSE_BUTTON_MIDDLE;
 		break;
 	}
 }
@@ -1863,52 +1863,52 @@ muCursorStyle mu_windows_cursor_to_mu_cursor(void* cursor) {
 }
 
 struct mu_windows_input {
-	MU_KEYBOARD_BIT keyboard_down_status[MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1];
-	MU_KEYBOARD_STATE_BIT keyboard_state_status[MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1];
-	MU_MOUSE_KEY_BIT mouse_down_status[MU_MOUSE_KEY_LAST-MU_MOUSE_KEY_FIRST+1];
+	muKeyboardKeyBit keyboard_down_status[MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1];
+	muKeyboardStateBit keyboard_state_status[MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1];
+	muMouseButtonBit mouse_down_status[MU_MOUSE_BUTTON_LAST-MU_MOUSE_BUTTON_FIRST+1];
 };
 typedef struct mu_windows_input mu_windows_input;
 
-void mu_windows_input_keyboard_set_status(mu_windows_input* input, int windows_key, MU_KEYBOARD_BIT bit) {
+void mu_windows_input_keyboard_set_status(mu_windows_input* input, int windows_key, muKeyboardKeyBit bit) {
 	muKeyboardKey key = mu_windows_windows_key_to_mu_keyboard(windows_key);
 	if (MU_IS_KEYBOARD_KEY(key)) {
 		input->keyboard_down_status[key-MU_KEYBOARD_KEY_FIRST] = bit;
 	}
 }
 
-MU_KEYBOARD_BIT mu_windows_keyboard_input_get_status(mu_windows_input input, muKeyboardKey key) {
+muKeyboardKeyBit mu_windows_keyboard_input_get_status(mu_windows_input input, muKeyboardKey key) {
 	if (MU_IS_KEYBOARD_KEY(key)) {
 		return input.keyboard_down_status[key-MU_KEYBOARD_KEY_FIRST];
 	}
 	return MU_KEYBOARD_KEY_BIT_UP;
 }
 
-void mu_windows_input_keyboard_state_set_status(mu_windows_input* input, int windows_key, MU_KEYBOARD_STATE_BIT bit) {
+void mu_windows_input_keyboard_state_set_status(mu_windows_input* input, int windows_key, muKeyboardStateBit bit) {
 	muKeyboardState state = mu_windows_windows_key_to_muKeyboardState(windows_key);
 	if (MU_IS_KEYBOARD_STATE(state)) {
 		input->keyboard_state_status[state-MU_KEYBOARD_STATE_FIRST] = bit;
 	}
 }
 
-MU_KEYBOARD_STATE_BIT mu_windows_keyboard_state_get_status(mu_windows_input input, muKeyboardState state) {
+muKeyboardStateBit mu_windows_keyboard_state_get_status(mu_windows_input input, muKeyboardState state) {
 	if (MU_IS_KEYBOARD_STATE(state)) {
 		return input.keyboard_state_status[state-MU_KEYBOARD_STATE_FIRST];
 	}
 	return MU_KEYBOARD_STATE_BIT_OFF;
 }
 
-void mu_windows_input_mouse_set_status(mu_windows_input* input, int windows_key, MU_MOUSE_KEY_BIT bit) {
-	muMouseKey key = mu_windows_windows_key_to_mu_mouse(windows_key);
-	if (MU_IS_MOUSE_KEY(key)) {
-		input->mouse_down_status[key-MU_MOUSE_KEY_FIRST] = bit;
+void mu_windows_input_mouse_set_status(mu_windows_input* input, int windows_key, muMouseButtonBit bit) {
+	muMouseButton key = mu_windows_windows_key_to_mu_mouse(windows_key);
+	if (MU_IS_MOUSE_BUTTON(key)) {
+		input->mouse_down_status[key-MU_MOUSE_BUTTON_FIRST] = bit;
 	}
 }
 
-MU_MOUSE_KEY_BIT mu_windows_mouse_input_get_status(mu_windows_input input, muMouseKey key) {
-	if (MU_IS_MOUSE_KEY(key)) {
-		return input.mouse_down_status[key-MU_MOUSE_KEY_FIRST];
+muMouseButtonBit mu_windows_mouse_input_get_status(mu_windows_input input, muMouseButton key) {
+	if (MU_IS_MOUSE_BUTTON(key)) {
+		return input.mouse_down_status[key-MU_MOUSE_BUTTON_FIRST];
 	}
-	return MU_MOUSE_KEY_BIT_UP;
+	return MU_MOUSE_BUTTON_BIT_UP;
 }
 
 void mu_windows_input_flush(mu_windows_input* input) {
@@ -1918,8 +1918,8 @@ void mu_windows_input_flush(mu_windows_input* input) {
 	for (size_m i = 0; i < MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1; i++) {
 		input->keyboard_state_status[i] = MU_KEYBOARD_STATE_BIT_OFF;
 	}
-	for (size_m i = 0; i < MU_MOUSE_KEY_LAST-MU_MOUSE_KEY_FIRST+1; i++) {
-		input->mouse_down_status[i] = MU_MOUSE_KEY_BIT_UP;
+	for (size_m i = 0; i < MU_MOUSE_BUTTON_LAST-MU_MOUSE_BUTTON_FIRST+1; i++) {
+		input->mouse_down_status[i] = MU_MOUSE_BUTTON_BIT_UP;
 	}
 }
 
@@ -1991,9 +1991,9 @@ struct mu_windows_window {
 	void (*focus_callback)         (muWindow win, muBool focused);
 	void (*maximize_callback)      (muWindow win, muBool maximized);
 	void (*minimize_callback)      (muWindow win, muBool minimized);
-	void (*keyboard_callback)      (muWindow win, muKeyboardKey key, MU_KEYBOARD_BIT bit);
-	void (*keyboard_state_callback)(muWindow win, muKeyboardState state, MU_KEYBOARD_STATE_BIT bit);
-	void (*mouse_callback)         (muWindow win, muMouseKey key, MU_MOUSE_KEY_BIT bit);
+	void (*keyboard_callback)      (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit);
+	void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit);
+	void (*mouse_callback)         (muWindow win, muMouseButton key, muMouseButtonBit bit);
 	void (*scroll_callback)        (muWindow win, int scroll_level_add);
 
 	// cursor/mouse stuff
@@ -2038,7 +2038,7 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	// keyboard state handling
 	if (found_window_id) {
 		for (size_m i = MU_KEYBOARD_STATE_FIRST; i < MU_KEYBOARD_STATE_LAST + 1; i++) {
-			MU_KEYBOARD_STATE_BIT now = (GetKeyState(mu_windows_muKeyboardState_to_windows_key(i)) & 0x0001)!=0;
+			muKeyboardStateBit now = (GetKeyState(mu_windows_muKeyboardState_to_windows_key(i)) & 0x0001)!=0;
 			if (mu_windows_keyboard_state_get_status(mu_windows_windows[win].input, i) != now) {
 				mu_windows_input_keyboard_state_set_status(&mu_windows_windows[win].input, mu_windows_muKeyboardState_to_windows_key(i), now);
 				if (mu_windows_windows[win].keyboard_state_callback != MU_NULL_PTR) {
@@ -2165,54 +2165,54 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	
 	case WM_LBUTTONDOWN:
 		if (found_window_id) {
-			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_LBUTTON, MU_MOUSE_KEY_BIT_DOWN);
+			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_LBUTTON, MU_MOUSE_BUTTON_BIT_DOWN);
 			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_KEY_BIT_DOWN);
+				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
 			}
 		}
 		return 0;
 		break;
 	case WM_LBUTTONUP:
 		if (found_window_id) {
-			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_LBUTTON, MU_MOUSE_KEY_BIT_UP);
+			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_LBUTTON, MU_MOUSE_BUTTON_BIT_UP);
 			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_KEY_BIT_UP);
+				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_BUTTON_BIT_UP);
 			}
 		}
 		return 0;
 		break;
 	case WM_RBUTTONDOWN:
 		if (found_window_id) {
-			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_RBUTTON, MU_MOUSE_KEY_BIT_DOWN);
+			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_RBUTTON, MU_MOUSE_BUTTON_BIT_DOWN);
 			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_KEY_BIT_DOWN);
+				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
 			}
 		}
 		return 0;
 		break;
 	case WM_RBUTTONUP:
 		if (found_window_id) {
-			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_RBUTTON, MU_MOUSE_KEY_BIT_UP);
+			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_RBUTTON, MU_MOUSE_BUTTON_BIT_UP);
 			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_KEY_BIT_UP);
+				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_BUTTON_BIT_UP);
 			}
 		}
 		return 0;
 		break;
 	case WM_MBUTTONDOWN:
 		if (found_window_id) {
-			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_MBUTTON, MU_MOUSE_KEY_BIT_DOWN);
+			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_MBUTTON, MU_MOUSE_BUTTON_BIT_DOWN);
 			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_KEY_BIT_DOWN);
+				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
 			}
 		}
 		return 0;
 		break;
 	case WM_MBUTTONUP:
 		if (found_window_id) {
-			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_MBUTTON, MU_MOUSE_KEY_BIT_UP);
+			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_MBUTTON, MU_MOUSE_BUTTON_BIT_UP);
 			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_KEY_BIT_UP);
+				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_BUTTON_BIT_UP);
 			}
 		}
 		return 0;
@@ -2336,7 +2336,7 @@ double mu_windows_original_time = 0.f;
 MUDEF void mu_COSA_init(muResult* result) {
 	// init check
 	if (mu_windows_has_initiated == MU_TRUE) {
-		mu_print("[MUGA] An attempt to initiate muCOSA was made after already being initiated.\n");
+		mu_print("[muCOSA] An attempt to initiate muCOSA was made after already being initiated.\n");
 		if (result != MU_NULL) {
 			*result = MU_FAILURE;
 		}
@@ -2369,7 +2369,7 @@ MUDEF void mu_COSA_init(muResult* result) {
 MUDEF void mu_COSA_term(muResult* result) {
 	// term check
 	if (mu_windows_has_initiated == MU_FALSE) {
-		mu_print("[MUGA] An attempt to terminate muCOSA was made even though muCOSA was already not running.\n");
+		mu_print("[muCOSA] An attempt to terminate muCOSA was made even though muCOSA was already not running.\n");
 		if (result != MU_NULL) {
 			*result = MU_FAILURE;
 		}
@@ -2416,7 +2416,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 	wchar_m* buffer = mu_windows_utf8_to_wchar(buffer_c);
 	// https://stackoverflow.com/questions/14762456/getclipboarddatacf-text
 	if (!OpenClipboard(MU_NULL_PTR)) {
-		mu_print("[MUGA] Failed to get clipboard; couldn't open clipboard.\n");
+		mu_print("[muCOSA] Failed to get clipboard; couldn't open clipboard.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2426,7 +2426,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 
 	HANDLE data = GetClipboardData(CF_UNICODETEXT);
 	if (data == MU_NULL_PTR) {
-		mu_print("[MUGA] Failed to get clipboard; couldn't retrieve clipboard data in a Unicode text format.\n");
+		mu_print("[muCOSA] Failed to get clipboard; couldn't retrieve clipboard data in a Unicode text format.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2437,7 +2437,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 
 	wchar_m* ptext = (wchar_m*)GlobalLock(data);
 	if (ptext == MU_NULL_PTR) {
-		mu_print("[MUGA] Failed to get clipboard; couldn't retrieve clipboard text pointer.\n");
+		mu_print("[muCOSA] Failed to get clipboard; couldn't retrieve clipboard text pointer.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2458,7 +2458,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 	}
 
 	if (len < ptext_len) {
-		mu_print("[MUGA] Failed to get clipboard; buffer length is too small to store.\n");
+		mu_print("[muCOSA] Failed to get clipboard; buffer length is too small to store.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2546,7 +2546,7 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 		.scroll_level = 0
 	};
 	if (!RegisterClassExW(&window_struct.window_class)) {
-		mu_print("[MUGA] Failed to register window class.\n");
+		mu_print("[muCOSA] Failed to register window class.\n");
 		mu_free(class_name);
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
@@ -2562,13 +2562,18 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 		style = WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
 	}
 
+	/*
+	( lParam      & 0x8000 ? - ((~lParam    )&0x7FFF)+1 :  lParam     &0x7FFF) + (int)(GetSystemMetrics(SM_CXSIZEFRAME)),
+				((lParam>>16) & 0x8000 ? - ((~lParam>>16)&0x7FFF)+1 : (lParam>>16)&0x7FFF) + (int)(GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(92))
+	*/
+
 	window_struct.window_handle = CreateWindowExW(
 		0,                                    // extra window style
 		class_name,                           // class name
 		name,                                 // window name
 		style,                                // window style
-		mu_window_settings.x,               // x-position
-		mu_window_settings.y,               // y-position
+		mu_window_settings.x - (int)(GetSystemMetrics(SM_CXSIZEFRAME)),                                                     // x-position
+		mu_window_settings.y - (int)(GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(92)), // y-position
 		width,                                // width
 		height,                               // height
 		NULL,                                 // parent window
@@ -2578,7 +2583,7 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 	);
 
 	if (window_struct.window_handle == NULL) {
-		mu_print("[MUGA] Failed to create window.\n");
+		mu_print("[muCOSA] Failed to create window.\n");
 		mu_free(class_name);
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
@@ -2626,7 +2631,7 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 		);
 	// no api
 	} else if (api != MU_NO_GRAPHICS_API) {
-		mu_print("[MUGA] Unsupported/Excluded (#define MUCOSA_NO_...) graphics API for Windows.\n");
+		mu_print("[muCOSA] Unsupported/Excluded (#define MUCOSA_NO_...) graphics API for Windows.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2642,7 +2647,7 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 
 	if (load_functions != MU_NULL_PTR) {
 	    if (!load_functions()) {
-	    	mu_print("[MUGA] Failed to load functions for graphics API.\n");
+	    	mu_print("[muCOSA] Failed to load functions for graphics API.\n");
 	    	if (result != MU_NULL_PTR) {
 				*result = MU_FAILURE;
 			}
@@ -2696,7 +2701,7 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 
 MUDEF void mu_window_destroy(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid_closed(win)) {
-		mu_print("[MUGA] Requested window ID for destruction is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for destruction is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2733,7 +2738,7 @@ MUDEF void mu_window_destroy(muResult* result, muWindow win) {
 
 MUDEF void mu_window_update(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for updating is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for updating is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2763,7 +2768,7 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 
 MUDEF void mu_window_swap_buffers(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for swapping buffers is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2783,7 +2788,7 @@ MUDEF void mu_window_swap_buffers(muResult* result, muWindow win) {
 
 MUDEF muBool mu_window_get_closed(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid_closed(win)) {
-		mu_print("[MUGA] Requested window ID for checking if closed is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for checking if closed is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2798,7 +2803,7 @@ MUDEF muBool mu_window_get_closed(muResult* result, muWindow win) {
 
 MUDEF void mu_window_close(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for closing is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for closing is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2815,7 +2820,7 @@ MUDEF void mu_window_close(muResult* result, muWindow win) {
 
 MUDEF muBool mu_window_get_focused(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting focused state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting focused state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2830,7 +2835,7 @@ MUDEF muBool mu_window_get_focused(muResult* result, muWindow win) {
 
 MUDEF void mu_window_focus(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for focusing is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for focusing is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2854,7 +2859,7 @@ MUDEF void mu_window_focus(muResult* result, muWindow win) {
 
 MUDEF void mu_window_get_position(muResult* result, muWindow win, int* x, int* y) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2881,12 +2886,15 @@ MUDEF void mu_window_get_position(muResult* result, muWindow win, int* x, int* y
 
 MUDEF void mu_window_set_position(muResult* result, muWindow win, int x, int y) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
 		return;
 	}
+
+	x -= (int)(GetSystemMetrics(SM_CXSIZEFRAME));
+	y -= (int)(GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(92));
 
 	SetWindowPos(mu_windows_windows[win].window_handle, HWND_TOP, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE );
 
@@ -2897,7 +2905,7 @@ MUDEF void mu_window_set_position(muResult* result, muWindow win, int x, int y) 
 
 MUDEF void mu_window_get_dimensions(muResult* result, muWindow win, unsigned int* width, unsigned int* height) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2921,7 +2929,7 @@ MUDEF void mu_window_get_dimensions(muResult* result, muWindow win, unsigned int
 
 MUDEF void mu_window_set_dimensions(muResult* result, muWindow win, unsigned int width, unsigned int height) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2937,7 +2945,7 @@ MUDEF void mu_window_set_dimensions(muResult* result, muWindow win, unsigned int
 
 MUDEF muBool mu_window_get_maximized(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting maximized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting maximized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2956,7 +2964,7 @@ MUDEF muBool mu_window_get_maximized(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_maximized(muResult* result, muWindow win, muBool maximized) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting maximized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting maximized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2978,7 +2986,7 @@ MUDEF void mu_window_set_maximized(muResult* result, muWindow win, muBool maximi
 
 MUDEF muBool mu_window_get_minimized(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting minimized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting minimized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -2993,7 +3001,7 @@ MUDEF muBool mu_window_get_minimized(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_minimized(muResult* result, muWindow win, muBool minimized) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting minimized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting minimized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3015,7 +3023,7 @@ MUDEF void mu_window_set_minimized(muResult* result, muWindow win, muBool minimi
 
 MUDEF void mu_window_get_minimum_dimensions(muResult* result, muWindow win, unsigned int* width, unsigned int* height) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting minimum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting minimum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3036,7 +3044,7 @@ MUDEF void mu_window_get_minimum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_set_minimum_dimensions(muResult* result, muWindow win, unsigned int width, unsigned int height) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting minimum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting minimum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3053,7 +3061,7 @@ MUDEF void mu_window_set_minimum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_get_maximum_dimensions(muResult* result, muWindow win, unsigned int* width, unsigned int* height) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting maximum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting maximum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3074,7 +3082,7 @@ MUDEF void mu_window_get_maximum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_set_maximum_dimensions(muResult* result, muWindow win, unsigned int width, unsigned int height) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting maximum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting maximum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3091,7 +3099,7 @@ MUDEF void mu_window_set_maximum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_get_mouse_position(muResult* result, muWindow win, int* x, int* y) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting mouse position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting mouse position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3118,7 +3126,7 @@ MUDEF void mu_window_get_mouse_position(muResult* result, muWindow win, int* x, 
 
 MUDEF void mu_window_set_mouse_position(muResult* result, muWindow win, int x, int y) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting mouse position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting mouse position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3136,7 +3144,7 @@ MUDEF void mu_window_set_mouse_position(muResult* result, muWindow win, int x, i
 
 MUDEF muCursorStyle mu_window_get_cursor_style(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting cursor style is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting cursor style is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3151,7 +3159,7 @@ MUDEF muCursorStyle mu_window_get_cursor_style(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_cursor_style(muResult* result, muWindow win, muCursorStyle style) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting cursor style is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting cursor style is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3170,7 +3178,7 @@ MUDEF void mu_window_set_cursor_style(muResult* result, muWindow win, muCursorSt
 
 MUDEF int mu_window_get_scroll_level(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting scroll level is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting scroll level is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3185,7 +3193,7 @@ MUDEF int mu_window_get_scroll_level(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_scroll_level(muResult* result, muWindow win, int scroll_level) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting scroll level is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting scroll level is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3201,7 +3209,7 @@ MUDEF void mu_window_set_scroll_level(muResult* result, muWindow win, int scroll
 
 MUDEF void mu_window_set_context(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting context is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting context is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3218,7 +3226,7 @@ MUDEF void mu_window_set_context(muResult* result, muWindow win) {
 MUDEF void mu_window_set_title(muResult* result, muWindow win, const char* title_c) {
 	wchar_m* title = mu_windows_utf8_to_wchar((char*)title_c);
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting title is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting title is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3236,7 +3244,7 @@ MUDEF void mu_window_set_title(muResult* result, muWindow win, const char* title
 
 MUDEF muBool mu_window_get_visible(muResult* result, muWindow win) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting visibility is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting visibility is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3251,7 +3259,7 @@ MUDEF muBool mu_window_get_visible(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_visible(muResult* result, muWindow win, muBool visible) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting visibility is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting visibility is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3271,9 +3279,9 @@ MUDEF void mu_window_set_visible(muResult* result, muWindow win, muBool visible)
 	}
 }
 
-MUDEF MU_KEYBOARD_BIT mu_window_get_keyboard_bit(muResult* result, muWindow win, muKeyboardKey key) {
+MUDEF muKeyboardKeyBit mu_window_get_keyboard_key_bit(muResult* result, muWindow win, muKeyboardKey key) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting keyboard bit is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting keyboard bit is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3286,9 +3294,9 @@ MUDEF MU_KEYBOARD_BIT mu_window_get_keyboard_bit(muResult* result, muWindow win,
 	return mu_windows_keyboard_input_get_status(mu_windows_windows[win].input, key);
 }
 
-MUDEF MU_KEYBOARD_STATE_BIT mu_window_get_keyboard_state_bit(muResult* result, muWindow win, muKeyboardState state) {
+MUDEF muKeyboardStateBit mu_window_get_keyboard_state_bit(muResult* result, muWindow win, muKeyboardState state) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting keyboard state bit is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting keyboard state bit is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3301,13 +3309,13 @@ MUDEF MU_KEYBOARD_STATE_BIT mu_window_get_keyboard_state_bit(muResult* result, m
 	return (GetKeyState(mu_windows_muKeyboardState_to_windows_key(state)) & 0x0001) != 0;
 }
 
-MUDEF MU_MOUSE_KEY_BIT mu_window_get_mouse_bit(muResult* result, muWindow win, muMouseKey key) {
+MUDEF muMouseButtonBit mu_window_get_mouse_button_bit(muResult* result, muWindow win, muMouseButton key) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting mouse bit is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting mouse bit is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
-		return MU_MOUSE_KEY_BIT_UP;
+		return MU_MOUSE_BUTTON_BIT_UP;
 	}
 
 	if (result != MU_NULL_PTR) {
@@ -3318,7 +3326,7 @@ MUDEF MU_MOUSE_KEY_BIT mu_window_get_mouse_bit(muResult* result, muWindow win, m
 
 MUDEF void mu_window_set_dimensions_callback(muResult* result, muWindow win, void (*dimensions_callback)(muWindow win, int new_width, int new_height)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting dimensions callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting dimensions callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3335,7 +3343,7 @@ MUDEF void mu_window_set_dimensions_callback(muResult* result, muWindow win, voi
 
 MUDEF void mu_window_set_position_callback(muResult* result, muWindow win, void (*position_callback)(muWindow win, int x, int y)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting position callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting position callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3351,7 +3359,7 @@ MUDEF void mu_window_set_position_callback(muResult* result, muWindow win, void 
 
 MUDEF void mu_window_set_focus_callback(muResult* result, muWindow win, void (*focus_callback)(muWindow win, muBool focused)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting focus callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting focus callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3367,7 +3375,7 @@ MUDEF void mu_window_set_focus_callback(muResult* result, muWindow win, void (*f
 
 MUDEF void mu_window_set_maximize_callback(muResult* result, muWindow win, void (*maximize_callback)(muWindow win, muBool maximized)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting maximize callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting maximize callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3383,7 +3391,7 @@ MUDEF void mu_window_set_maximize_callback(muResult* result, muWindow win, void 
 
 MUDEF void mu_window_set_minimize_callback(muResult* result, muWindow win, void (*minimize_callback)(muWindow win, muBool minimized)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting minimize callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting minimize callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3397,9 +3405,9 @@ MUDEF void mu_window_set_minimize_callback(muResult* result, muWindow win, void 
 	}
 }
 
-MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void (*keyboard_callback)(muWindow win, muKeyboardKey key, MU_KEYBOARD_BIT bit)) {
+MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void (*keyboard_callback)(muWindow win, muKeyboardKey key, muKeyboardKeyBit bit)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting key callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting key callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3413,9 +3421,9 @@ MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void 
 	}
 }
 
-MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, MU_KEYBOARD_STATE_BIT bit)) {
+MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting key state callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting key state callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3429,9 +3437,9 @@ MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win,
 	}
 }
 
-MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*mouse_callback)(muWindow win, muMouseKey key, MU_MOUSE_KEY_BIT bit)) {
+MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*mouse_callback)(muWindow win, muMouseButton key, muMouseButtonBit bit)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting mouse callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting mouse callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3447,7 +3455,7 @@ MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*m
 
 MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*scroll_callback)(muWindow win, int scroll_level_add)) {
 	if (!mu_windows_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting scroll callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting scroll callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -3538,7 +3546,7 @@ muResult mu_linux_init_opengl(Display* display, GLXContext* context, muGraphicsA
 	);
 
 	if (!fbc) {
-		mu_print("[MUGA] Failed to find compatible framebuffer configuration.\n");
+		mu_print("[muCOSA] Failed to find compatible framebuffer configuration.\n");
 		return MU_FAILURE;
 	}
 
@@ -3549,7 +3557,7 @@ muResult mu_linux_init_opengl(Display* display, GLXContext* context, muGraphicsA
 	glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
 
 	if (!glXCreateContextAttribsARB) {
-		mu_print("[MUGA] Failed to find glX function to create an OpenGL context.\n");
+		mu_print("[muCOSA] Failed to find glX function to create an OpenGL context.\n");
 		return MU_FAILURE;
 	}
 
@@ -3725,7 +3733,7 @@ muResult mu_linux_init_opengl(Display* display, GLXContext* context, muGraphicsA
 
 	*context = glXCreateContextAttribsARB(display, fbc[0], MU_NULL, MU_TRUE, opengl_attributes);
 	if (!*context) {
-		mu_print("[MUGA] Failed to create valid OpenGL context.\n");
+		mu_print("[muCOSA] Failed to create valid OpenGL context.\n");
 		return MU_FAILURE;
 	}
 
@@ -4482,50 +4490,50 @@ int mu_linux_get_linux_cursor_style(muCursorStyle style) {
 }
 
 struct mu_linux_input {
-	MU_KEYBOARD_BIT keyboard_down_status[MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1];
-	MU_KEYBOARD_STATE_BIT keyboard_state_status[MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1];
-	MU_MOUSE_KEY_BIT mouse_down_status[MU_MOUSE_KEY_LAST-MU_MOUSE_KEY_FIRST+1];
+	muKeyboardKeyBit keyboard_down_status[MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1];
+	muKeyboardStateBit keyboard_state_status[MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1];
+	muMouseButtonBit mouse_down_status[MU_MOUSE_BUTTON_LAST-MU_MOUSE_BUTTON_FIRST+1];
 };
 typedef struct mu_linux_input mu_linux_input;
 
-void mu_linux_input_keyboard_set_status(mu_linux_input* input, int linux_key, MU_KEYBOARD_BIT bit) {
+void mu_linux_input_keyboard_set_status(mu_linux_input* input, int linux_key, muKeyboardKeyBit bit) {
 	muKeyboardKey key = mu_linux_linux_key_to_mu_key(linux_key);
 	if (MU_IS_KEYBOARD_KEY(key)) {
 		input->keyboard_down_status[key-MU_KEYBOARD_KEY_FIRST] = bit;
 	}
 }
 
-MU_KEYBOARD_BIT mu_linux_input_keyboard_get_status(mu_linux_input input, muKeyboardKey key) {
+muKeyboardKeyBit mu_linux_input_keyboard_get_status(mu_linux_input input, muKeyboardKey key) {
 	if (MU_IS_KEYBOARD_KEY(key)) {
 		return input.keyboard_down_status[key-MU_KEYBOARD_KEY_FIRST];
 	}
 	return MU_KEYBOARD_KEY_BIT_UP;
 }
 
-void mu_linux_input_keyboard_state_set_status(mu_linux_input* input, muKeyboardState state, MU_KEYBOARD_STATE_BIT bit) {
+void mu_linux_input_keyboard_state_set_status(mu_linux_input* input, muKeyboardState state, muKeyboardStateBit bit) {
 	if (MU_IS_KEYBOARD_STATE(state)) {
 		input->keyboard_state_status[state-MU_KEYBOARD_STATE_FIRST] = bit;
 	}
 }
 
-MU_KEYBOARD_STATE_BIT mu_linux_input_keyboard_state_get_status(mu_linux_input input, muKeyboardState state) {
+muKeyboardStateBit mu_linux_input_keyboard_state_get_status(mu_linux_input input, muKeyboardState state) {
 	if (MU_IS_KEYBOARD_STATE(state)) {
 		return input.keyboard_state_status[state-MU_KEYBOARD_STATE_FIRST];
 	}
 	return MU_KEYBOARD_STATE_BIT_ON;
 }
 
-void mu_linux_input_mouse_set_status(mu_linux_input* input, muMouseKey mouse, MU_MOUSE_KEY_BIT bit) {
-	if (MU_IS_MOUSE_KEY(mouse)) {
-		input->mouse_down_status[mouse-MU_MOUSE_KEY_FIRST] = bit;
+void mu_linux_input_mouse_set_status(mu_linux_input* input, muMouseButton mouse, muMouseButtonBit bit) {
+	if (MU_IS_MOUSE_BUTTON(mouse)) {
+		input->mouse_down_status[mouse-MU_MOUSE_BUTTON_FIRST] = bit;
 	}
 }
 
-MU_MOUSE_KEY_BIT mu_linux_input_mouse_get_status(mu_linux_input input, muMouseKey key) {
-	if (MU_IS_MOUSE_KEY(key)) {
-		return input.mouse_down_status[key-MU_MOUSE_KEY_FIRST];
+muMouseButtonBit mu_linux_input_mouse_get_status(mu_linux_input input, muMouseButton key) {
+	if (MU_IS_MOUSE_BUTTON(key)) {
+		return input.mouse_down_status[key-MU_MOUSE_BUTTON_FIRST];
 	}
-	return MU_MOUSE_KEY_BIT_UP;
+	return MU_MOUSE_BUTTON_BIT_UP;
 }
 
 void mu_linux_input_flush(mu_linux_input* input) {
@@ -4535,8 +4543,8 @@ void mu_linux_input_flush(mu_linux_input* input) {
 	for (size_m i = 0; i < MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1; i++) {
 		input->keyboard_state_status[i] = MU_KEYBOARD_STATE_BIT_OFF;
 	}
-	for (size_m i = 0; i < MU_MOUSE_KEY_LAST-MU_MOUSE_KEY_FIRST+1; i++) {
-		input->mouse_down_status[i] = MU_MOUSE_KEY_BIT_UP;
+	for (size_m i = 0; i < MU_MOUSE_BUTTON_LAST-MU_MOUSE_BUTTON_FIRST+1; i++) {
+		input->mouse_down_status[i] = MU_MOUSE_BUTTON_BIT_UP;
 	}
 }
 
@@ -4576,9 +4584,9 @@ struct mu_linux_window {
 	void (*focus_callback)         (muWindow win, muBool focused);
 	void (*maximize_callback)      (muWindow win, muBool maximized);
 	void (*minimize_callback)      (muWindow win, muBool minimized);
-	void (*keyboard_callback)      (muWindow win, muKeyboardKey key, MU_KEYBOARD_BIT bit);
-	void (*keyboard_state_callback)(muWindow win, muKeyboardState state, MU_KEYBOARD_STATE_BIT bit);
-	void (*mouse_callback)         (muWindow win, muMouseKey key, MU_MOUSE_KEY_BIT bit);
+	void (*keyboard_callback)      (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit);
+	void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit);
+	void (*mouse_callback)         (muWindow win, muMouseButton key, muMouseButtonBit bit);
 	void (*scroll_callback)        (muWindow win, int scroll_level_add);
 
 	// last-frame checks
@@ -4688,7 +4696,7 @@ double mu_linux_original_time = 0.f;
 
 MUDEF void mu_COSA_init(muResult* result) {
 	if (mu_linux_is_initiated) {
-		mu_print("[MUGA] An attempt to initiate muCOSA despite already being initiated was made.\n");
+		mu_print("[muCOSA] An attempt to initiate muCOSA despite already being initiated was made.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -4711,7 +4719,7 @@ MUDEF void mu_COSA_init(muResult* result) {
 
 MUDEF void mu_COSA_term(muResult* result) {
 	if (!mu_linux_is_initiated) {
-		mu_print("[MUGA] An attempt to terminate muCOSA despite already being terminated (or never being initiated) was made.\n");
+		mu_print("[muCOSA] An attempt to terminate muCOSA despite already being terminated (or never being initiated) was made.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -4768,7 +4776,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer, size_m len) {
 
 	Window owner = XGetSelectionOwner(d, sel);
 	if (owner == None) {
-		mu_print("[MUGA] Failed to get clipboard; no clipboard found.\n");
+		mu_print("[muCOSA] Failed to get clipboard; no clipboard found.\n");
 		return 0;
 	}
 
@@ -4788,7 +4796,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer, size_m len) {
 				got_notify = MU_TRUE;
 				XSelectionEvent* sev = (XSelectionEvent*)&ev.xselection;
 				if (sev->property == None) {
-					mu_print("[MUGA] Failed to get clipboard; failed to get clipboard in UTF-8 format.\n");
+					mu_print("[muCOSA] Failed to get clipboard; failed to get clipboard in UTF-8 format.\n");
 					return 0;
 				} else {
 					Atom da, incr, type;
@@ -4805,7 +4813,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer, size_m len) {
 					incr = XInternAtom(d, "INCR", False);
 					if (type == incr) {
 						// @TODO INCR
-						mu_print("[MUGA] Failed to get clipboard; data too large, implement INCR later please!\n");
+						mu_print("[muCOSA] Failed to get clipboard; data too large, implement INCR later please!\n");
 						return 0;
 					}
 
@@ -5004,7 +5012,7 @@ MUDEF muWindow mu_window_create(
 			}
 		);
 	} else if (api != MU_NO_GRAPHICS_API) {
-		mu_print("[MUGA] Unsupported/Excluded (#define MUCOSA_NO_...) graphics API for Linux.\n");
+		mu_print("[muCOSA] Unsupported/Excluded (#define MUCOSA_NO_...) graphics API for Linux.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5094,7 +5102,7 @@ MUDEF muWindow mu_window_create(
 
 	if (load_functions != MU_NULL_PTR) {
 	    if (!load_functions()) {
-	    	mu_print("[MUGA] Failed to load functions for graphics API.\n");
+	    	mu_print("[muCOSA] Failed to load functions for graphics API.\n");
 	    	if (result != MU_NULL_PTR) {
 				*result = MU_FAILURE;
 			}
@@ -5150,7 +5158,7 @@ MUDEF muWindow mu_window_create(
 
 MUDEF void mu_window_destroy(muResult* result, muWindow win) {
 	if (!mu_linux_is_valid_closed(win)) {
-		mu_print("[MUGA] Requested window ID for destruction is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for destruction is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5188,7 +5196,7 @@ MUDEF void mu_window_destroy(muResult* result, muWindow win) {
 
 MUDEF void mu_window_update(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for updating is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for updating is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5307,33 +5315,33 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 			case 1:
 				mu_linux_input_mouse_set_status(
 					&mu_linux_windows[win].input,
-					MU_MOUSE_KEY_LEFT,
-					MU_MOUSE_KEY_BIT_DOWN
+					MU_MOUSE_BUTTON_LEFT,
+					MU_MOUSE_BUTTON_BIT_DOWN
 				);
 				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_KEY_LEFT, MU_MOUSE_KEY_BIT_DOWN);
+					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_LEFT, MU_MOUSE_BUTTON_BIT_DOWN);
 				}
 				break;
 
 			case 2:
 				mu_linux_input_mouse_set_status(
 					&mu_linux_windows[win].input,
-					MU_MOUSE_KEY_MIDDLE,
-					MU_MOUSE_KEY_BIT_DOWN
+					MU_MOUSE_BUTTON_MIDDLE,
+					MU_MOUSE_BUTTON_BIT_DOWN
 				);
 				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_KEY_MIDDLE, MU_MOUSE_KEY_BIT_DOWN);
+					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_MIDDLE, MU_MOUSE_BUTTON_BIT_DOWN);
 				}
 				break;
 
 			case 3:
 				mu_linux_input_mouse_set_status(
 					&mu_linux_windows[win].input,
-					MU_MOUSE_KEY_RIGHT,
-					MU_MOUSE_KEY_BIT_DOWN
+					MU_MOUSE_BUTTON_RIGHT,
+					MU_MOUSE_BUTTON_BIT_DOWN
 				);
 				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_KEY_RIGHT, MU_MOUSE_KEY_BIT_DOWN);
+					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_RIGHT, MU_MOUSE_BUTTON_BIT_DOWN);
 				}
 				break;
 
@@ -5351,33 +5359,33 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 			case 1:
 				mu_linux_input_mouse_set_status(
 					&mu_linux_windows[win].input,
-					MU_MOUSE_KEY_LEFT,
-					MU_MOUSE_KEY_BIT_UP
+					MU_MOUSE_BUTTON_LEFT,
+					MU_MOUSE_BUTTON_BIT_UP
 				);
 				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_KEY_LEFT, MU_MOUSE_KEY_BIT_UP);
+					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_LEFT, MU_MOUSE_BUTTON_BIT_UP);
 				}
 				break;
 
 			case 2:
 				mu_linux_input_mouse_set_status(
 					&mu_linux_windows[win].input,
-					MU_MOUSE_KEY_MIDDLE,
-					MU_MOUSE_KEY_BIT_UP
+					MU_MOUSE_BUTTON_MIDDLE,
+					MU_MOUSE_BUTTON_BIT_UP
 				);
 				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_KEY_MIDDLE, MU_MOUSE_KEY_BIT_UP);
+					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_MIDDLE, MU_MOUSE_BUTTON_BIT_UP);
 				}
 				break;
 
 			case 3:
 				mu_linux_input_mouse_set_status(
 					&mu_linux_windows[win].input,
-					MU_MOUSE_KEY_RIGHT,
-					MU_MOUSE_KEY_BIT_UP
+					MU_MOUSE_BUTTON_RIGHT,
+					MU_MOUSE_BUTTON_BIT_UP
 				);
 				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_KEY_RIGHT, MU_MOUSE_KEY_BIT_UP);
+					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_RIGHT, MU_MOUSE_BUTTON_BIT_UP);
 				}
 				break;
 
@@ -5480,7 +5488,7 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 
 MUDEF void mu_window_swap_buffers(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for swapping buffers is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for swapping buffers is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5500,7 +5508,7 @@ MUDEF void mu_window_swap_buffers(muResult* result, muWindow win) {
 
 MUDEF muBool mu_window_get_closed(muResult* result, muWindow win) {
 	if (!mu_linux_is_valid_closed(win)) {
-		mu_print("[MUGA] Requested window ID for checking if closed is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for checking if closed is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5515,7 +5523,7 @@ MUDEF muBool mu_window_get_closed(muResult* result, muWindow win) {
 
 MUDEF void mu_window_close(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for closing is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for closing is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5532,7 +5540,7 @@ MUDEF void mu_window_close(muResult* result, muWindow win) {
 
 MUDEF muBool mu_window_get_focused(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting focused state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting focused state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5551,7 +5559,7 @@ MUDEF muBool mu_window_get_focused(muResult* result, muWindow win) {
 
 MUDEF void mu_window_focus(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for focusing is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for focusing is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5638,7 +5646,7 @@ MUDEF void mu_window_focus(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_context(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting context is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting context is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5656,7 +5664,7 @@ MUDEF void mu_window_set_context(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_title(muResult* result, muWindow win, const char* title) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting title is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting title is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5679,7 +5687,7 @@ MUDEF void mu_window_set_title(muResult* result, muWindow win, const char* title
 
 MUDEF muBool mu_window_get_visible(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting visibility is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting visibility is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5694,7 +5702,7 @@ MUDEF muBool mu_window_get_visible(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_visible(muResult* result, muWindow win, muBool visible) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting visibility is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting visibility is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5720,7 +5728,7 @@ MUDEF void mu_window_set_visible(muResult* result, muWindow win, muBool visible)
 
 MUDEF void mu_window_get_position(muResult* result, muWindow win, int* x, int* y) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5756,7 +5764,7 @@ MUDEF void mu_window_get_position(muResult* result, muWindow win, int* x, int* y
 
 MUDEF void mu_window_set_position(muResult* result, muWindow win, int x, int y) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5777,7 +5785,7 @@ MUDEF void mu_window_set_position(muResult* result, muWindow win, int x, int y) 
 
 MUDEF void mu_window_get_dimensions(muResult* result, muWindow win, unsigned int* width, unsigned int* height) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5802,7 +5810,7 @@ MUDEF void mu_window_get_dimensions(muResult* result, muWindow win, unsigned int
 
 MUDEF void mu_window_set_dimensions(muResult* result, muWindow win, unsigned int width, unsigned int height) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5822,7 +5830,7 @@ MUDEF void mu_window_set_dimensions(muResult* result, muWindow win, unsigned int
 
 MUDEF muBool mu_window_get_maximized(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting maximized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting maximized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5872,7 +5880,7 @@ MUDEF muBool mu_window_get_maximized(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_maximized(muResult* result, muWindow win, muBool maximized) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting maximized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting maximized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5911,7 +5919,7 @@ MUDEF void mu_window_set_maximized(muResult* result, muWindow win, muBool maximi
 
 MUDEF muBool mu_window_get_minimized(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting minimized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting minimized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -5961,7 +5969,7 @@ MUDEF muBool mu_window_get_minimized(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_minimized(muResult* result, muWindow win, muBool minimized) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting minimized state is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting minimized state is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6022,7 +6030,7 @@ MUDEF void mu_window_set_minimized(muResult* result, muWindow win, muBool minimi
 
 MUDEF void mu_window_get_minimum_dimensions(muResult* result, muWindow win, unsigned int* width, unsigned int* height) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting minimum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting minimum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6052,7 +6060,7 @@ MUDEF void mu_window_get_minimum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_set_minimum_dimensions(muResult* result, muWindow win, unsigned int width, unsigned int height) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting minimum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting minimum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6077,7 +6085,7 @@ MUDEF void mu_window_set_minimum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_get_maximum_dimensions(muResult* result, muWindow win, unsigned int* width, unsigned int* height) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting maximum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting maximum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6107,7 +6115,7 @@ MUDEF void mu_window_get_maximum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_set_maximum_dimensions(muResult* result, muWindow win, unsigned int width, unsigned int height) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting maximum dimensions is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting maximum dimensions is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6132,7 +6140,7 @@ MUDEF void mu_window_set_maximum_dimensions(muResult* result, muWindow win, unsi
 
 MUDEF void mu_window_get_mouse_position(muResult* result, muWindow win, int* x, int* y) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting mouse position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting mouse position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6172,7 +6180,7 @@ MUDEF void mu_window_get_mouse_position(muResult* result, muWindow win, int* x, 
 	mu_free(root_windows);
 
 	if (oresult != True) {
-		mu_print("[MUGA] Failed to get mouse position; failed to find mouse.\n");
+		mu_print("[muCOSA] Failed to get mouse position; failed to find mouse.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6196,7 +6204,7 @@ MUDEF void mu_window_get_mouse_position(muResult* result, muWindow win, int* x, 
 
 MUDEF void mu_window_set_mouse_position(muResult* result, muWindow win, int x, int y) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting mouse position is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting mouse position is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6219,7 +6227,7 @@ MUDEF void mu_window_set_mouse_position(muResult* result, muWindow win, int x, i
 
 MUDEF muCursorStyle mu_window_get_cursor_style(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting cursor style is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting cursor style is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6234,7 +6242,7 @@ MUDEF muCursorStyle mu_window_get_cursor_style(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_cursor_style(muResult* result, muWindow win, muCursorStyle style) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting cursor style is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting cursor style is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6267,7 +6275,7 @@ MUDEF void mu_window_set_cursor_style(muResult* result, muWindow win, muCursorSt
 
 MUDEF int mu_window_get_scroll_level(muResult* result, muWindow win) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting scroll level is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting scroll level is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6282,7 +6290,7 @@ MUDEF int mu_window_get_scroll_level(muResult* result, muWindow win) {
 
 MUDEF void mu_window_set_scroll_level(muResult* result, muWindow win, int scroll_level) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting scroll level is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting scroll level is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6296,9 +6304,9 @@ MUDEF void mu_window_set_scroll_level(muResult* result, muWindow win, int scroll
 	}
 }
 
-MUDEF MU_KEYBOARD_BIT mu_window_get_keyboard_bit(muResult* result, muWindow win, muKeyboardKey key) {
+MUDEF muKeyboardKeyBit mu_window_get_keyboard_key_bit(muResult* result, muWindow win, muKeyboardKey key) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting input bit is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting input bit is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6311,9 +6319,9 @@ MUDEF MU_KEYBOARD_BIT mu_window_get_keyboard_bit(muResult* result, muWindow win,
 	return mu_linux_input_keyboard_get_status(mu_linux_windows[win].input, key);
 }
 
-MUDEF MU_KEYBOARD_STATE_BIT mu_window_get_keyboard_state_bit(muResult* result, muWindow win, muKeyboardState state) {
+MUDEF muKeyboardStateBit mu_window_get_keyboard_state_bit(muResult* result, muWindow win, muKeyboardState state) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting keyboard state bit is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting keyboard state bit is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6326,13 +6334,13 @@ MUDEF MU_KEYBOARD_STATE_BIT mu_window_get_keyboard_state_bit(muResult* result, m
 	return mu_linux_input_keyboard_state_get_status(mu_linux_windows[win].input, state);
 }
 
-MUDEF MU_MOUSE_KEY_BIT mu_window_get_mouse_bit(muResult* result, muWindow win, muMouseKey key) {
+MUDEF muMouseButtonBit mu_window_get_mouse_button_bit(muResult* result, muWindow win, muMouseButton key) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for getting mouse bit is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for getting mouse bit is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
-		return MU_MOUSE_KEY_BIT_UP;
+		return MU_MOUSE_BUTTON_BIT_UP;
 	}
 
 	if (result != MU_NULL_PTR) {
@@ -6347,7 +6355,7 @@ MUDEF void mu_window_set_dimensions_callback(
 	void (*dimensions_callback)(muWindow win, int new_width, int new_height)
 ) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting dimensions callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting dimensions callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6363,7 +6371,7 @@ MUDEF void mu_window_set_dimensions_callback(
 
 MUDEF void mu_window_set_position_callback(muResult* result, muWindow win, void (*position_callback)(muWindow win, int x, int y)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting position callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting position callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6379,7 +6387,7 @@ MUDEF void mu_window_set_position_callback(muResult* result, muWindow win, void 
 
 MUDEF void mu_window_set_focus_callback(muResult* result, muWindow win, void (*focus_callback)(muWindow win, muBool focused)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting focus callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting focus callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6395,7 +6403,7 @@ MUDEF void mu_window_set_focus_callback(muResult* result, muWindow win, void (*f
 
 MUDEF void mu_window_set_maximize_callback(muResult* result, muWindow win, void (*maximize_callback)(muWindow win, muBool maximized)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting maximize callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting maximize callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6411,7 +6419,7 @@ MUDEF void mu_window_set_maximize_callback(muResult* result, muWindow win, void 
 
 MUDEF void mu_window_set_minimize_callback(muResult* result, muWindow win, void (*minimize_callback)(muWindow win, muBool minimized)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting minimize callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting minimize callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6425,9 +6433,9 @@ MUDEF void mu_window_set_minimize_callback(muResult* result, muWindow win, void 
 	}
 }
 
-MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void (*keyboard_callback)(muWindow win, muKeyboardKey key, MU_KEYBOARD_BIT bit)) {
+MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void (*keyboard_callback)(muWindow win, muKeyboardKey key, muKeyboardKeyBit bit)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting keyboard callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting keyboard callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6441,9 +6449,9 @@ MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void 
 	}
 }
 
-MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, MU_KEYBOARD_STATE_BIT bit)) {
+MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting keyboard state callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting keyboard state callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6457,9 +6465,9 @@ MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win,
 	}
 }
 
-MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*mouse_callback)(muWindow win, muMouseKey key, MU_MOUSE_KEY_BIT bit)) {
+MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*mouse_callback)(muWindow win, muMouseButton key, muMouseButtonBit bit)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting mouse callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting mouse callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
@@ -6475,7 +6483,7 @@ MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*m
 
 MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*scroll_callback)(muWindow win, int scroll_level_add)) {
 	if (!mu_linux_is_id_valid(win)) {
-		mu_print("[MUGA] Requested window ID for setting scroll callback is invalid.\n");
+		mu_print("[muCOSA] Requested window ID for setting scroll callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
