@@ -793,7 +793,7 @@ muResult mu_windows_create_opengl_context(HDC device_context, HGLRC* context, mu
         WGL_ALPHA_BITS_ARB,     mu_window_settings.pixel_format.alpha_bits,
         WGL_DEPTH_BITS_ARB,     mu_window_settings.pixel_format.depth_bits,
         WGL_STENCIL_BITS_ARB,   mu_window_settings.pixel_format.stencil_bits,
-		WGL_SAMPLES_ARB,        16,
+		WGL_SAMPLES_ARB,        mu_window_settings.pixel_format.samples,
         0
 	};
 
