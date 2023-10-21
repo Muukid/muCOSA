@@ -2413,14 +2413,12 @@ MUDEF void mu_time_set(muResult* result, double time) {
 }
 
 MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
-	wchar_m* buffer = mu_windows_utf8_to_wchar(buffer_c);
 	// https://stackoverflow.com/questions/14762456/getclipboarddatacf-text
 	if (!OpenClipboard(MU_NULL_PTR)) {
 		mu_print("[muCOSA] Failed to get clipboard; couldn't open clipboard.\n");
 		if (result != MU_NULL_PTR) {
 			*result = MU_FAILURE;
 		}
-		free(buffer);
 		return 0;
 	}
 
@@ -2431,7 +2429,6 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 			*result = MU_FAILURE;
 		}
 		CloseClipboard();
-		free(buffer);
 		return 0;
 	}
 
@@ -2442,21 +2439,20 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 			*result = MU_FAILURE;
 		}
 		CloseClipboard();
-		free(buffer);
 		return 0;
 	}
-
-	size_m ptext_len = mu_wstrlen(ptext);
-	if (buffer == MU_NULL_PTR) {
+	
+	size_m ptext_wstrlen = mu_wstrlen(ptext);
+	size_m ptext_len = WideCharToMultiByte(CP_UTF8, 0, ptext, ptext_wstrlen, NULL, 0, NULL, NULL);
+	if (buffer_c == MU_NULL_PTR) {
 		if (result != MU_NULL_PTR) {
 			*result = MU_SUCCESS;
 		}
 		GlobalUnlock(data);
 		CloseClipboard();
-		free(buffer);
 		return ptext_len;
 	}
-
+	
 	if (len < ptext_len) {
 		mu_print("[muCOSA] Failed to get clipboard; buffer length is too small to store.\n");
 		if (result != MU_NULL_PTR) {
@@ -2464,15 +2460,20 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 		}
 		GlobalUnlock(data);
 		CloseClipboard();
-		free(buffer);
 		return ptext_len;
 	}
 
-	for (size_m i = 0; i < ptext_len; i++) {
-		buffer[i] = ptext[i];
+	char* cptext = mu_malloc(ptext_len);
+	WideCharToMultiByte(CP_UTF8, 0, ptext, ptext_wstrlen, cptext, ptext_len, NULL, NULL);
+	
+	for (size_m i = 0; i < len && i < ptext_len; i++) {
+		buffer_c[i] = cptext[i];
 	}
 
-	free(buffer);
+	mu_free(cptext);
+
+	GlobalUnlock(data);
+	CloseClipboard();
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
 	}
