@@ -1,6 +1,6 @@
 /*
 muCOSA.h - Muukid
-Public domain single-file C library for creating windows and contexts for cross-platform graphics APIs. 
+Public domain single-file C library for interacting with operating systems with a cross-platform API.
 No warranty implied; use at your own risk.
 
 Licensed under MIT License or public domain, whichever you prefer.
