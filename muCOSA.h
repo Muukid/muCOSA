@@ -5156,10 +5156,10 @@ MUDEF muWindow mu_window_create(
 
 	// The window doesn't show up in the correct position when no API is specified unless i do this.
 	// I hate X11 beyond belief
-	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
-	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
-	mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
-
+	XSync(mu_linux_windows[win].display, False);
+	for (size_m i = 0; i < 10; i++) {
+		mu_window_set_position(result, win, mu_window_settings.x, mu_window_settings.y);
+	}
 	// return success
 
 	if (result != MU_NULL_PTR) {
