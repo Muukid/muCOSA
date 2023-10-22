@@ -514,15 +514,15 @@ MUDEF muMouseButtonBit mu_window_get_mouse_button_bit(muResult* result, muWindow
 
 // callbacks
 
-MUDEF void mu_window_set_dimensions_callback    (muResult* result, muWindow win, void (*dimensions_callback)    (muWindow win, int width, int height));
+MUDEF void mu_window_set_dimensions_callback    (muResult* result, muWindow win, void (*dimensions_callback)    (muWindow win, unsigned int width, unsigned int height));
 MUDEF void mu_window_set_position_callback      (muResult* result, muWindow win, void (*position_callback)      (muWindow win, int x, int y));
 MUDEF void mu_window_set_focus_callback         (muResult* result, muWindow win, void (*focus_callback)         (muWindow win, muBool focused));
 MUDEF void mu_window_set_maximize_callback      (muResult* result, muWindow win, void (*maximize_callback)      (muWindow win, muBool maximized));
 MUDEF void mu_window_set_minimize_callback      (muResult* result, muWindow win, void (*minimize_callback)      (muWindow win, muBool minimized));
 
-MUDEF void mu_window_set_keyboard_callback      (muResult* result, muWindow win, void (*keyboard_callback)      (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit));
+MUDEF void mu_window_set_keyboard_key_callback  (muResult* result, muWindow win, void (*keyboard_key_callback)  (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit));
 MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit));
-MUDEF void mu_window_set_mouse_callback         (muResult* result, muWindow win, void (*mouse_callback)         (muWindow win, muMouseButton key, muMouseButtonBit bit));
+MUDEF void mu_window_set_mouse_button_callback  (muResult* result, muWindow win, void (*mouse_button_callback)  (muWindow win, muMouseButton key, muMouseButtonBit bit));
 MUDEF void mu_window_set_scroll_callback        (muResult* result, muWindow win, void (*scroll_callback)        (muWindow win, int scroll_level_add));
 
 /* opengl functions */
@@ -545,14 +545,22 @@ MUDEF void* mu_get_opengl_function_address(const char* name);
 
 /* pre-implementation setup */
 
-#ifndef mu_print
+#if !defined(mu_print) || !defined(mu_printf)
     #ifdef MUCOSA_NO_PRINT
-    	#define mu_print(msg)
-		#define mu_printf(msg, ...)
+		#ifndef mu_print
+    		#define mu_print(msg)
+		#endif
+		#ifndef mu_printf
+			#define mu_printf(msg, ...)
+		#endif
     #else
     	#include <stdio.h>
-    	#define mu_print printf
-		#define mu_printf printf
+		#ifndef mu_print
+    		#define mu_print printf
+		#endif
+		#ifndef mu_printf
+			#define mu_printf printf
+		#endif
     #endif
 #endif
 
@@ -1991,14 +1999,14 @@ struct mu_windows_window {
 	unsigned int maximum_height;
 
 	// callbacks
-	void (*dimensions_callback)    (muWindow win, int new_width, int new_height);
+	void (*dimensions_callback)    (muWindow win, unsigned int new_width, unsigned int new_height);
 	void (*position_callback)      (muWindow win, int x, int y);
 	void (*focus_callback)         (muWindow win, muBool focused);
 	void (*maximize_callback)      (muWindow win, muBool maximized);
 	void (*minimize_callback)      (muWindow win, muBool minimized);
-	void (*keyboard_callback)      (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit);
+	void (*keyboard_key_callback)  (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit);
 	void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit);
-	void (*mouse_callback)         (muWindow win, muMouseButton key, muMouseButtonBit bit);
+	void (*mouse_button_callback)  (muWindow win, muMouseButton key, muMouseButtonBit bit);
 	void (*scroll_callback)        (muWindow win, int scroll_level_add);
 
 	// cursor/mouse stuff
@@ -2107,10 +2115,10 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 		if (found_window_id) {
 			wParam = mu_map_left_right_keys(wParam, lParam);
 			if (
-				mu_windows_windows[win].keyboard_callback != MU_NULL_PTR &&
+				mu_windows_windows[win].keyboard_key_callback != MU_NULL_PTR &&
 				mu_windows_keyboard_input_get_status(mu_windows_windows[win].input, mu_windows_windows_key_to_mu_keyboard(wParam)) == MU_FALSE
 			) {
-				mu_windows_windows[win].keyboard_callback(win, mu_windows_windows_key_to_mu_keyboard(wParam), MU_KEYBOARD_KEY_BIT_DOWN);
+				mu_windows_windows[win].keyboard_key_callback(win, mu_windows_windows_key_to_mu_keyboard(wParam), MU_KEYBOARD_KEY_BIT_DOWN);
 			}
 			mu_windows_input_keyboard_set_status(&mu_windows_windows[win].input, wParam, MU_KEYBOARD_KEY_BIT_DOWN);
 		}
@@ -2121,8 +2129,8 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 		if (found_window_id) {
 			wParam = mu_map_left_right_keys(wParam, lParam);
 			mu_windows_input_keyboard_set_status(&mu_windows_windows[win].input, wParam, MU_KEYBOARD_KEY_BIT_UP);
-			if (mu_windows_windows[win].keyboard_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].keyboard_callback(win, mu_windows_windows_key_to_mu_keyboard(wParam), MU_KEYBOARD_KEY_BIT_UP);
+			if (mu_windows_windows[win].keyboard_key_callback != MU_NULL_PTR) {
+				mu_windows_windows[win].keyboard_key_callback(win, mu_windows_windows_key_to_mu_keyboard(wParam), MU_KEYBOARD_KEY_BIT_UP);
 			}
 		}
 		return 0;
@@ -2171,8 +2179,8 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	case WM_LBUTTONDOWN:
 		if (found_window_id) {
 			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_LBUTTON, MU_MOUSE_BUTTON_BIT_DOWN);
-			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
+			if (mu_windows_windows[win].mouse_button_callback != MU_NULL_PTR) {
+				mu_windows_windows[win].mouse_button_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
 			}
 		}
 		return 0;
@@ -2180,8 +2188,8 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	case WM_LBUTTONUP:
 		if (found_window_id) {
 			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_LBUTTON, MU_MOUSE_BUTTON_BIT_UP);
-			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_BUTTON_BIT_UP);
+			if (mu_windows_windows[win].mouse_button_callback != MU_NULL_PTR) {
+				mu_windows_windows[win].mouse_button_callback(win, mu_windows_windows_key_to_mu_mouse(VK_LBUTTON), MU_MOUSE_BUTTON_BIT_UP);
 			}
 		}
 		return 0;
@@ -2189,8 +2197,8 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	case WM_RBUTTONDOWN:
 		if (found_window_id) {
 			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_RBUTTON, MU_MOUSE_BUTTON_BIT_DOWN);
-			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
+			if (mu_windows_windows[win].mouse_button_callback != MU_NULL_PTR) {
+				mu_windows_windows[win].mouse_button_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
 			}
 		}
 		return 0;
@@ -2198,8 +2206,8 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	case WM_RBUTTONUP:
 		if (found_window_id) {
 			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_RBUTTON, MU_MOUSE_BUTTON_BIT_UP);
-			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_BUTTON_BIT_UP);
+			if (mu_windows_windows[win].mouse_button_callback != MU_NULL_PTR) {
+				mu_windows_windows[win].mouse_button_callback(win, mu_windows_windows_key_to_mu_mouse(VK_RBUTTON), MU_MOUSE_BUTTON_BIT_UP);
 			}
 		}
 		return 0;
@@ -2207,8 +2215,8 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	case WM_MBUTTONDOWN:
 		if (found_window_id) {
 			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_MBUTTON, MU_MOUSE_BUTTON_BIT_DOWN);
-			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
+			if (mu_windows_windows[win].mouse_button_callback != MU_NULL_PTR) {
+				mu_windows_windows[win].mouse_button_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_BUTTON_BIT_DOWN);
 			}
 		}
 		return 0;
@@ -2216,8 +2224,8 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	case WM_MBUTTONUP:
 		if (found_window_id) {
 			mu_windows_input_mouse_set_status(&mu_windows_windows[win].input, VK_MBUTTON, MU_MOUSE_BUTTON_BIT_UP);
-			if (mu_windows_windows[win].mouse_callback != MU_NULL_PTR) {
-				mu_windows_windows[win].mouse_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_BUTTON_BIT_UP);
+			if (mu_windows_windows[win].mouse_button_callback != MU_NULL_PTR) {
+				mu_windows_windows[win].mouse_button_callback(win, mu_windows_windows_key_to_mu_mouse(VK_MBUTTON), MU_MOUSE_BUTTON_BIT_UP);
 			}
 		}
 		return 0;
@@ -2358,9 +2366,9 @@ MUDEF void mu_COSA_init(muResult* result) {
 	mu_windows_windows[0].focus_callback = MU_NULL_PTR;
 	mu_windows_windows[0].maximize_callback = MU_NULL_PTR;
 	mu_windows_windows[0].minimize_callback = MU_NULL_PTR;
-	mu_windows_windows[0].keyboard_callback = MU_NULL_PTR;
+	mu_windows_windows[0].keyboard_key_callback = MU_NULL_PTR;
 	mu_windows_windows[0].keyboard_state_callback = MU_NULL_PTR;
-	mu_windows_windows[0].mouse_callback = MU_NULL_PTR;
+	mu_windows_windows[0].mouse_button_callback = MU_NULL_PTR;
 	mu_windows_windows[0].scroll_callback = MU_NULL_PTR;
 
 	mu_windows_original_time = mu_windows_get_current_time();
@@ -2544,9 +2552,9 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 		.focus_callback = MU_NULL_PTR,
 		.maximize_callback = MU_NULL_PTR,
 		.minimize_callback = MU_NULL_PTR,
-		.keyboard_callback = MU_NULL_PTR,
+		.keyboard_key_callback = MU_NULL_PTR,
 		.keyboard_state_callback = MU_NULL_PTR,
-		.mouse_callback = MU_NULL_PTR,
+		.mouse_button_callback = MU_NULL_PTR,
 		.scroll_callback = MU_NULL_PTR,
 
 		.scroll_level = 0
@@ -3330,7 +3338,7 @@ MUDEF muMouseButtonBit mu_window_get_mouse_button_bit(muResult* result, muWindow
 	return mu_windows_mouse_input_get_status(mu_windows_windows[win].input, key);
 }
 
-MUDEF void mu_window_set_dimensions_callback(muResult* result, muWindow win, void (*dimensions_callback)(muWindow win, int new_width, int new_height)) {
+MUDEF void mu_window_set_dimensions_callback(muResult* result, muWindow win, void (*dimensions_callback)(muWindow win, unsigned int new_width, unsigned int new_height)) {
 	if (!mu_windows_is_id_valid(win)) {
 		mu_print("[muCOSA] Requested window ID for setting dimensions callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
@@ -3411,7 +3419,7 @@ MUDEF void mu_window_set_minimize_callback(muResult* result, muWindow win, void 
 	}
 }
 
-MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void (*keyboard_callback)(muWindow win, muKeyboardKey key, muKeyboardKeyBit bit)) {
+MUDEF void mu_window_set_keyboard_key_callback(muResult* result, muWindow win, void (*keyboard_key_callback)(muWindow win, muKeyboardKey key, muKeyboardKeyBit bit)) {
 	if (!mu_windows_is_id_valid(win)) {
 		mu_print("[muCOSA] Requested window ID for setting key callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
@@ -3420,7 +3428,7 @@ MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void 
 		return;
 	}
 
-	mu_windows_windows[win].keyboard_callback = keyboard_callback;
+	mu_windows_windows[win].keyboard_key_callback = keyboard_key_callback;
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
@@ -3443,7 +3451,7 @@ MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win,
 	}
 }
 
-MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*mouse_callback)(muWindow win, muMouseButton key, muMouseButtonBit bit)) {
+MUDEF void mu_window_set_mouse_button_callback(muResult* result, muWindow win, void (*mouse_button_callback)(muWindow win, muMouseButton key, muMouseButtonBit bit)) {
 	if (!mu_windows_is_id_valid(win)) {
 		mu_print("[muCOSA] Requested window ID for setting mouse callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
@@ -3452,7 +3460,7 @@ MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*m
 		return;
 	}
 
-	mu_windows_windows[win].mouse_callback = mouse_callback;
+	mu_windows_windows[win].mouse_button_callback = mouse_button_callback;
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
@@ -4585,14 +4593,14 @@ struct mu_linux_window {
 	MU_OPENGL_CALL(GLXContext opengl_context);
 
 	// callbacks
-	void (*dimensions_callback)    (muWindow win, int new_width, int new_height);
+	void (*dimensions_callback)    (muWindow win, unsigned int new_width, unsigned int new_height);
 	void (*position_callback)      (muWindow win, int x, int y);
 	void (*focus_callback)         (muWindow win, muBool focused);
 	void (*maximize_callback)      (muWindow win, muBool maximized);
 	void (*minimize_callback)      (muWindow win, muBool minimized);
-	void (*keyboard_callback)      (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit);
+	void (*keyboard_key_callback)  (muWindow win, muKeyboardKey key, muKeyboardKeyBit bit);
 	void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit);
-	void (*mouse_callback)         (muWindow win, muMouseButton key, muMouseButtonBit bit);
+	void (*mouse_button_callback)  (muWindow win, muMouseButton key, muMouseButtonBit bit);
 	void (*scroll_callback)        (muWindow win, int scroll_level_add);
 
 	// last-frame checks
@@ -5057,9 +5065,9 @@ MUDEF muWindow mu_window_create(
 	mu_linux_windows[win].focus_callback = MU_NULL_PTR;
 	mu_linux_windows[win].maximize_callback = MU_NULL_PTR;
 	mu_linux_windows[win].minimize_callback = MU_NULL_PTR;
-	mu_linux_windows[win].keyboard_callback = MU_NULL_PTR;
+	mu_linux_windows[win].keyboard_key_callback = MU_NULL_PTR;
 	mu_linux_windows[win].keyboard_state_callback = MU_NULL_PTR;
-	mu_linux_windows[win].mouse_callback = MU_NULL_PTR;
+	mu_linux_windows[win].mouse_button_callback = MU_NULL_PTR;
 	mu_linux_windows[win].scroll_callback = MU_NULL_PTR;
 
 	// last checks
@@ -5331,8 +5339,8 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 					MU_MOUSE_BUTTON_LEFT,
 					MU_MOUSE_BUTTON_BIT_DOWN
 				);
-				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_LEFT, MU_MOUSE_BUTTON_BIT_DOWN);
+				if (mu_linux_windows[win].mouse_button_callback != MU_NULL_PTR) {
+					mu_linux_windows[win].mouse_button_callback(win, MU_MOUSE_BUTTON_LEFT, MU_MOUSE_BUTTON_BIT_DOWN);
 				}
 				break;
 
@@ -5342,8 +5350,8 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 					MU_MOUSE_BUTTON_MIDDLE,
 					MU_MOUSE_BUTTON_BIT_DOWN
 				);
-				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_MIDDLE, MU_MOUSE_BUTTON_BIT_DOWN);
+				if (mu_linux_windows[win].mouse_button_callback != MU_NULL_PTR) {
+					mu_linux_windows[win].mouse_button_callback(win, MU_MOUSE_BUTTON_MIDDLE, MU_MOUSE_BUTTON_BIT_DOWN);
 				}
 				break;
 
@@ -5353,8 +5361,8 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 					MU_MOUSE_BUTTON_RIGHT,
 					MU_MOUSE_BUTTON_BIT_DOWN
 				);
-				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_RIGHT, MU_MOUSE_BUTTON_BIT_DOWN);
+				if (mu_linux_windows[win].mouse_button_callback != MU_NULL_PTR) {
+					mu_linux_windows[win].mouse_button_callback(win, MU_MOUSE_BUTTON_RIGHT, MU_MOUSE_BUTTON_BIT_DOWN);
 				}
 				break;
 
@@ -5375,8 +5383,8 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 					MU_MOUSE_BUTTON_LEFT,
 					MU_MOUSE_BUTTON_BIT_UP
 				);
-				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_LEFT, MU_MOUSE_BUTTON_BIT_UP);
+				if (mu_linux_windows[win].mouse_button_callback != MU_NULL_PTR) {
+					mu_linux_windows[win].mouse_button_callback(win, MU_MOUSE_BUTTON_LEFT, MU_MOUSE_BUTTON_BIT_UP);
 				}
 				break;
 
@@ -5386,8 +5394,8 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 					MU_MOUSE_BUTTON_MIDDLE,
 					MU_MOUSE_BUTTON_BIT_UP
 				);
-				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_MIDDLE, MU_MOUSE_BUTTON_BIT_UP);
+				if (mu_linux_windows[win].mouse_button_callback != MU_NULL_PTR) {
+					mu_linux_windows[win].mouse_button_callback(win, MU_MOUSE_BUTTON_MIDDLE, MU_MOUSE_BUTTON_BIT_UP);
 				}
 				break;
 
@@ -5397,8 +5405,8 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 					MU_MOUSE_BUTTON_RIGHT,
 					MU_MOUSE_BUTTON_BIT_UP
 				);
-				if (mu_linux_windows[win].mouse_callback != MU_NULL_PTR) {
-					mu_linux_windows[win].mouse_callback(win, MU_MOUSE_BUTTON_RIGHT, MU_MOUSE_BUTTON_BIT_UP);
+				if (mu_linux_windows[win].mouse_button_callback != MU_NULL_PTR) {
+					mu_linux_windows[win].mouse_button_callback(win, MU_MOUSE_BUTTON_RIGHT, MU_MOUSE_BUTTON_BIT_UP);
 				}
 				break;
 
@@ -5484,8 +5492,8 @@ MUDEF void mu_window_update(muResult* result, muWindow win) {
 	mu_linux_input post_input = mu_linux_windows[win].input;
 	for (size_m i = 0; i < MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1; i++) {
 		if (pre_input.keyboard_down_status[i] != post_input.keyboard_down_status[i]) {
-			if (mu_linux_windows[win].keyboard_callback != MU_NULL_PTR) {
-				mu_linux_windows[win].keyboard_callback(
+			if (mu_linux_windows[win].keyboard_key_callback != MU_NULL_PTR) {
+				mu_linux_windows[win].keyboard_key_callback(
 					win,
 					i+MU_KEYBOARD_KEY_FIRST,
 					post_input.keyboard_down_status[i]
@@ -6370,7 +6378,7 @@ MUDEF muMouseButtonBit mu_window_get_mouse_button_bit(muResult* result, muWindow
 MUDEF void mu_window_set_dimensions_callback(
 	muResult* result, 
 	muWindow win, 
-	void (*dimensions_callback)(muWindow win, int new_width, int new_height)
+	void (*dimensions_callback)(muWindow win, unsigned int new_width, unsigned int new_height)
 ) {
 	if (!mu_linux_is_id_valid(win)) {
 		mu_print("[muCOSA] Requested window ID for setting dimensions callback is invalid.\n");
@@ -6451,7 +6459,7 @@ MUDEF void mu_window_set_minimize_callback(muResult* result, muWindow win, void 
 	}
 }
 
-MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void (*keyboard_callback)(muWindow win, muKeyboardKey key, muKeyboardKeyBit bit)) {
+MUDEF void mu_window_set_keyboard_key_callback(muResult* result, muWindow win, void (*keyboard_key_callback)(muWindow win, muKeyboardKey key, muKeyboardKeyBit bit)) {
 	if (!mu_linux_is_id_valid(win)) {
 		mu_print("[muCOSA] Requested window ID for setting keyboard callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
@@ -6460,7 +6468,7 @@ MUDEF void mu_window_set_keyboard_callback(muResult* result, muWindow win, void 
 		return;
 	}
 
-	mu_linux_windows[win].keyboard_callback = keyboard_callback;
+	mu_linux_windows[win].keyboard_key_callback = keyboard_key_callback;
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
@@ -6483,7 +6491,7 @@ MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win,
 	}
 }
 
-MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*mouse_callback)(muWindow win, muMouseButton key, muMouseButtonBit bit)) {
+MUDEF void mu_window_set_mouse_button_callback(muResult* result, muWindow win, void (*mouse_button_callback)(muWindow win, muMouseButton key, muMouseButtonBit bit)) {
 	if (!mu_linux_is_id_valid(win)) {
 		mu_print("[muCOSA] Requested window ID for setting mouse callback is invalid.\n");
 		if (result != MU_NULL_PTR) {
@@ -6492,7 +6500,7 @@ MUDEF void mu_window_set_mouse_callback(muResult* result, muWindow win, void (*m
 		return;
 	}
 
-	mu_linux_windows[win].mouse_callback = mouse_callback;
+	mu_linux_windows[win].mouse_button_callback = mouse_button_callback;
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
