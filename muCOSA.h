@@ -1391,7 +1391,7 @@ int mu_windows_mu_keyboard_to_windows_key(muKeyboardKey key) {
 	}
 }
 
-muKeyboardKey mu_windows_windows_key_to_mu_keyboard(int key) {
+muKeyboardKey mu_windows_windows_key_to_mu_keyboard(WPARAM key) {
 	switch (key) {
 	default:
 		return MU_KEYBOARD_KEY_UNKNOWN;
@@ -1741,7 +1741,7 @@ muKeyboardKey mu_windows_windows_key_to_mu_keyboard(int key) {
 	}
 }
 
-muKeyboardState mu_windows_windows_key_to_muKeyboardState(int key) {
+muKeyboardState mu_windows_windows_key_to_muKeyboardState(WPARAM key) {
 	switch (key) {
 	default:
 		return MU_KEYBOARD_STATE_UNKNOWN;
@@ -1855,7 +1855,7 @@ muMouseButton mu_windows_windows_key_to_mu_mouse(int key) {
 #define MUCOSA_IDC_NO          32648
 
 muCursorStyle mu_windows_cursor_to_mu_cursor(void* cursor) {
-	switch ((int)cursor) {
+	switch ((size_m)cursor) {
 	default:
 		return MU_CURSOR_STYLE_IBEAM;
 		break;
@@ -1905,7 +1905,7 @@ struct mu_windows_input {
 };
 typedef struct mu_windows_input mu_windows_input;
 
-void mu_windows_input_keyboard_set_status(mu_windows_input* input, int windows_key, muKeyboardKeyBit bit) {
+void mu_windows_input_keyboard_set_status(mu_windows_input* input, WPARAM windows_key, muKeyboardKeyBit bit) {
 	muKeyboardKey key = mu_windows_windows_key_to_mu_keyboard(windows_key);
 	if (MU_IS_KEYBOARD_KEY(key)) {
 		input->keyboard_down_status[key-MU_KEYBOARD_KEY_FIRST] = bit;
@@ -1919,7 +1919,7 @@ muKeyboardKeyBit mu_windows_keyboard_input_get_status(mu_windows_input input, mu
 	return MU_KEYBOARD_KEY_BIT_UP;
 }
 
-void mu_windows_input_keyboard_state_set_status(mu_windows_input* input, int windows_key, muKeyboardStateBit bit) {
+void mu_windows_input_keyboard_state_set_status(mu_windows_input* input, WPARAM windows_key, muKeyboardStateBit bit) {
 	muKeyboardState state = mu_windows_windows_key_to_muKeyboardState(windows_key);
 	if (MU_IS_KEYBOARD_STATE(state)) {
 		input->keyboard_state_status[state-MU_KEYBOARD_STATE_FIRST] = bit;
@@ -2482,7 +2482,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 	}
 	
 	size_m ptext_wstrlen = mu_wstrlen(ptext);
-	size_m ptext_len = WideCharToMultiByte(CP_UTF8, 0, ptext, ptext_wstrlen, NULL, 0, NULL, NULL);
+	size_m ptext_len = WideCharToMultiByte(CP_UTF8, 0, ptext, (int)ptext_wstrlen, NULL, 0, NULL, NULL);
 	if (buffer_c == MU_NULL_PTR) {
 		if (result != MU_NULL_PTR) {
 			*result = MU_SUCCESS;
@@ -2503,7 +2503,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 	}
 
 	char* cptext = (char*)mu_malloc(ptext_len);
-	WideCharToMultiByte(CP_UTF8, 0, ptext, ptext_wstrlen, cptext, ptext_len, NULL, NULL);
+	WideCharToMultiByte(CP_UTF8, 0, ptext, (int)ptext_wstrlen, cptext, (int)ptext_len, NULL, NULL);
 	
 	for (size_m i = 0; i < len && i < ptext_len; i++) {
 		buffer_c[i] = cptext[i];
@@ -2548,7 +2548,7 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 	// allocate class name
 	muWindow win = mu_windows_get_new_window_id();
 	wchar_m* class_name = (wchar_m*)mu_malloc(sizeof(wchar_m) * 2);
-	class_name[0] = '!' + win;
+	class_name[0] = '!' + (wchar_m)win;
 	class_name[1] = '\0';
 
 	// initialize mu_windows_window struct
