@@ -106,8 +106,9 @@ More explicit license information at the end of the file.
 
 #ifndef MU_BOOL
 	#define MU_BOOL
-	enum muBool { MU_FALSE, MU_TRUE };
-	typedef enum muBool muBool;
+	enum _muBool { MU_FALSE, MU_TRUE };
+	typedef enum _muBool _muBool;
+	#define muBool int
 #endif
 
 #ifndef muResult
@@ -126,7 +127,7 @@ More explicit license information at the end of the file.
 
 /* apis */
 
-enum muGraphicsAPI {
+enum _muGraphicsAPI {
 	MU_NO_GRAPHICS_API,
 
 	// opengl
@@ -166,11 +167,12 @@ enum muGraphicsAPI {
 #define MU_IS_OPENGL(api) (api >= MU_OPENGL_FIRST && api <= MU_OPENGL_LAST)
 
 };
-typedef enum muGraphicsAPI muGraphicsAPI;
+typedef enum _muGraphicsAPI _muGraphicsAPI;
+#define muGraphicsAPI size_m
 
 /* keyboard input */
 
-enum muKeyboardKey {
+enum _muKeyboardKey {
 	MU_KEYBOARD_KEY_UNKNOWN,
 
 	// @TODO this list is missing quite a few ascii characters
@@ -294,7 +296,8 @@ enum muKeyboardKey {
 #define MU_KEYBOARD_KEY_LAST MU_KEYBOARD_KEY_PA1
 #define MU_IS_KEYBOARD_KEY(key) (key >= MU_KEYBOARD_KEY_FIRST && key <= MU_KEYBOARD_KEY_LAST)
 };
-typedef enum muKeyboardKey muKeyboardKey;
+typedef enum _muKeyboardKey _muKeyboardKey;
+#define muKeyboardKey size_m
 
 #define muKeyboardKeyBit  muBool
 #define MU_KEYBOARD_KEY_BIT_UP   MU_FALSE
@@ -302,7 +305,7 @@ typedef enum muKeyboardKey muKeyboardKey;
 
 /* keyboard state */
 
-enum muKeyboardState {
+enum _muKeyboardState {
 	MU_KEYBOARD_STATE_UNKNOWN,
 
 	MU_KEYBOARD_STATE_CAPS_LOCK,
@@ -313,7 +316,8 @@ enum muKeyboardState {
 #define MU_KEYBOARD_STATE_LAST MU_KEYBOARD_STATE_NUM_LOCK
 #define MU_IS_KEYBOARD_STATE(state) (state >= MU_KEYBOARD_STATE_FIRST && state <= MU_KEYBOARD_STATE_LAST)
 };
-typedef enum muKeyboardState muKeyboardState;
+typedef enum _muKeyboardState _muKeyboardState;
+#define muKeyboardState size_m
 
 #define muKeyboardStateBit muBool
 #define MU_KEYBOARD_STATE_BIT_ON MU_TRUE
@@ -321,7 +325,7 @@ typedef enum muKeyboardState muKeyboardState;
 
 /* mouse input */
 
-enum muMouseButton {
+enum _muMouseButton {
 	MU_MOUSE_BUTTON_UNKNOWN,
 
 	MU_MOUSE_BUTTON_LEFT,
@@ -332,7 +336,8 @@ enum muMouseButton {
 #define MU_MOUSE_BUTTON_LAST MU_MOUSE_BUTTON_MIDDLE
 #define MU_IS_MOUSE_BUTTON(key) (key >= MU_MOUSE_BUTTON_FIRST && key <= MU_MOUSE_BUTTON_LAST)
 };
-typedef enum muMouseButton muMouseButton;
+typedef enum _muMouseButton _muMouseButton;
+#define muMouseButton size_m
 
 #define muMouseButtonBit  muBool
 #define MU_MOUSE_BUTTON_BIT_UP   MU_FALSE
@@ -340,7 +345,7 @@ typedef enum muMouseButton muMouseButton;
 
 /* mouse style */
 
-enum muCursorStyle {
+enum _muCursorStyle {
 	MU_CURSOR_STYLE_UNKNOWN,
 
 	// taken from LÖVE
@@ -364,7 +369,8 @@ enum muCursorStyle {
 #define MU_CURSOR_STYLE_LAST MU_CURSOR_STYLE_NO
 #define MU_IS_CURSOR_STYLE(style) (style >= MU_CURSOR_STYLE_FIRST && style <= MU_CURSOR_STYLE_LAST)
 };
-typedef enum muCursorStyle muCursorStyle;
+typedef enum _muCursorStyle _muCursorStyle;
+#define muCursorStyle size_m
 
 /* general */
 
@@ -374,6 +380,8 @@ MUDEF void mu_COSA_term(muResult* result);
 MUDEF double mu_time_get(muResult* result);
 MUDEF void   mu_time_set(muResult* result, double time);
 
+// @TODO standardize whether or not the size returned includes the terminating string
+// on Windows it doesn't.
 MUDEF size_m mu_clipboard_get(muResult* result, char* buffer, size_m len);
 MUDEF void   mu_clipboard_set(muResult* result, char* string);
 
@@ -426,32 +434,32 @@ struct muWindowSettingsStruct {
 typedef struct muWindowSettingsStruct muWindowSettingsStruct;
 
 muWindowSettingsStruct mu_window_settings = {
-	.pixel_format = {
-		.doublebuffer = MU_TRUE,
-		.red_bits =     8,
-		.green_bits =   8,
-		.blue_bits =    8,
-		.alpha_bits =   8,
-		.depth_bits =   24,
-		.stencil_bits = 8,
-		.samples =      1
+	{
+		MU_TRUE, // doublebuffer
+		8, // red bits
+		8, // green bits
+		8, // blue bits
+		8, // alpha bits
+		24, // depth bits
+		8, // stencil bits
+		1 // samples
 	},
 
-	.visible =   MU_TRUE,
-	.resizable = MU_TRUE,
+	MU_TRUE, // visible
+	MU_TRUE, // resizable
 
-	.minimized = MU_FALSE,
-	.maximized = MU_FALSE,
+	MU_FALSE, // minimized
+	MU_FALSE, // maximized
 
-	.x = 400,
-	.y = 200,
+	400, // x
+	200, // y
 
-	.minimum_width = 120,   // minimum width for Windows
-	.minimum_height = 1,    // minimum height for Linux
-	.maximum_width = 30720, // (32k 16:9)
-	.maximum_height = 17280,
+	120, // minimum width
+	1, // minimum height
+	30720, // maximum width
+	17280, // maximum height
 
-	.cursor_style = MU_CURSOR_STYLE_DEFAULT
+	MU_CURSOR_STYLE_DEFAULT // cursor style
 };
 
 MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, unsigned int width, unsigned int height);
@@ -700,12 +708,15 @@ muResult mu_windows_init_opengl_extensions() {
 	if (mu_windows_has_initiated_opengl_extensions) {
 		return MU_SUCCESS;
 	}
-	WNDCLASSA win_class = {
-		.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC,
-		.lpfnWndProc = DefWindowProcA,
-		.hInstance = mu_windows_get_hinstance(),
-		.lpszClassName = "dummy wgl window"
-	};
+#ifdef _MSC_VER
+	WNDCLASSA win_class = {0};
+#else
+	WNDCLASSA win_class = (WNDCLASSA){0};
+#endif
+	win_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+	win_class.lpfnWndProc = DefWindowProcA;
+	win_class.hInstance = mu_windows_get_hinstance();
+	win_class.lpszClassName = "dummy wgl window";
 
 	if (!RegisterClassA(&win_class)) {
 		mu_print("[muCOSA] Failed to register window class.\n");
@@ -734,17 +745,20 @@ muResult mu_windows_init_opengl_extensions() {
 
 	HDC dc = GetDC(win);
 
-	PIXELFORMATDESCRIPTOR format = {
-		.nSize = sizeof(PIXELFORMATDESCRIPTOR),
-		.nVersion = 1,
-		.iPixelType = PFD_TYPE_RGBA,
-        .dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,
-        .cColorBits = 32,
-        .cAlphaBits = 8,
-        .iLayerType = PFD_MAIN_PLANE,
-        .cDepthBits = 24,
-        .cStencilBits = 8
-	};
+#ifdef _MSC_VER
+	PIXELFORMATDESCRIPTOR format = {0};
+#else
+	PIXELFORMATDESCRIPTOR format = (PIXELFORMATDESCRIPTOR){0};
+#endif
+	format.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	format.nVersion = 1;
+	format.iPixelType = PFD_TYPE_RGBA;
+	format.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	format.cColorBits = 32;
+	format.cAlphaBits = 8;
+	format.iLayerType = PFD_MAIN_PLANE;
+	format.cDepthBits = 24;
+	format.cStencilBits = 8;
 
 	int pixel_format = ChoosePixelFormat(dc, &format);
 	if (!pixel_format) {
@@ -1773,7 +1787,11 @@ muMouseButton mu_windows_windows_key_to_mu_mouse(int key) {
 	}
 }
 
-void* mu_windows_mu_cursor_to_windows_cursor(muCursorStyle style) {
+#ifdef _MSC_VER
+	LPCWSTR mu_windows_mu_cursor_to_windows_cursor(muCursorStyle style) {
+#else
+	void* mu_windows_mu_cursor_to_windows_cursor(muCursorStyle style) {
+#endif
 	switch (style) {
 	default:
 		return IDC_ARROW;
@@ -1990,7 +2008,7 @@ struct mu_windows_window {
 	// api
 	muGraphicsAPI api;
 	// opengl context
-	MU_OPENGL_CALL(HGLRC opengl_context);
+	MU_OPENGL_CALL(HGLRC opengl_context;)
 
 	// mins/maxs
 	unsigned int minimum_width;
@@ -2051,7 +2069,10 @@ LRESULT CALLBACK mu_windows_default_window_proc(HWND hwnd, UINT uMsg, WPARAM wPa
 	// keyboard state handling
 	if (found_window_id) {
 		for (size_m i = MU_KEYBOARD_STATE_FIRST; i < MU_KEYBOARD_STATE_LAST + 1; i++) {
-			muKeyboardStateBit now = (GetKeyState(mu_windows_muKeyboardState_to_windows_key(i)) & 0x0001)!=0;
+			muKeyboardStateBit now = MU_KEYBOARD_STATE_BIT_OFF;
+			if ((GetKeyState(mu_windows_muKeyboardState_to_windows_key(i)) & 0x0001) != 0) {
+				now = MU_KEYBOARD_STATE_BIT_ON;
+			}
 			if (mu_windows_keyboard_state_get_status(mu_windows_windows[win].input, i) != now) {
 				mu_windows_input_keyboard_state_set_status(&mu_windows_windows[win].input, mu_windows_muKeyboardState_to_windows_key(i), now);
 				if (mu_windows_windows[win].keyboard_state_callback != MU_NULL_PTR) {
@@ -2336,7 +2357,7 @@ double mu_windows_get_current_time() {
 
 wchar_m* mu_windows_utf8_to_wchar(char* str) {
 	int len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
-	wchar_m* wstr = mu_malloc(len * sizeof(wchar_m));
+	wchar_m* wstr = (wchar_m*)mu_malloc(len * sizeof(wchar_m));
 	MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, len);
 	return wstr;
 }
@@ -2359,7 +2380,7 @@ MUDEF void mu_COSA_init(muResult* result) {
 	mu_windows_has_initiated = MU_TRUE;
 	// initiate windows buffer
 	mu_windows_windows_length = 1;
-	mu_windows_windows = mu_malloc(sizeof(mu_windows_window) * mu_windows_windows_length);
+	mu_windows_windows = (mu_windows_window*)mu_malloc(sizeof(mu_windows_window) * mu_windows_windows_length);
 	mu_windows_windows[0].active = MU_FALSE;
 	mu_windows_windows[0].dimensions_callback = MU_NULL_PTR;
 	mu_windows_windows[0].position_callback = MU_NULL_PTR;
@@ -2476,7 +2497,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer_c, size_m len) {
 		return ptext_len;
 	}
 
-	char* cptext = mu_malloc(ptext_len);
+	char* cptext = (char*)mu_malloc(ptext_len);
 	WideCharToMultiByte(CP_UTF8, 0, ptext, ptext_wstrlen, cptext, ptext_len, NULL, NULL);
 	
 	for (size_m i = 0; i < len && i < ptext_len; i++) {
@@ -2521,44 +2542,43 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 
 	// allocate class name
 	muWindow win = mu_windows_get_new_window_id();
-	wchar_m* class_name = mu_malloc(sizeof(wchar_m) * 2);
+	wchar_m* class_name = (wchar_m*)mu_malloc(sizeof(wchar_m) * 2);
 	class_name[0] = '!' + win;
 	class_name[1] = '\0';
 
 	// initialize mu_windows_window struct
 
-	mu_windows_window window_struct = {
-		.active = MU_FALSE,
-		.closed = MU_FALSE,
-		.maximized = MU_FALSE,
-		.minimized = MU_FALSE,
-		// (WNDCLASSEXW)
-		.window_class = {
-			.cbSize = sizeof(WNDCLASSEXW),                       // size of struct
-			.style =         CS_HREDRAW | CS_VREDRAW | CS_OWNDC, // style
-			.lpfnWndProc =   mu_windows_default_window_proc,   // window process function
-			.cbClsExtra =    0,                                  // extra class allocation bytes
-			.cbWndExtra =    0,                                  // extra window instance allocation bytes
-			.hInstance =     mu_windows_get_hinstance(),       // hInstance
-			.hIcon =         LoadIcon(0, IDI_WINLOGO),           // window icon
-			.hCursor =       LoadCursor(0, IDC_ARROW),           // window cursor
-			.hbrBackground = 0,                                  // background brush (0 is fine)
-			.lpszMenuName =  name,                               // menu name
-			.lpszClassName = class_name,                         // class name
-			.hIconSm =       0                                   // small window icon
-		},
-		.dimensions_callback = MU_NULL_PTR,
-		.position_callback = MU_NULL_PTR,
-		.focus_callback = MU_NULL_PTR,
-		.maximize_callback = MU_NULL_PTR,
-		.minimize_callback = MU_NULL_PTR,
-		.keyboard_key_callback = MU_NULL_PTR,
-		.keyboard_state_callback = MU_NULL_PTR,
-		.mouse_button_callback = MU_NULL_PTR,
-		.scroll_callback = MU_NULL_PTR,
+	mu_windows_window window_struct = {0};
+	window_struct.active = MU_FALSE;
+	window_struct.closed = MU_FALSE;
+	window_struct.maximized = MU_FALSE;
+	window_struct.minimized = MU_FALSE;
 
-		.scroll_level = 0
-	};
+	// (WNDCLASSEXW)
+	window_struct.window_class.cbSize = sizeof(WNDCLASSEXW);                       // size of struct
+	window_struct.window_class.style =         CS_HREDRAW | CS_VREDRAW | CS_OWNDC; // style
+	window_struct.window_class.lpfnWndProc =   mu_windows_default_window_proc;     // window process function
+	window_struct.window_class.cbClsExtra =    0;                                  // extra class allocation bytes
+	window_struct.window_class.cbWndExtra =    0;                                  // extra window instance allocation bytes
+	window_struct.window_class.hInstance =     mu_windows_get_hinstance();        // hInstance
+	window_struct.window_class.hIcon =         LoadIcon(0, IDI_WINLOGO);           // window icon
+	window_struct.window_class.hCursor =       LoadCursor(0, IDC_ARROW);           // window cursor
+	window_struct.window_class.hbrBackground = 0;                                  // background brush (0 is fine)
+	window_struct.window_class.lpszMenuName =  name;                               // menu name
+	window_struct.window_class.lpszClassName = class_name;                         // class name
+	window_struct.window_class.hIconSm =       0;                                  // small window icon
+	
+	window_struct.dimensions_callback = MU_NULL_PTR;
+	window_struct.position_callback = MU_NULL_PTR;
+	window_struct.focus_callback = MU_NULL_PTR;
+	window_struct.maximize_callback = MU_NULL_PTR;
+	window_struct.minimize_callback = MU_NULL_PTR;
+	window_struct.keyboard_key_callback = MU_NULL_PTR;
+	window_struct.keyboard_state_callback = MU_NULL_PTR;
+	window_struct.mouse_button_callback = MU_NULL_PTR;
+	window_struct.scroll_callback = MU_NULL_PTR;
+	window_struct.scroll_level = 0;
+
 	if (!RegisterClassExW(&window_struct.window_class)) {
 		mu_print("[muCOSA] Failed to register window class.\n");
 		mu_free(class_name);
@@ -2608,7 +2628,11 @@ MUDEF muWindow mu_window_create(muResult* result, muGraphicsAPI api, muBool (*lo
 
 	// assign window into window array
 	mu_windows_windows[win] = window_struct;
+#ifdef _MSC_VER
+	mu_windows_windows[win].input = {0};
+#else
 	mu_windows_windows[win].input = (mu_windows_input){0};
+#endif
 
 	// get some more info
 	mu_windows_windows[win].device_context = GetDC(mu_windows_windows[win].window_handle);
@@ -3485,19 +3509,21 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 
 /* opengl functions */
 
-MUDEF void* mu_get_opengl_function_address(const char* name) {
-	// https://stackoverflow.com/questions/76638441/how-to-init-glad-without-the-glfw-loader-using-windows-headers
-	PROC p = wglGetProcAddress(name);
+#if !defined(MUCOSA_NO_API) && defined(MUCOSA_OPENGL)
+	MUDEF void* mu_get_opengl_function_address(const char* name) {
+		// https://stackoverflow.com/questions/76638441/how-to-init-glad-without-the-glfw-loader-using-windows-headers
+		PROC p = wglGetProcAddress(name);
 
-	if (p == 0 ||
-	   (p == (PROC)0x1) || (p == (PROC)0x2) || (p == (PROC)0x3) ||
-	   (p == (PROC)-1)) {
-		HMODULE module = LoadLibraryA("opengl32.dll"); 
-		p = (PROC)GetProcAddress(module, name);
+		if (p == 0 ||
+		(p == (PROC)0x1) || (p == (PROC)0x2) || (p == (PROC)0x3) ||
+		(p == (PROC)-1)) {
+			HMODULE module = LoadLibraryA("opengl32.dll"); 
+			p = (PROC)GetProcAddress(module, name);
+		}
+		
+		return p;
 	}
-	
-	return p;
-}
+#endif
 
 #endif /* WINDOWS */
 
