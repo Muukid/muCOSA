@@ -51,7 +51,8 @@ More explicit license information at the end of the file.
 
 #if !defined(mu_strlen) || \
 	!defined(mu_strcmp) || \
-	!defined(mu_memset)
+	!defined(mu_memset) || \
+	!defined(mu_memcpy)
 
     #include <string.h>
 	
@@ -66,6 +67,10 @@ More explicit license information at the end of the file.
     #ifndef mu_memset
     	#define mu_memset memset
     #endif
+
+	#ifndef mu_memcpy
+		#define mu_memcpy memcpy
+	#endif
 
 #endif
 
@@ -2521,7 +2526,7 @@ MUDEF void mu_clipboard_set(muResult* result, char* string_c) {
 	size_m len = mu_wstrlen(string) + 1;
 	
 	HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, len * sizeof(wchar_m));
-	memcpy(GlobalLock(mem), string, len * sizeof(wchar_m));
+	mu_memcpy(GlobalLock(mem), string, len * sizeof(wchar_m));
 	GlobalUnlock(mem);
 	OpenClipboard(MU_NULL_PTR);
 	EmptyClipboard();
@@ -3512,7 +3517,7 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 #if !defined(MUCOSA_NO_API) && defined(MUCOSA_OPENGL)
 	MUDEF void* mu_get_opengl_function_address(const char* name) {
 		// https://stackoverflow.com/questions/76638441/how-to-init-glad-without-the-glfw-loader-using-windows-headers
-		PROC p = wglGetProcAddress(name);
+		PROC p = (PROC)wglGetProcAddress(name);
 
 		if (p == 0 ||
 		(p == (PROC)0x1) || (p == (PROC)0x2) || (p == (PROC)0x3) ||
@@ -3520,8 +3525,14 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 			HMODULE module = LoadLibraryA("opengl32.dll"); 
 			p = (PROC)GetProcAddress(module, name);
 		}
+
+		// This is an awful hack...
+		// I feel disgusting after doing this!
+
+		void* voidptr = 0;
+		mu_memcpy(&voidptr, &p, sizeof(void*));
 		
-		return p;
+		return voidptr;
 	}
 #endif
 
