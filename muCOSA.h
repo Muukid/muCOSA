@@ -5952,6 +5952,16 @@ MUDEF void mu_window_set_dimensions(muResult* result, muWindow win, unsigned int
 		return;
 	}
 
+	if (width < mu_linux_windows[win].minimum_width || height < mu_linux_windows[win].minimum_height || 
+		width > mu_linux_windows[win].maximum_width || height > mu_linux_windows[win].maximum_height
+	) {
+		mu_print("[muCOSA] Failed to set window dimensions; dimensions were not within minimum/maximum dimensions.\n");
+		if (result != MU_NULL_PTR) {
+			*result = MU_FAILURE;
+		}
+		return;
+	}
+
 	XResizeWindow(
 		mu_linux_windows[win].display, 
 		mu_linux_windows[win].window, 
