@@ -18,7 +18,7 @@ More explicit license information at the end of the file.
 
 #define MUCOSA_VERSION_MAJOR 1
 #define MUCOSA_VERSION_MINOR 0
-#define MUCOSA_VERSION_PATCH 0
+#define MUCOSA_VERSION_PATCH 1
 
 #ifndef MUDEF
 	#ifdef MU_STATIC
@@ -542,6 +542,10 @@ MUDEF void mu_window_set_scroll_callback        (muResult* result, muWindow win,
 
 MUDEF void* mu_get_opengl_function_address(const char* name);
 
+/* vulkan functions */
+
+MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* count);
+
 #ifdef __cplusplus
     }
 #endif
@@ -585,9 +589,18 @@ MUDEF void* mu_get_opengl_function_address(const char* name);
     #endif
 #endif
 
+#ifndef MUCOSA_VULKAN
+    #ifndef MUCOSA_NO_VULKAN
+    	#define MUCOSA_NO_VULKAN
+    #endif
+#endif
+
 #ifdef MUCOSA_NO_API
     #ifndef MUCOSA_NO_OPENGL
     	#define MUCOSA_NO_OPENGL
+    #endif
+    #ifndef MUCOSA_NO_VULKAN
+    	#define MUCOSA_NO_VULKAN
     #endif
 #endif
 
@@ -616,7 +629,7 @@ HINSTANCE mu_windows_get_hinstance() {
 	#endif
 #endif
 
-#define MU_OPENGL_CALL(stuff) stuff
+#define MU_OPENGL_CALL(...) __VA_ARGS__
 
 /* WGL tokens */
 
@@ -1038,6 +1051,18 @@ muResult mu_windows_create_opengl_context(HDC device_context, HGLRC* context, mu
 #define MU_OPENGL_CALL(...)
 
 #endif /* MUCOSA_NO_OPENGL */
+
+/* VULKAN SETUP */
+
+#ifndef MUCOSA_NO_VULKAN
+
+#define MU_VULKAN_CALL(...) __VA_ARGS__
+
+#else
+
+#define MU_VULKAN_CALL(...)
+
+#endif /* MUCOSA_NO_VULKAN */
 
 /* keyboard input */
 
@@ -3536,6 +3561,22 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 	}
 #endif
 
+/* vulkan functions */
+
+MU_VULKAN_CALL(
+
+char* muCOSA_global_vulkan_instance_extensions[] = {
+	"VK_KHR_surface",
+	"VK_KHR_win32_surface"
+};
+
+MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* count) {
+	*count = 2;
+	return (const char**)muCOSA_global_vulkan_instance_extensions;
+}
+
+)
+
 #endif /* WINDOWS */
 
 #ifdef linux
@@ -3560,7 +3601,7 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 #endif
 #include <GL/glx.h>
 
-#define MU_OPENGL_CALL(stuff) stuff
+#define MU_OPENGL_CALL(...) __VA_ARGS__
 
 // context creation
 // https://apoorvaj.io/creating-a-modern-opengl-context/
@@ -3797,6 +3838,18 @@ muResult mu_linux_init_opengl(Display* display, GLXContext* context, muGraphicsA
 #define MU_OPENGL_CALL(...)
 
 #endif /* MUCOSA_NO_OPENGL */
+
+/* VULKAN SETUP */
+
+#ifndef MUCOSA_NO_VULKAN
+
+#define MU_VULKAN_CALL(...) __VA_ARGS__
+
+#else
+
+#define MU_VULKAN_CALL(...)
+
+#endif /* MUCOSA_NO_VULKAN */
 
 /* keyboard input */
 
@@ -6563,9 +6616,27 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 /* opengl functions */
 
 MU_OPENGL_CALL(
+
 MUDEF void* mu_get_opengl_function_address(const char* name) {
 	return (void*)glXGetProcAddress((const GLubyte*)name);
 }
+
+)
+
+/* vulkan functions */
+
+MU_VULKAN_CALL(
+
+char* muCOSA_global_vulkan_instance_extensions[] = {
+	"VK_KHR_surface",
+	"VK_KHR_xlib_surface"
+};
+
+MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* count) {
+	*count = 2;
+	return (const char**)muCOSA_global_vulkan_instance_extensions;
+}
+
 )
 
 #endif /* LINUX */
