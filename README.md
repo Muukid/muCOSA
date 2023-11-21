@@ -15,14 +15,15 @@ muCOSA is licensed under public domain or MIT, whichever you prefer. More inform
 muCOSA has full support for Windows and Linux. Detail on their individual support and how to compile with them is provided below.
 
 ## Windows
-Windows is fully supported by muCOSA. It has compatibility with versions of OpenGL from 1.0 to 4.6, including core and compatibility.
+Windows is fully supported by muCOSA. It has compatibility with versions of OpenGL from 1.0 to 4.6, including core and compatibility, and support for Vulkan.
 
-To compile on Windows, link with `gdi32` and `opengl32`.
+To compile on Windows when using OpenGL, link with `gdi32` and `opengl32`.
 
 ## Linux
-Linux is fully supported by muCOSA. It has compatibility with versions of OpenGL from 1.0 to 4.6, including core and compatibility.
+Linux is fully supported by muCOSA. It has compatibility with versions of OpenGL from 1.0 to 4.6, including core and compatibility, and support for Vulkan.
 
-To compile on Linux, link with `GL` and `X11`.
+To compile on Linux, link with `X11`.
+To compile on Linux when using OpenGL, link with `GL`.
 
 # General information
 
@@ -48,11 +49,15 @@ In order to use a given graphics API, it must be defined before including the im
 
 If `MUCOSA_OPENGL` is defined, OpenGL functionality will be included.
 
+If `MUCOSA_VULKAN` is defined, Vulkan functionality will be included.
+
 If `MUCOSA_NO_API` is defined, it will override all other specified inclusions for other graphics APIs and turn all graphics API functionality off.
 
 ## Inclusion macros
 
 The macro `MUCOSA_NO_INCLUDE_OPENGL` forces muCOSA to not include any OpenGL header files, allowing the user to control them before the inclusion of the implementation for `muCOSA.h`.
+
+If `MUCOSA_VULKAN_INCLUDE_PATH` is defined, Vulkan will be included within `muCOSA.h`, with `MUCOSA_VULKAN_INCLUDE_PATH` as the include path. The advantage to doing this within `muCOSA.h` instead of before including `muCOSA.h` is that it will automatically handle operating-system-specific macros, such as `VK_USE_PLATFORM_WIN32_KHR` if you're on Windows or `VK_USE_PLATFORM_XLIB_KHR` if you're on Linux.
 
 ## C standard library dependencies
 muCOSA relies on several C standard library functions, types, and defines. The list of types can be found below:
@@ -926,6 +931,26 @@ The function `mu_get_opengl_function_address` returns the address of a given Ope
 
 ```
 MUDEF void* mu_get_opengl_function_address(const char* name);
+```
+
+## Vulkan functions
+
+### Get Vulkan instance extensions for surface creation
+
+The function `mu_get_vulkan_instance_extensions_for_surfaces` returns a list of strings representing the instance extensions needed in order to create a Vulkan surface, defined below:
+
+```
+MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(muResult* result, unsigned int* count);
+```
+
+Note that the return value doesn't need to be freed, as it's not dynamically allocated, and can be used at any time for however long.
+
+### Create a Vulkan window surface
+
+The function `mu_create_vulkan_window_surface` creates a Vulkan window surface linked to a given window, defined below:
+
+```
+MUDEF VkResult mu_create_vulkan_window_surface(muResult* result, muWindow win, VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface);
 ```
 
 # Global modifiable variables
