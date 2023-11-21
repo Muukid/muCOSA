@@ -4894,10 +4894,16 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer, size_m len) {
 	Display* d;
 	Window w;
 
-	if (mu_linux_windows_length != 0) {
-		d = mu_linux_windows[0].display;
-		w = mu_linux_windows[0].window;
-	} else {
+	muBool found = MU_FALSE;
+	for (size_m i = 0; i < mu_linux_windows_length; i++) {
+		if (mu_linux_windows[0].active == MU_TRUE) {
+			found = MU_TRUE;
+			d = mu_linux_windows[i].display;
+			w = mu_linux_windows[i].window;
+		}
+	}
+
+	if (found == MU_FALSE) {
 		d = XOpenDisplay(NULL);
 		w = XCreateSimpleWindow(d, RootWindow(d, DefaultScreen(d)), -10, -10, 1, 1, 0, 0, 0);
 	}
@@ -4975,7 +4981,7 @@ MUDEF size_m mu_clipboard_get(muResult* result, char* buffer, size_m len) {
 		}
 	}
 
-	if (mu_linux_windows_length == 0) {
+	if (found == MU_FALSE) {
 		XDestroyWindow(d, w);
 		XCloseDisplay(d);
 	}
