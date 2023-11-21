@@ -28,6 +28,41 @@ More explicit license information at the end of the file.
 	#endif
 #endif
 
+/* graphics api flag settings */
+
+#ifndef MUCOSA_OPENGL
+    #ifndef MUCOSA_NO_OPENGL
+    	#define MUCOSA_NO_OPENGL
+    #endif
+#endif
+
+#ifndef MUCOSA_VULKAN
+    #ifndef MUCOSA_NO_VULKAN
+    	#define MUCOSA_NO_VULKAN
+    #endif
+#endif
+
+#ifdef MUCOSA_NO_API
+    #ifndef MUCOSA_NO_OPENGL
+    	#define MUCOSA_NO_OPENGL
+    #endif
+    #ifndef MUCOSA_NO_VULKAN
+    	#define MUCOSA_NO_VULKAN
+    #endif
+#endif
+
+#ifndef MUCOSA_NO_OPENGL
+    #define MU_OPENGL_CALL(...) __VA_ARGS__
+#else
+    #define MU_OPENGL_CALL(...)
+#endif
+
+#ifndef MUCOSA_NO_VULKAN
+    #define MU_VULKAN_CALL(...) __VA_ARGS__
+#else
+    #define MU_VULKAN_CALL(...)
+#endif
+
 /* C standard library dependencies */
 
 // types
@@ -540,11 +575,20 @@ MUDEF void mu_window_set_scroll_callback        (muResult* result, muWindow win,
 
 /* opengl functions */
 
+MU_OPENGL_CALL(
+
 MUDEF void* mu_get_opengl_function_address(const char* name);
+
+)
 
 /* vulkan functions */
 
-MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* count);
+MU_VULKAN_CALL(
+
+MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(muResult* result, unsigned int* count);
+MUDEF VkResult mu_create_vulkan_window_surface(muResult* result, muWindow win, VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface);
+
+)
 
 #ifdef __cplusplus
     }
@@ -581,29 +625,6 @@ MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* 
     #endif
 #endif
 
-/* graphics api flag settings */
-
-#ifndef MUCOSA_OPENGL
-    #ifndef MUCOSA_NO_OPENGL
-    	#define MUCOSA_NO_OPENGL
-    #endif
-#endif
-
-#ifndef MUCOSA_VULKAN
-    #ifndef MUCOSA_NO_VULKAN
-    	#define MUCOSA_NO_VULKAN
-    #endif
-#endif
-
-#ifdef MUCOSA_NO_API
-    #ifndef MUCOSA_NO_OPENGL
-    	#define MUCOSA_NO_OPENGL
-    #endif
-    #ifndef MUCOSA_NO_VULKAN
-    	#define MUCOSA_NO_VULKAN
-    #endif
-#endif
-
 /* WINDOWS IMPLEMENTATION */
 
 #if defined(_WIN32) || defined(WIN32)
@@ -628,8 +649,6 @@ HINSTANCE mu_windows_get_hinstance() {
 		#include <gl/glu.h>
 	#endif
 #endif
-
-#define MU_OPENGL_CALL(...) __VA_ARGS__
 
 /* WGL tokens */
 
@@ -1046,23 +1065,7 @@ muResult mu_windows_create_opengl_context(HDC device_context, HGLRC* context, mu
 	return MU_SUCCESS;
 }
 
-#else
-
-#define MU_OPENGL_CALL(...)
-
 #endif /* MUCOSA_NO_OPENGL */
-
-/* VULKAN SETUP */
-
-#ifndef MUCOSA_NO_VULKAN
-
-#define MU_VULKAN_CALL(...) __VA_ARGS__
-
-#else
-
-#define MU_VULKAN_CALL(...)
-
-#endif /* MUCOSA_NO_VULKAN */
 
 /* keyboard input */
 
@@ -3570,9 +3573,34 @@ char* muCOSA_global_vulkan_instance_extensions[] = {
 	"VK_KHR_win32_surface"
 };
 
-MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* count) {
+MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(muResult* result, unsigned int* count) {
+	if (result != MU_NULL_PTR) {
+		*result = MU_SUCCESS;
+	}
 	*count = 2;
 	return (const char**)muCOSA_global_vulkan_instance_extensions;
+}
+
+MUDEF VkResult mu_create_vulkan_window_surface(muResult* result, muWindow win, VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) {
+	if (!mu_windows_is_id_valid(win)) {
+		mu_print("[muCOSA] Requested window ID for creating a Vulkan window surface is invalid.\n");
+		if (result != MU_NULL_PTR) {
+			*result = MU_FAILURE;
+		}
+		return VK_NOT_READY;
+	}
+
+	VkWin32SurfaceCreateInfoKHR create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+	create_info.hwnd = mu_windows_windows[win].window_handle;
+	create_info.hinstance = mu_windows_get_hinstance();
+	create_info.pNext = MU_NULL;
+	create_info.flags = 0;
+
+	if (result != MU_NULL_PTR) {
+		*result = MU_SUCCESS;
+	}
+	return vkCreateWin32SurfaceKHR(instance, &create_info, allocator, surface);
 }
 
 )
@@ -3600,8 +3628,6 @@ MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* 
 	#endif
 #endif
 #include <GL/glx.h>
-
-#define MU_OPENGL_CALL(...) __VA_ARGS__
 
 // context creation
 // https://apoorvaj.io/creating-a-modern-opengl-context/
@@ -3833,23 +3859,7 @@ muResult mu_linux_init_opengl(Display* display, GLXContext* context, muGraphicsA
 	return MU_SUCCESS;
 }
 
-#else
-
-#define MU_OPENGL_CALL(...)
-
 #endif /* MUCOSA_NO_OPENGL */
-
-/* VULKAN SETUP */
-
-#ifndef MUCOSA_NO_VULKAN
-
-#define MU_VULKAN_CALL(...) __VA_ARGS__
-
-#else
-
-#define MU_VULKAN_CALL(...)
-
-#endif /* MUCOSA_NO_VULKAN */
 
 /* keyboard input */
 
@@ -6632,9 +6642,34 @@ char* muCOSA_global_vulkan_instance_extensions[] = {
 	"VK_KHR_xlib_surface"
 };
 
-MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(unsigned int* count) {
+MUDEF const char** mu_get_vulkan_instance_extensions_for_surfaces(muResult* result, unsigned int* count) {
+	if (result != MU_NULL_PTR) {
+		*result = MU_SUCCESS;
+	}
 	*count = 2;
 	return (const char**)muCOSA_global_vulkan_instance_extensions;
+}
+
+MUDEF VkResult mu_create_vulkan_window_surface(muResult* result, muWindow win, VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface) {
+	if (!mu_linux_is_id_valid(win)) {
+		mu_print("[muCOSA] Requested window ID for creating a Vulkan window surface is invalid.\n");
+		if (result != MU_NULL_PTR) {
+			*result = MU_FAILURE;
+		}
+		return VK_NOT_READY;
+	}
+
+	VkXlibSurfaceCreateInfoKHR create_info = {};
+	create_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+	create_info.dpy = mu_linux_windows[win].display;
+	create_info.window = mu_linux_windows[win].window;
+	create_info.pNext = MU_NULL;
+	create_info.flags = 0;
+
+	if (result != MU_NULL_PTR) {
+		*result = MU_SUCCESS;
+	}
+	return vkCreateXlibSurfaceKHR(instance, &create_info, allocator, surface);
 }
 
 )
