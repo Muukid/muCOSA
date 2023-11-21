@@ -63,6 +63,19 @@ More explicit license information at the end of the file.
     #define MU_VULKAN_CALL(...)
 #endif
 
+#ifndef MUCOSA_NO_VULKAN
+
+	#ifdef MUCOSA_VULKAN_INCLUDE_PATH
+		#if defined(_WIN32) || defined(WIN32)
+			#define VK_USE_PLATFORM_WIN32_KHR
+		#elif defined(linux)
+			#define VK_USE_PLATFORM_XLIB_KHR
+		#endif
+		#include MUCOSA_VULKAN_INCLUDE_PATH
+	#endif
+
+#endif
+
 /* C standard library dependencies */
 
 // types
