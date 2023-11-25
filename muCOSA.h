@@ -17,8 +17,8 @@ More explicit license information at the end of the file.
 /* basics */
 
 #define MUCOSA_VERSION_MAJOR 1
-#define MUCOSA_VERSION_MINOR 0
-#define MUCOSA_VERSION_PATCH 1
+#define MUCOSA_VERSION_MINOR 1
+#define MUCOSA_VERSION_PATCH 0
 
 #ifndef MUDEF
 	#ifdef MU_STATIC
@@ -425,6 +425,16 @@ enum _muCursorStyle {
 typedef enum _muCursorStyle _muCursorStyle;
 #define muCursorStyle size_m
 
+/* window handles */
+
+enum _muWindowHandle {
+	MU_WINDOW_HANDLE_WINDOWS_HWND,
+	MU_WINDOW_HANDLE_X11_DISPLAY,
+	MU_WINDOW_HANDLE_X11_WINDOW
+};
+typedef enum _muWindowHandle _muWindowHandle;
+#define muWindowHandle size_m
+
 /* general */
 
 MUDEF void mu_COSA_init(muResult* result);
@@ -585,6 +595,10 @@ MUDEF void mu_window_set_keyboard_key_callback  (muResult* result, muWindow win,
 MUDEF void mu_window_set_keyboard_state_callback(muResult* result, muWindow win, void (*keyboard_state_callback)(muWindow win, muKeyboardState state, muKeyboardStateBit bit));
 MUDEF void mu_window_set_mouse_button_callback  (muResult* result, muWindow win, void (*mouse_button_callback)  (muWindow win, muMouseButton key, muMouseButtonBit bit));
 MUDEF void mu_window_set_scroll_callback        (muResult* result, muWindow win, void (*scroll_callback)        (muWindow win, int scroll_level_add));
+
+/* OS functions */
+
+MUDEF void* mu_window_get_handle(muResult* result, muWindow win, muWindowHandle handle);
 
 /* opengl functions */
 
@@ -3550,6 +3564,39 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
+	}
+}
+
+MUDEF void* mu_window_get_handle(muResult* result, muWindow win, muWindowHandle handle) {
+	if (!mu_windows_is_id_valid(win)) {
+		mu_print("[muCOSA] Requested window ID for getting window handle is invalid.\n");
+		if (result != MU_NULL_PTR) {
+			*result = MU_FAILURE;
+		}
+		return MU_NULL_PTR;
+	}
+
+	switch (handle) {
+		default: {
+			mu_print("[muCOSA] Failed to get window handle; unrecognized window handle enum value.\n");
+			if (result != MU_NULL_PTR) {
+				*result = MU_FAILURE;
+			}
+			return MU_NULL_PTR;
+		} break;
+		case MU_WINDOW_HANDLE_WINDOWS_HWND: {
+			if (result != MU_NULL_PTR) {
+				*result = MU_SUCCESS;
+			}
+			return (void*)mu_windows_windows[win].window_handle;
+		} break;
+		case MU_WINDOW_HANDLE_X11_DISPLAY: case MU_WINDOW_HANDLE_X11_WINDOW: {
+			mu_print("[muCOSA] Failed to get window handle; given window handle enum was X11, when currently running operating system is Windows.\n");
+			if (result != MU_NULL_PTR) {
+				*result = MU_FAILURE;
+			}
+			return MU_NULL_PTR;
+		} break;
 	}
 }
 
@@ -6649,6 +6696,45 @@ MUDEF void mu_window_set_scroll_callback(muResult* result, muWindow win, void (*
 
 	if (result != MU_NULL_PTR) {
 		*result = MU_SUCCESS;
+	}
+}
+
+MUDEF void* mu_window_get_handle(muResult* result, muWindow win, muWindowHandle handle) {
+	if (!mu_linux_is_id_valid(win)) {
+		mu_print("[muCOSA] Requested window ID for getting window handle is invalid.\n");
+		if (result != MU_NULL_PTR) {
+			*result = MU_FAILURE;
+		}
+		return MU_NULL_PTR;
+	}
+
+	switch (handle) {
+		default: {
+			mu_print("[muCOSA] Failed to get window handle; unrecognized window handle enum value.\n");
+			if (result != MU_NULL_PTR) {
+				*result = MU_FAILURE;
+			}
+			return MU_NULL_PTR;
+		} break;
+		case MU_WINDOW_HANDLE_WINDOWS_HWND: {
+			mu_print("[muCOSA] Failed to get window handle; given window handle enum was Windows, when currently running operating system is Linux.\n");
+			if (result != MU_NULL_PTR) {
+				*result = MU_FAILURE;
+			}
+			return MU_NULL_PTR;
+		} break;
+		case MU_WINDOW_HANDLE_X11_DISPLAY: {
+			if (result != MU_NULL_PTR) {
+				*result = MU_SUCCESS;
+			}
+			return (void*)mu_linux_windows[win].display;
+		} break;
+		case MU_WINDOW_HANDLE_X11_WINDOW: {
+			if (result != MU_NULL_PTR) {
+				*result = MU_SUCCESS;
+			}
+			return (void*)mu_linux_windows[win].window;
+		} break;
 	}
 }
 
