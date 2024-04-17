@@ -1428,12 +1428,17 @@ More explicit license information at the end of file.
 
 	/* C standard library dependencies */
 
-		#if !defined(mu_strlen)
+		#if !defined(mu_strlen) || \
+			!defined(mu_strcmp)
 
 			#include <string.h>
 
 			#ifndef mu_strlen
 				#define mu_strlen strlen
+			#endif
+
+			#ifndef mu_strcmp
+				#define mu_strcmp strcmp
 			#endif
 
 		#endif
@@ -1483,6 +1488,9 @@ More explicit license information at the end of file.
 			MUCOSA_UNKNOWN_GRAPHICS_API,
 
 			MUCOSA_UNSUPPORTED_WINDOW_SYSTEM,
+			MUCOSA_UNSUPPORTED_FEATURE, // Could mean that it rather can't be (or hasn't been) implemented, or that
+			// the specific thing you're trying to do won't work on this device/OS for some reason (for example, on X11,
+			// an Atom needed for that task can't be found).
 
 			MUCOSA_FAILED_CONNECTION_TO_SERVER,
 			MUCOSA_FAILED_CREATE_WINDOW,
@@ -1495,6 +1503,7 @@ More explicit license information at the end of file.
 			MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS,
 			MUCOSA_INVALID_ID,
 			MUCOSA_INVALID_SAMPLE_COUNT,
+			MUCOSA_INVALID_DIMENSIONS, // Often caused by width/height being outside of min/max width/height
 
 			MUCOSA_MUMA_SUCCESS,
 			MUCOSA_MUMA_FAILED_TO_ALLOCATE,
@@ -1631,11 +1640,40 @@ More explicit license information at the end of file.
 			/* Main loop */
 
 				MUDEF muBool mu_window_get_closed(muCOSAResult* result, muWindow window);
+				MUDEF void mu_window_close(muCOSAResult* result, muWindow window);
 
 				// "Update" gathers input and such, should be called first and THEN frame logic
 				MUDEF void mu_window_update(muCOSAResult* result, muWindow window);
 				// "Swap buffers" simply puts what's been drawing on frames
 				MUDEF void mu_window_swap_buffers(muCOSAResult* result, muWindow window);
+
+			/* Get / Set */
+
+				MUDEF muBool mu_window_get_focused(muCOSAResult* result, muWindow window);
+				MUDEF void mu_window_focus(muCOSAResult* result, muWindow window);
+
+				MUDEF muBool mu_window_get_visible(muCOSAResult* result, muWindow window);
+				MUDEF void mu_window_set_visible(muCOSAResult* result, muWindow window, muBool visible);
+
+				MUDEF void mu_window_get_position(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
+				MUDEF void mu_window_set_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+
+				MUDEF void mu_window_get_dimensions(muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height);
+				MUDEF void mu_window_set_dimensions(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height);
+
+				MUDEF muBool mu_window_get_maximized(muCOSAResult* result, muWindow window);
+				MUDEF void mu_window_set_maximized(muCOSAResult* result, muWindow window, muBool maximized);
+
+				MUDEF muBool mu_window_get_minimized(muCOSAResult* result, muWindow window);
+				MUDEF void mu_window_set_minimized(muCOSAResult* result, muWindow window, muBool minimized);
+
+			/* Get */
+
+				MUDEF void mu_window_get_frame_extents(muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
+
+			/* Set */
+
+				// ...
 
 		/* OpenGL */
 
@@ -4144,6 +4182,7 @@ More explicit license information at the end of file.
 
 			struct muCOSA_X11Window {
 				muBool active;
+
 				muBool closed;
 				muBool visible;
 
@@ -4159,6 +4198,9 @@ More explicit license information at the end of file.
 				MUCOSA_OPENGL_CALL(
 					GLXContext gl_context;
 				)
+
+				uint32_m min_width; uint32_m min_height;
+				uint32_m max_width; uint32_m max_height;
 			};
 			typedef struct muCOSA_X11Window muCOSA_X11Window;
 
@@ -4182,6 +4224,72 @@ More explicit license information at the end of file.
 					}
 
 					return MUCOSA_SUCCESS;
+				}
+
+				// https://www.linuxquestions.org/questions/programming-9/how-to-read-the-state-by-using-_net_wm_state-in-xlib-836879/
+				Atom muCOSA_X11Window_get_atom_plural(muCOSA_X11Window* p_win, const char** names, size_m namelen) {
+					Atom wm_state = XInternAtom(p_win->display, "_NET_WM_STATE", MU_TRUE);
+					if (wm_state == None) {
+						return None;
+					}
+					Atom type;
+					int format;
+					unsigned long n_item = 0, bytes_after;
+					unsigned char* properties = 0;
+					XGetWindowProperty(
+						p_win->display, p_win->window,
+						wm_state, 0, (~0L), False, AnyPropertyType,
+						&type, &format, &n_item, &bytes_after, &properties
+					);
+
+					for (size_m i = 0; i < n_item; i++) {
+						Atom prop = ((Atom*)properties)[0];
+						char* prop_name = XGetAtomName(p_win->display, prop);
+						if (prop_name != 0) {
+							for (size_m i = 0; i < namelen; i++) {
+								if (mu_strcmp(prop_name, names[i]) == 0) {
+									XFree(properties);
+									return prop;
+								}
+							}
+						}
+					}
+
+					if (properties != 0) {
+						XFree(properties);
+					}
+					return None;
+				}
+
+				Atom muCOSA_X11Window_get_atom(muCOSA_X11Window* p_win, const char* name) {
+					const char* names[1] = { name };
+					return muCOSA_X11Window_get_atom_plural(p_win, names, 1);
+				}
+
+				// https://stackoverflow.com/questions/36188154/get-x11-window-caption-height
+				void muCOSA_X11Window_get_extents(muCOSA_X11Window* p_win, long* left, long* right, long* top, long* bottom) {
+					MU_SET_RESULT(left, 0) MU_SET_RESULT(right, 0) MU_SET_RESULT(top, 0) MU_SET_RESULT(bottom, 0)
+
+					Atom a = XInternAtom(p_win->display, "_NET_FRAME_EXTENTS", True);
+					if (a == None) {
+						return;
+					}
+					Atom t;
+					int f;
+					unsigned long _n, b;
+					unsigned char* data = 0;
+					int r = XGetWindowProperty(p_win->display, p_win->window, 
+						a, 0, 4, False, AnyPropertyType, 
+						&t, &f, &_n, &b, &data
+					);
+
+					if (r == Success && _n == 4 && b == 0) {
+						long* extents = (long*)data;
+						MU_SET_RESULT(left, extents[0])
+						MU_SET_RESULT(right, extents[1])
+						MU_SET_RESULT(top, extents[2])
+						MU_SET_RESULT(bottom, extents[3])
+					}
 				}
 
 		/* Functions */
@@ -4218,7 +4326,6 @@ More explicit license information at the end of file.
 
 				/* Creation / Destruction */
 
-					// Do UTF-8 name verification on official functions
 					muWindow muCOSA_X11_window_create(muCOSAResult* result, muCOSA_X11Context* c,
 						muGraphicsAPI api, muBool (*load_functions)(void),
 						muByte* name, uint16_m width, uint16_m height,
@@ -4380,14 +4487,37 @@ More explicit license information at the end of file.
 
 						/* Map */
 
-						XMapWindow(c->windows.data[win].display, c->windows.data[win].window);
+						if (create_info.visible) {
+							XMapWindow(c->windows.data[win].display, c->windows.data[win].window);
+						}
+
+						/* Try desperately to make X11 actually set the window position */
+						// (We can't call the set pos func because of thread holding)
+						// ^ The reason why we have to call multiple times is because there's a
+						// delay. It sucks.
+
+						XWindowAttributes xwa = MU_ZERO_STRUCT(XWindowAttributes);
+
+						for (size_m i = 0; i < 10; i++) {
+							long left_extent = 0;
+							long top_extent = 0;
+							muCOSA_X11Window_get_extents(&c->windows.data[win], &left_extent, 0, &top_extent, 0);
+							XGetWindowAttributes(c->windows.data[win].display, c->windows.data[win].window, &xwa);
+							XMoveWindow(c->windows.data[win].display, c->windows.data[win].window, 
+								(create_info.x-xwa.x)+left_extent, (create_info.y-xwa.y)+top_extent
+							);
+						}
 
 						/* G i v e */
 
 						c->windows.data[win].active = MU_TRUE;
 						c->windows.data[win].api = api;
 						c->windows.data[win].closed = MU_FALSE;
-						c->windows.data[win].visible = MU_TRUE;
+						c->windows.data[win].visible = create_info.visible;
+						c->windows.data[win].min_width = create_info.min_width;
+						c->windows.data[win].min_height = create_info.min_height;
+						c->windows.data[win].max_width = create_info.max_width;
+						c->windows.data[win].max_height = create_info.max_height;
 						MU_RELEASE(c->windows, win, muCOSA_X11Window_)
 						return win;
 					}
@@ -4421,6 +4551,16 @@ More explicit license information at the end of file.
 						return closed;
 					}
 
+					void muCOSA_X11_window_close(muCOSAResult* result, muCOSA_X11Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						XUnmapWindow(c->windows.data[window].display, c->windows.data[window].window);
+						c->windows.data[window].closed = MU_TRUE;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
 					void muCOSA_X11_window_update(muCOSAResult* result, muCOSA_X11Context* c, muWindow window) {
 						MU_SET_RESULT(result, MUCOSA_SUCCESS)
 						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
@@ -4449,6 +4589,229 @@ More explicit license information at the end of file.
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
+
+				/* Get / Set */
+
+					muBool muCOSA_X11_window_get_focused(muCOSAResult* result, muCOSA_X11Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_X11Window_)
+
+						Window focused;
+						int revert_to;
+						XGetInputFocus(c->windows.data[window].display, &focused, &revert_to);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+
+						return focused == c->windows.data[window].window;
+					}
+
+					void muCOSA_X11_window_focus(muCOSAResult* result, muCOSA_X11Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						if (muCOSA_X11Window_get_atom(&c->windows.data[window], "_NET_WM_STATE_HIDDEN") != None) {
+							// https://stackoverflow.com/questions/30192347/how-to-restore-a-window-with-xlib
+							XClientMessageEvent ev = MU_ZERO_STRUCT(XClientMessageEvent); ev.type = ClientMessage; ev.window = c->windows.data[window].window;
+							ev.message_type = XInternAtom(c->windows.data[window].display, "_NET_ACTIVE_WINDOW", True);
+							MU_ASSERT(ev.message_type != None, result, MUCOSA_UNSUPPORTED_FEATURE, MU_RELEASE(c->windows, window, muCOSA_X11Window_) return;)
+
+							ev.format = 32;
+							ev.data.l[0] = 1; ev.data.l[1] = CurrentTime;
+							ev.data.l[2] = ev.data.l[3] = ev.data.l[4] = 0;
+							XSendEvent(c->windows.data[window].display, c->windows.data[window].parent_window, False, 
+								SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev
+							);
+							XFlush(c->windows.data[window].display);
+						}
+
+						XSetInputFocus(c->windows.data[window].display, c->windows.data[window].window, RevertToPointerRoot, CurrentTime);
+						XRaiseWindow(c->windows.data[window].display, c->windows.data[window].window);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					muBool muCOSA_X11_window_get_visible(muCOSAResult* result, muCOSA_X11Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_X11Window_)
+
+						muBool visible = c->windows.data[window].visible;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+
+						return visible;
+					}
+
+					void muCOSA_X11_window_set_visible(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, muBool visible) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						if (visible && !c->windows.data[window].visible) {
+							XMapWindow(c->windows.data[window].display, c->windows.data[window].window);
+							// @TODO Flush input here
+						} else if (!visible && c->windows.data[window].visible) {
+							XUnmapWindow(c->windows.data[window].display, c->windows.data[window].window);
+							// @TODO Flush input here
+						}
+
+						c->windows.data[window].visible = visible;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_get_position(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, int32_m* x, int32_m* y) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						long extent_left = 0, extent_top = 0;
+						muCOSA_X11Window_get_extents(&c->windows.data[window], &extent_left, 0, &extent_top, 0);
+
+						// https://stackoverflow.com/questions/3806872/window-position-in-xlib
+						int rx, ry;
+						Window child;
+						XTranslateCoordinates(c->windows.data[window].display, c->windows.data[window].window, c->windows.data[window].parent_window,
+							0, 0, &rx, &ry, &child
+						);
+
+						MU_SET_RESULT(x, rx-extent_left) MU_SET_RESULT(y, ry-extent_top)
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_position(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, int32_m x, int32_m y) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						long extent_left = 0, extent_top = 0;
+						muCOSA_X11Window_get_extents(&c->windows.data[window], &extent_left, 0, &extent_top, 0);
+
+						// https://stackoverflow.com/questions/3806872/window-position-in-xlib
+						XWindowAttributes xwa = MU_ZERO_STRUCT(XWindowAttributes);
+						XGetWindowAttributes(c->windows.data[window].display, c->windows.data[window].window, &xwa);
+
+						XMoveWindow(c->windows.data[window].display, c->windows.data[window].window, (x-xwa.x)+extent_left, (y-xwa.y)+extent_top);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_get_dimensions(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, uint32_m* width, uint32_m* height) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						XWindowAttributes xwa = MU_ZERO_STRUCT(XWindowAttributes);
+						XGetWindowAttributes(c->windows.data[window].display, c->windows.data[window].window, &xwa);
+
+						MU_SET_RESULT(width, xwa.width) MU_SET_RESULT(height, xwa.height)
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_dimensions(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, uint32_m width, uint32_m height) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						MU_ASSERT(width >= c->windows.data[window].min_width && width <= c->windows.data[window].max_width &&
+							height >= c->windows.data[window].min_height && height <= c->windows.data[window].max_height,
+							result, MUCOSA_INVALID_DIMENSIONS, MU_RELEASE(c->windows, window, muCOSA_X11Window_) return;
+						)
+
+						XResizeWindow(c->windows.data[window].display, c->windows.data[window].window, width, height);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					muBool muCOSA_X11_window_get_maximized(muCOSAResult* result, muCOSA_X11Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_X11Window_)
+
+						muBool maximized = MU_FALSE;
+						static const char* names[2] = { "_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ" };
+						if (muCOSA_X11Window_get_atom_plural(&c->windows.data[window], names, 2) != None) {
+							maximized = MU_TRUE;
+						}
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+
+						return maximized;
+					}
+
+					void muCOSA_X11_window_set_maximized(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, muBool maximized) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						// https://forum.juce.com/t/how-to-maximize-not-fullscreen/28346
+						XClientMessageEvent ev = MU_ZERO_STRUCT(XClientMessageEvent); ev.type = ClientMessage; ev.window = c->windows.data[window].window;
+						ev.message_type = XInternAtom(c->windows.data[window].display, "_NET_WM_STATE", True);
+						MU_ASSERT(ev.message_type != None, result, MUCOSA_UNSUPPORTED_FEATURE, MU_RELEASE(c->windows, window, muCOSA_X11Window_) return;)
+						ev.format = 32;
+						ev.data.l[0] = maximized;
+						ev.data.l[1] = XInternAtom(c->windows.data[window].display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+						ev.data.l[2] = XInternAtom(c->windows.data[window].display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+						ev.data.l[3] = 1; ev.data.l[4] = 0;
+						XSendEvent(c->windows.data[window].display, c->windows.data[window].parent_window,
+							False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev
+						);
+						XFlush(c->windows.data[window].display);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					muBool muCOSA_X11_window_get_minimized(muCOSAResult* result, muCOSA_X11Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_X11Window_)
+
+						muBool minimized = MU_FALSE;
+						if (muCOSA_X11Window_get_atom(&c->windows.data[window], "_NET_WM_STATE_HIDDEN") != None) {
+							minimized = MU_TRUE;
+						}
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+
+						return minimized;
+					}
+
+					void muCOSA_X11_window_set_minimized(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, muBool minimized) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						XClientMessageEvent ev = MU_ZERO_STRUCT(XClientMessageEvent); ev.type = ClientMessage; ev.window = c->windows.data[window].window;
+						if (minimized) {
+							ev.message_type = XInternAtom(c->windows.data[window].display, "WM_CHANGE_STATE", False);
+							ev.format = 32;
+							ev.data.l[0] = IconicState;
+						} else {
+							ev.message_type = XInternAtom(c->windows.data[window].display, "_NET_ACTIVE_WINDOW", False);
+							ev.format = 32;
+							ev.data.l[0] = 1;
+							ev.data.l[1] = CurrentTime;
+							ev.data.l[2] = ev.data.l[3] = ev.data.l[4] = 0;
+						}
+						XSendEvent(c->windows.data[window].display, c->windows.data[window].parent_window,
+							False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev
+						);
+						XFlush(c->windows.data[window].display);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+				/* Get */
+
+					void muCOSA_X11_window_get_frame_extents(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						long l_left=0, l_right=0, l_top=0, l_bottom=0;
+						muCOSA_X11Window_get_extents(&c->windows.data[window], &l_left, &l_right, &l_top, &l_bottom);
+						MU_SET_RESULT(left, (uint32_m)l_left)
+						MU_SET_RESULT(right, (uint32_m)l_right)
+						MU_SET_RESULT(top, (uint32_m)l_top)
+						MU_SET_RESULT(bottom, (uint32_m)l_bottom)
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+				/* Set */
+
+					// ...
 
 			/* OpenGL */
 
@@ -4496,6 +4859,7 @@ More explicit license information at the end of file.
 						case MUCOSA_UNKNOWN_WINDOW_SYSTEM: return "MUCOSA_UNKNOWN_WINDOW_SYSTEM"; break;
 						case MUCOSA_UNKNOWN_GRAPHICS_API: return "MUCOSA_UNKNOWN_GRAPHICS_API"; break;
 						case MUCOSA_UNSUPPORTED_WINDOW_SYSTEM: return "MUCOSA_UNSUPPORTED_WINDOW_SYSTEM"; break;
+						case MUCOSA_UNSUPPORTED_FEATURE: return "MUCOSA_UNSUPPORTED_FEATURE"; break;
 						case MUCOSA_FAILED_CONNECTION_TO_SERVER: return "MUCOSA_FAILED_CONNECTION_TO_SERVER"; break;
 						case MUCOSA_FAILED_CREATE_WINDOW: return "MUCOSA_FAILED_CREATE_WINDOW"; break;
 						case MUCOSA_FAILED_LOAD_FUNCTIONS: return "MUCOSA_FAILED_LOAD_FUNCTIONS"; break;
@@ -4506,6 +4870,7 @@ More explicit license information at the end of file.
 						case MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS: return "MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS"; break;
 						case MUCOSA_INVALID_ID: return "MUCOSA_INVALID_ID"; break;
 						case MUCOSA_INVALID_SAMPLE_COUNT: return "MUCOSA_INVALID_SAMPLE_COUNT"; break;
+						case MUCOSA_INVALID_DIMENSIONS: return "MUCOSA_INVALID_DIMENSIONS"; break;
 						case MUCOSA_MUMA_SUCCESS: return "MUCOSA_MUMA_SUCCESS"; break;
 						case MUCOSA_MUMA_FAILED_TO_ALLOCATE: return "MUCOSA_MUMA_FAILED_TO_ALLOCATE"; break;
 						case MUCOSA_MUMA_INVALID_INDEX: return "MUCOSA_MUMA_INVALID_INDEX"; break;
@@ -4619,6 +4984,11 @@ More explicit license information at the end of file.
 				) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return MU_NONE;)
 
+					MU_ASSERT(width >= create_info.min_width && width <= create_info.max_width &&
+						height >= create_info.min_height && height <= create_info.max_height,
+						result, MUCOSA_INVALID_DIMENSIONS, return MU_NONE;
+					)
+
 					switch (MUCOSA_GWINSYS) {
 						default: return MU_NONE; break;
 
@@ -4654,6 +5024,18 @@ More explicit license information at the end of file.
 					}
 				}
 
+				MUDEF void mu_window_close(muCOSAResult* result, muWindow window) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_close(result, &MUCOSA_GX11, window);
+						} break;)
+					}
+				}
+
 				MUDEF void mu_window_update(muCOSAResult* result, muWindow window) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
@@ -4677,6 +5059,146 @@ More explicit license information at the end of file.
 						} break;)
 					}
 				}
+
+			/* Get / Set */
+
+				MUDEF muBool mu_window_get_focused(muCOSAResult* result, muWindow window) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return MU_FALSE;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return MU_FALSE; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							return muCOSA_X11_window_get_focused(result, &MUCOSA_GX11, window);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_focus(muCOSAResult* result, muWindow window) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_focus(result, &MUCOSA_GX11, window);
+						} break;)
+					}
+				}
+
+				MUDEF muBool mu_window_get_visible(muCOSAResult* result, muWindow window) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return MU_FALSE;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return MU_FALSE; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							return muCOSA_X11_window_get_visible(result, &MUCOSA_GX11, window);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_visible(muCOSAResult* result, muWindow window, muBool visible) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_visible(result, &MUCOSA_GX11, window, visible);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_get_position(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_get_position(result, &MUCOSA_GX11, window, x, y);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_position(result, &MUCOSA_GX11, window, x, y);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_get_dimensions(muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_get_dimensions(result, &MUCOSA_GX11, window, width, height);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_dimensions(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_dimensions(result, &MUCOSA_GX11, window, width, height);
+						} break;)
+					}
+				}
+
+				MUDEF muBool mu_window_get_maximized(muCOSAResult* result, muWindow window) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return MU_FALSE;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return MU_FALSE; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							return muCOSA_X11_window_get_maximized(result, &MUCOSA_GX11, window);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_maximized(muCOSAResult* result, muWindow window, muBool maximized) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_maximized(result, &MUCOSA_GX11, window, maximized);
+						} break;)
+					}
+				}
+
+			/* Get */
+
+				MUDEF void mu_window_get_frame_extents(muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_get_frame_extents(result, &MUCOSA_GX11, window, left, right, top, bottom);
+						} break;)
+					}
+				}
+
+			/* Set */
+
+				// ...
 
 		/* OpenGL */
 
