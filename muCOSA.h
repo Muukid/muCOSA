@@ -1487,12 +1487,14 @@ More explicit license information at the end of file.
 			MUCOSA_FAILED_CONNECTION_TO_SERVER,
 			MUCOSA_FAILED_CREATE_WINDOW,
 			MUCOSA_FAILED_LOAD_FUNCTIONS,
-			MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER,
+			MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER, // Not fatal
 			MUCOSA_FAILED_CREATE_OPENGL_CONTEXT,
+			MUCOSA_FAILED_USE_PIXEL_FORMAT, // Not fatal
 
 			MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS,
 			MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS,
 			MUCOSA_INVALID_ID,
+			MUCOSA_INVALID_SAMPLE_COUNT,
 
 			MUCOSA_MUMA_SUCCESS,
 			MUCOSA_MUMA_FAILED_TO_ALLOCATE,
@@ -1566,8 +1568,6 @@ More explicit license information at the end of file.
 	/* Struct */
 
 		struct muPixelFormat {
-			muBool doublebuffer;
-
 			uint16_m red_bits;
 			uint16_m green_bits;
 			uint16_m blue_bits;
@@ -1576,7 +1576,7 @@ More explicit license information at the end of file.
 			uint16_m depth_bits;
 			uint16_m stencil_bits;
 
-			uint16_m samples;
+			uint8_m samples; // Max: 16, must be a power of 2
 		};
 		typedef struct muPixelFormat muPixelFormat;
 
@@ -4021,7 +4021,9 @@ More explicit license information at the end of file.
 		}
 
 		muCOSAResult muCOSA_verify_pixel_format(muPixelFormat pf) {
-			if (pf.red_bits) {}
+			if (pf.samples != 1 && pf.samples != 2 && pf.samples != 4 && pf.samples != 8 && pf.samples != 16) {
+				return MUCOSA_INVALID_SAMPLE_COUNT;
+			}
 			return MUCOSA_SUCCESS;
 		}
 
@@ -4040,7 +4042,8 @@ More explicit license information at the end of file.
 	#ifdef MUCOSA_X11
 		#define MUCOSA_X11_CALL(...) __VA_ARGS__
 
-		#include <X11/Xlib.h>
+		#include <X11/Xlib.h> // Includes <X11/X.h>
+		#include <X11/Xutil.h> // Must be included AFTER <X11/Xlib.h>
 
 		/* OpenGL */
 
@@ -4054,38 +4057,35 @@ More explicit license information at the end of file.
 
 			#include <GL/glx.h>
 
+			struct muCOSA_X11_gl_attributes {
+				GLint att[25];
+			};
+			typedef struct muCOSA_X11_gl_attributes muCOSA_X11_gl_attributes;
+
+			muCOSA_X11_gl_attributes muCOSA_X11_get_gl_attributes(muPixelFormat pf) {
+				muCOSA_X11_gl_attributes a = MU_ZERO_STRUCT(muCOSA_X11_gl_attributes);
+				a.att[0] = GLX_X_RENDERABLE; a.att[1] = True;
+				a.att[2] = GLX_DRAWABLE_TYPE; a.att[3] = GLX_WINDOW_BIT;
+				a.att[4] = GLX_RENDER_TYPE; a.att[5] = GLX_RGBA_BIT;
+				a.att[6] = GLX_X_VISUAL_TYPE; a.att[7] = GLX_TRUE_COLOR; // ?
+				a.att[8] = GLX_RED_SIZE; a.att[9] = pf.red_bits;
+				a.att[10] = GLX_GREEN_SIZE; a.att[11] = pf.green_bits;
+				a.att[12] = GLX_BLUE_SIZE; a.att[13] = pf.blue_bits;
+				a.att[14] = GLX_ALPHA_SIZE; a.att[15] = pf.alpha_bits;
+				a.att[16] = GLX_DEPTH_SIZE; a.att[17] = pf.depth_bits;
+				a.att[18] = GLX_STENCIL_SIZE; a.att[19] = pf.stencil_bits;
+				a.att[20] = GLX_DOUBLEBUFFER; a.att[21] = True;
+				a.att[22] = GLX_SAMPLES; a.att[23] = pf.samples;
+				a.att[24] = None;
+				return a;
+			}
+
 			// Note: per-window
 			// // https://apoorvaj.io/creating-a-modern-opengl-context/
-			muCOSAResult muCOSA_X11_init_opengl(Display* display, GLXContext* context, muGraphicsAPI api, muPixelFormat pf) {
-				int pixel_format_attributes[] = {
-					GLX_RENDER_TYPE,    GLX_RGBA_BIT, // ?
-					GLX_DRAWABLE_TYPE,  GLX_WINDOW_BIT,
-					GLX_SAMPLE_BUFFERS, MU_TRUE,
-					GLX_DOUBLEBUFFER,   pf.doublebuffer,
-					GLX_RED_SIZE,       pf.red_bits,
-					GLX_GREEN_SIZE,     pf.green_bits,
-					GLX_BLUE_SIZE,      pf.blue_bits,
-					GLX_ALPHA_SIZE,     pf.alpha_bits,
-					GLX_DEPTH_SIZE,     pf.depth_bits,
-					GLX_STENCIL_SIZE,   pf.stencil_bits,
-					GLX_SAMPLES,        pf.samples,
-					None
-				};
-
-				int fbc_count = 0;
-				GLXFBConfig* fbc = glXChooseFBConfig(
-					display, DefaultScreen(display),
-					pixel_format_attributes,
-					&fbc_count
-				);
-				if (!fbc) {
-					return MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER;
-				}
-
+			muCOSAResult muCOSA_X11_init_opengl(Display* display, GLXContext* context, muGraphicsAPI api, GLXFBConfig fbc) {
 				GLXContext (*glXCreateContextAttribsARB)(Display*, GLXFBConfig, GLXContext, Bool, const int*) = 
 					(GLXContext (*)(Display*, GLXFBConfig, GLXContext, Bool, const int*))glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
 				if (!glXCreateContextAttribsARB) {
-					XFree(fbc);
 					return MUCOSA_FAILED_CREATE_OPENGL_CONTEXT;
 				}
 
@@ -4097,7 +4097,7 @@ More explicit license information at the end of file.
 				};
 
 				switch (api) {
-					default: XFree(fbc); return MUCOSA_UNKNOWN_GRAPHICS_API; break;
+					default: return MUCOSA_UNKNOWN_GRAPHICS_API; break;
 					case MU_OPENGL_1_0:   { opengl_attributes[1] = 1; opengl_attributes[3] = 0; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
 					case MU_OPENGL_1_1:   { opengl_attributes[1] = 1; opengl_attributes[3] = 1; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
 					case MU_OPENGL_1_2:   { opengl_attributes[1] = 1; opengl_attributes[3] = 2; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
@@ -4130,8 +4130,7 @@ More explicit license information at the end of file.
 					case MU_OPENGL_4_6_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 6; opengl_attributes[5] = GLX_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
 				}
 
-				*context = glXCreateContextAttribsARB(display, fbc[0], MU_NULL, MU_TRUE, opengl_attributes);
-				XFree(fbc);
+				*context = glXCreateContextAttribsARB(display, fbc, MU_NULL, MU_TRUE, opengl_attributes);
 				if (!*context) {
 					return MUCOSA_FAILED_CREATE_OPENGL_CONTEXT;
 				}
@@ -4269,6 +4268,53 @@ More explicit license information at the end of file.
 
 						c->windows.data[win].parent_window = DefaultRootWindow(c->windows.data[win].display);
 
+						MUCOSA_OPENGL_CALL(
+							muCOSA_X11_gl_attributes gl_att = MU_ZERO_STRUCT(muCOSA_X11_gl_attributes); if (gl_att.att[2]) {}
+							GLXFBConfig* fbcs = 0;
+							GLXFBConfig fbc;
+							int fbc_count = 0;
+						)
+						XVisualInfo* vi = 0;
+						if (api >= MUCOSA_OPENGL_FIRST && api <= MUCOSA_OPENGL_LAST) {
+							MUCOSA_OPENGL_CALL(
+								gl_att = muCOSA_X11_get_gl_attributes(create_info.pixel_format);
+								fbcs = glXChooseFBConfig(
+									c->windows.data[win].display, 
+									DefaultScreen(c->windows.data[win].display),
+									gl_att.att, &fbc_count
+								);
+								if (fbcs == 0) {
+									MU_SET_RESULT(result, MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER)
+								} else {
+									// @TODO Choose best format
+									fbc = fbcs[0];
+									XFree(fbcs);
+
+									vi = glXGetVisualFromFBConfig(c->windows.data[win].display, fbc);
+									if (vi == 0) {
+										MU_SET_RESULT(result, MUCOSA_FAILED_USE_PIXEL_FORMAT)
+									}
+								}
+							)
+						}
+
+						// This probably isn't being done right :L
+						int depth = 8*3;
+						Visual* v = 0;
+						unsigned long valuemask = CWEventMask;
+						XSetWindowAttributes win_attribs = MU_ZERO_STRUCT(XSetWindowAttributes);
+						win_attribs.event_mask = ExposureMask | KeyPressMask;
+						if (vi != 0) {
+							depth = vi->depth;
+							v = vi->visual;
+
+							win_attribs.colormap = XCreateColormap(
+								c->windows.data[win].display, c->windows.data[win].parent_window,
+								vi->visual, AllocNone
+							);
+							valuemask |= CWColormap;
+						}
+
 						// @TODO Figure out how to tell if this worked or not
 						c->windows.data[win].window = XCreateWindow(c->windows.data[win].display,
 							c->windows.data[win].parent_window,
@@ -4276,21 +4322,13 @@ More explicit license information at the end of file.
 							(unsigned int)width, (unsigned int)height,
 							0, // (Border width)
 							// (Bits per pixel / "depth")
-							create_info.pixel_format.red_bits + create_info.pixel_format.green_bits + 
-							create_info.pixel_format.blue_bits + create_info.pixel_format.alpha_bits, // Should we do alpha here?
+							depth,
 							InputOutput,
-							// @TODO Try and find visual that matches create_info.pixel_format
-							XDefaultVisual(c->windows.data[win].display, DefaultScreen(c->windows.data[win].display)),
-							0, 0
+							v,
+							valuemask, &win_attribs
 						);
-						/*MU_ASSERT(c->windows.data[win].window != NULL, result, MUCOSA_FAILED_CREATE_WINDOW, 
-							XCloseDisplay(c->windows.data[win].display); MU_RELEASE(c->windows, win, muCOSA_X11Window_) return MU_NONE;)*/
 
-						/* Input */
-
-						XSelectInput(c->windows.data[win].display, c->windows.data[win].window, 
-							ExposureMask | KeyPressMask
-						);
+						XFree(vi);
 
 						/* API initialization */
 
@@ -4298,7 +4336,7 @@ More explicit license information at the end of file.
 							MUCOSA_OPENGL_CALL(
 								mu_res = muCOSA_X11_init_opengl(
 									c->windows.data[win].display, &c->windows.data[win].gl_context,
-									api, create_info.pixel_format
+									api, fbc
 								);
 								MU_ASSERT(mu_res == MUCOSA_SUCCESS, result, mu_res, 
 									XCloseDisplay(c->windows.data[win].display); MU_RELEASE(c->windows, win, muCOSA_X11Window_) return MU_NONE;)
@@ -4320,7 +4358,9 @@ More explicit license information at the end of file.
 
 						if (load_functions != MU_NULL_PTR) {
 							MU_ASSERT(load_functions() == MU_TRUE, result, MUCOSA_FAILED_LOAD_FUNCTIONS, 
-								MUCOSA_OPENGL_CALL(glXDestroyContext(c->windows.data[win].display, c->windows.data[win].gl_context);)
+								if (api >= MUCOSA_OPENGL_FIRST && api <= MUCOSA_OPENGL_LAST) {
+									MUCOSA_OPENGL_CALL(glXDestroyContext(c->windows.data[win].display, c->windows.data[win].gl_context);)
+								}
 								XCloseDisplay(c->windows.data[win].display); MU_RELEASE(c->windows, win, muCOSA_X11Window_) return MU_NONE;)
 						}
 
@@ -4416,7 +4456,6 @@ More explicit license information at the end of file.
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 					MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
 
-
 					if (c->windows.data[window].api >= MUCOSA_OPENGL_FIRST && c->windows.data[window].api <= MUCOSA_OPENGL_LAST) {
 						MUCOSA_OPENGL_CALL(
 							glXMakeCurrent(c->windows.data[window].display, c->windows.data[window].window, c->windows.data[window].gl_context);
@@ -4462,9 +4501,11 @@ More explicit license information at the end of file.
 						case MUCOSA_FAILED_LOAD_FUNCTIONS: return "MUCOSA_FAILED_LOAD_FUNCTIONS"; break;
 						case MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER: return "MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER"; break;
 						case MUCOSA_FAILED_CREATE_OPENGL_CONTEXT: return "MUCOSA_FAILED_CREATE_OPENGL_CONTEXT"; break;
+						case MUCOSA_FAILED_USE_PIXEL_FORMAT: return "MUCOSA_FAILED_USE_PIXEL_FORMAT"; break;
 						case MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS: return "MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS"; break;
 						case MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS: return "MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS"; break;
 						case MUCOSA_INVALID_ID: return "MUCOSA_INVALID_ID"; break;
+						case MUCOSA_INVALID_SAMPLE_COUNT: return "MUCOSA_INVALID_SAMPLE_COUNT"; break;
 						case MUCOSA_MUMA_SUCCESS: return "MUCOSA_MUMA_SUCCESS"; break;
 						case MUCOSA_MUMA_FAILED_TO_ALLOCATE: return "MUCOSA_MUMA_FAILED_TO_ALLOCATE"; break;
 						case MUCOSA_MUMA_INVALID_INDEX: return "MUCOSA_MUMA_INVALID_INDEX"; break;
@@ -4548,7 +4589,6 @@ More explicit license information at the end of file.
 				MUDEF muWindowCreateInfo mu_window_default_create_info() {
 					muWindowCreateInfo ci = MU_ZERO_STRUCT(muWindowCreateInfo);
 
-					ci.pixel_format.doublebuffer = MU_TRUE;
 					ci.pixel_format.red_bits = 8;
 					ci.pixel_format.green_bits = 8;
 					ci.pixel_format.blue_bits = 8;
