@@ -40,6 +40,9 @@ now, a "window" is defined in the traditional desktop OS sense, taking up a port
 being moveable, resizable, et cetera. Meanwhile, on a mobile OS, it takes up virtually the whole
 screen. It's hard to think of fitting this into the API without drastically changing it. Plus, the
 concept of a window being "created" and "destroyed" is now gone, since it's one big window.
+Maybe have a separate object called "muDisplay" that works VERY similarly to a window except for
+it's not created but retrieved (as there's one global display), and is built to work on either
+mobile or desktop. Dunno.
 Not doing all of that, right now tho; muCOSA 1.X.X is meant to be pretty simplistic and built
 primarily around a traditional desktop OS environment.
 
@@ -1510,6 +1513,12 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 				#define MUCOSA_OPENGL_CALL(...)
 			#endif
 
+		/* States */
+
+			#define muButtonState muBool
+			#define MU_BUTTON_STATE_RELEASED 0
+			#define MU_BUTTON_STATE_HELD 1
+
 	/* Enums */
 
 		MU_ENUM(muCOSAResult,
@@ -1523,6 +1532,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 			MUCOSA_UNKNOWN_WINDOW_SYSTEM,
 			MUCOSA_UNKNOWN_GRAPHICS_API,
+			MUCOSA_UNKNOWN_KEYBOARD_KEY,
 
 			MUCOSA_UNSUPPORTED_WINDOW_SYSTEM,
 			MUCOSA_UNSUPPORTED_FEATURE, // Could mean that it rather can't be (or hasn't been) implemented, or that
@@ -1614,6 +1624,132 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			MU_CURSOR_STYLE_NO
 		)
 
+		MU_ENUM(muKeyboardKey,
+			MU_KEYBOARD_KEY_UNKNOWN,
+
+			// Note: this list is by no means complete;
+			// missing many basic ASCII characters like:
+			// ~ \ [] ; . /
+			// Plan to add more later.
+
+			MU_KEYBOARD_KEY_BACKSPACE,
+			MU_KEYBOARD_KEY_TAB,
+			MU_KEYBOARD_KEY_CLEAR,
+			MU_KEYBOARD_KEY_RETURN,
+			MU_KEYBOARD_KEY_PAUSE,
+			MU_KEYBOARD_KEY_ESCAPE,
+			MU_KEYBOARD_KEY_MODECHANGE,
+			MU_KEYBOARD_KEY_SPACE,
+			MU_KEYBOARD_KEY_PRIOR,
+			MU_KEYBOARD_KEY_NEXT,
+			MU_KEYBOARD_KEY_END,
+			MU_KEYBOARD_KEY_HOME,
+			MU_KEYBOARD_KEY_LEFT,
+			MU_KEYBOARD_KEY_UP,
+			MU_KEYBOARD_KEY_RIGHT,
+			MU_KEYBOARD_KEY_DOWN,
+			MU_KEYBOARD_KEY_SELECT,
+			MU_KEYBOARD_KEY_PRINT,
+			MU_KEYBOARD_KEY_EXECUTE,
+			MU_KEYBOARD_KEY_INSERT,
+			MU_KEYBOARD_KEY_DELETE,
+			MU_KEYBOARD_KEY_HELP,
+			MU_KEYBOARD_KEY_0,
+			MU_KEYBOARD_KEY_1,
+			MU_KEYBOARD_KEY_2,
+			MU_KEYBOARD_KEY_3,
+			MU_KEYBOARD_KEY_4,
+			MU_KEYBOARD_KEY_5,
+			MU_KEYBOARD_KEY_6,
+			MU_KEYBOARD_KEY_7,
+			MU_KEYBOARD_KEY_8,
+			MU_KEYBOARD_KEY_9,
+			MU_KEYBOARD_KEY_A,
+			MU_KEYBOARD_KEY_B,
+			MU_KEYBOARD_KEY_C,
+			MU_KEYBOARD_KEY_D,
+			MU_KEYBOARD_KEY_E,
+			MU_KEYBOARD_KEY_F,
+			MU_KEYBOARD_KEY_G,
+			MU_KEYBOARD_KEY_H,
+			MU_KEYBOARD_KEY_I,
+			MU_KEYBOARD_KEY_J,
+			MU_KEYBOARD_KEY_K,
+			MU_KEYBOARD_KEY_L,
+			MU_KEYBOARD_KEY_M,
+			MU_KEYBOARD_KEY_N,
+			MU_KEYBOARD_KEY_O,
+			MU_KEYBOARD_KEY_P,
+			MU_KEYBOARD_KEY_Q,
+			MU_KEYBOARD_KEY_R,
+			MU_KEYBOARD_KEY_S,
+			MU_KEYBOARD_KEY_T,
+			MU_KEYBOARD_KEY_U,
+			MU_KEYBOARD_KEY_V,
+			MU_KEYBOARD_KEY_W,
+			MU_KEYBOARD_KEY_X,
+			MU_KEYBOARD_KEY_Y,
+			MU_KEYBOARD_KEY_Z,
+			MU_KEYBOARD_KEY_LEFT_WINDOWS,
+			MU_KEYBOARD_KEY_RIGHT_WINDOWS,
+			MU_KEYBOARD_KEY_NUMPAD_0,
+			MU_KEYBOARD_KEY_NUMPAD_1,
+			MU_KEYBOARD_KEY_NUMPAD_2,
+			MU_KEYBOARD_KEY_NUMPAD_3,
+			MU_KEYBOARD_KEY_NUMPAD_4,
+			MU_KEYBOARD_KEY_NUMPAD_5,
+			MU_KEYBOARD_KEY_NUMPAD_6,
+			MU_KEYBOARD_KEY_NUMPAD_7,
+			MU_KEYBOARD_KEY_NUMPAD_8,
+			MU_KEYBOARD_KEY_NUMPAD_9,
+			MU_KEYBOARD_KEY_MULTIPLY,
+			MU_KEYBOARD_KEY_ADD,
+			MU_KEYBOARD_KEY_SEPARATOR,
+			MU_KEYBOARD_KEY_SUBTRACT,
+			MU_KEYBOARD_KEY_DECIMAL,
+			MU_KEYBOARD_KEY_DIVIDE,
+			MU_KEYBOARD_KEY_F1,
+			MU_KEYBOARD_KEY_F2,
+			MU_KEYBOARD_KEY_F3,
+			MU_KEYBOARD_KEY_F4,
+			MU_KEYBOARD_KEY_F5,
+			MU_KEYBOARD_KEY_F6,
+			MU_KEYBOARD_KEY_F7,
+			MU_KEYBOARD_KEY_F8,
+			MU_KEYBOARD_KEY_F9,
+			MU_KEYBOARD_KEY_F10,
+			MU_KEYBOARD_KEY_F11,
+			MU_KEYBOARD_KEY_F12,
+			MU_KEYBOARD_KEY_F13,
+			MU_KEYBOARD_KEY_F14,
+			MU_KEYBOARD_KEY_F15,
+			MU_KEYBOARD_KEY_F16,
+			MU_KEYBOARD_KEY_F17,
+			MU_KEYBOARD_KEY_F18,
+			MU_KEYBOARD_KEY_F19,
+			MU_KEYBOARD_KEY_F20,
+			MU_KEYBOARD_KEY_F21,
+			MU_KEYBOARD_KEY_F22,
+			MU_KEYBOARD_KEY_F23,
+			MU_KEYBOARD_KEY_F24,
+			MU_KEYBOARD_KEY_NUMLOCK,
+			MU_KEYBOARD_KEY_SCROLL,
+			MU_KEYBOARD_KEY_LEFT_SHIFT,
+			MU_KEYBOARD_KEY_RIGHT_SHIFT,
+			MU_KEYBOARD_KEY_LEFT_CONTROL,
+			MU_KEYBOARD_KEY_RIGHT_CONTROL,
+			MU_KEYBOARD_KEY_LEFT_MENU,
+			MU_KEYBOARD_KEY_RIGHT_MENU,
+			MU_KEYBOARD_KEY_ATTN,
+			MU_KEYBOARD_KEY_CRSEL,
+			MU_KEYBOARD_KEY_EXSEL,
+			MU_KEYBOARD_KEY_EREOF,
+			MU_KEYBOARD_KEY_PLAY,
+			MU_KEYBOARD_KEY_PA1,
+		)
+		#define MU_KEYBOARD_KEY_FIRST MU_KEYBOARD_KEY_BACKSPACE
+		#define MU_KEYBOARD_KEY_LAST MU_KEYBOARD_KEY_PA1
+
 	/* Struct */
 
 		struct muPixelFormat {
@@ -1647,6 +1783,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			uint32_m max_height;
 
 			muCursorStyle cursor_style; // <-- Not permenant, only existing as the style first used upon the window's creation
+
+			void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
 		};
 		typedef struct muWindowCreateInfo muWindowCreateInfo;
 
@@ -1656,6 +1794,9 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 			#ifdef MUCOSA_NAMES
 				MUDEF const char* muCOSA_result_get_name(muCOSAResult result);
+
+				MUDEF const char* muCOSA_keyboard_key_get_name(muKeyboardKey key);
+				MUDEF const char* muCOSA_keyboard_key_get_nice_name(muKeyboardKey key);
 			#endif
 
 		/* Initiation / Termination */
@@ -1725,9 +1866,11 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 				MUDEF void mu_window_get_frame_extents(muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
 
+				MUDEF muButtonState mu_window_get_keyboard_key_state(muCOSAResult* result, muWindow window, muKeyboardKey key);
+
 			/* Set */
 
-				// ...
+				MUDEF void mu_window_set_keyboard_key_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
 
 		/* OpenGL */
 
@@ -4136,6 +4279,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 		#include <X11/Xlib.h> // Includes <X11/X.h>
 		#include <X11/Xutil.h> // Must be included AFTER <X11/Xlib.h>
+		#include <X11/XKBlib.h> // For XkbKeycodeToKeysym
 
 		/* OpenGL */
 
@@ -4173,7 +4317,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			}
 
 			// Note: per-window
-			// // https://apoorvaj.io/creating-a-modern-opengl-context/
+			// https://apoorvaj.io/creating-a-modern-opengl-context/
 			muCOSAResult muCOSA_X11_init_opengl(Display* display, GLXContext* context, muGraphicsAPI api, GLXFBConfig fbc) {
 				GLXContext (*glXCreateContextAttribsARB)(Display*, GLXFBConfig, GLXContext, Bool, const int*) = 
 					(GLXContext (*)(Display*, GLXFBConfig, GLXContext, Bool, const int*))glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
@@ -4234,6 +4378,11 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 		/* Structs */
 
+			struct muCOSA_X11_input {
+				muButtonState keyboard_key_states[MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1];
+			};
+			typedef struct muCOSA_X11_input muCOSA_X11_input;
+
 			struct muCOSA_X11Window {
 				muBool active;
 
@@ -4260,6 +4409,10 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 				muCursorStyle cursor_style;
 				Cursor cursor;
 				int32_m scroll_level;
+
+				muCOSA_X11_input input;
+
+				void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
 			};
 			typedef struct muCOSA_X11Window muCOSA_X11Window;
 
@@ -4267,8 +4420,379 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 		/* Useful funcs */
 
+			/* Key input */
+
+				// https://www.cl.cam.ac.uk/~mgk25/ucs/keysymdef.h
+					#define MUCOSA_X11_XK_VoidSymbol 0xffffff
+					#define MUCOSA_X11_XK_BackSpace 0xff08
+					#define MUCOSA_X11_XK_Tab 0xff09
+					#define MUCOSA_X11_XK_Clear 0xff0b
+					#define MUCOSA_X11_XK_Return 0xff0d
+					#define MUCOSA_X11_XK_Pause 0xff13
+					#define MUCOSA_X11_XK_Escape 0xff1b
+					#define MUCOSA_X11_XK_Mode_switch 0xff7e
+					#define MUCOSA_X11_XK_space 0x0020
+					#define MUCOSA_X11_XK_Prior 0xff55
+					#define MUCOSA_X11_XK_Next 0xff56
+					#define MUCOSA_X11_XK_End 0xff57
+					#define MUCOSA_X11_XK_Home 0xff50
+					#define MUCOSA_X11_XK_Left 0xff51
+					#define MUCOSA_X11_XK_Up 0xff52
+					#define MUCOSA_X11_XK_Right 0xff53
+					#define MUCOSA_X11_XK_Down 0xff54
+					#define MUCOSA_X11_XK_Select 0xff60
+					#define MUCOSA_X11_XK_Print 0xff61
+					#define MUCOSA_X11_XK_Execute 0xff62
+					#define MUCOSA_X11_XK_Insert 0xff63
+					#define MUCOSA_X11_XK_Delete 0xffff
+					#define MUCOSA_X11_XK_Help 0xff6a
+					#define MUCOSA_X11_XK_0 0x0030
+					#define MUCOSA_X11_XK_1 0x0031
+					#define MUCOSA_X11_XK_2 0x0032
+					#define MUCOSA_X11_XK_3 0x0033
+					#define MUCOSA_X11_XK_4 0x0034
+					#define MUCOSA_X11_XK_5 0x0035
+					#define MUCOSA_X11_XK_6 0x0036
+					#define MUCOSA_X11_XK_7 0x0037
+					#define MUCOSA_X11_XK_8 0x0038
+					#define MUCOSA_X11_XK_9 0x0039
+					#define MUCOSA_X11_XK_a 0x0061
+					#define MUCOSA_X11_XK_b 0x0062
+					#define MUCOSA_X11_XK_c 0x0063
+					#define MUCOSA_X11_XK_d 0x0064
+					#define MUCOSA_X11_XK_e 0x0065
+					#define MUCOSA_X11_XK_f 0x0066
+					#define MUCOSA_X11_XK_g 0x0067
+					#define MUCOSA_X11_XK_h 0x0068
+					#define MUCOSA_X11_XK_i 0x0069
+					#define MUCOSA_X11_XK_j 0x006a
+					#define MUCOSA_X11_XK_k 0x006b
+					#define MUCOSA_X11_XK_l 0x006c
+					#define MUCOSA_X11_XK_m 0x006d
+					#define MUCOSA_X11_XK_n 0x006e
+					#define MUCOSA_X11_XK_o 0x006f
+					#define MUCOSA_X11_XK_p 0x0070
+					#define MUCOSA_X11_XK_q 0x0071
+					#define MUCOSA_X11_XK_r 0x0072
+					#define MUCOSA_X11_XK_s 0x0073
+					#define MUCOSA_X11_XK_t 0x0074
+					#define MUCOSA_X11_XK_u 0x0075
+					#define MUCOSA_X11_XK_v 0x0076
+					#define MUCOSA_X11_XK_w 0x0077
+					#define MUCOSA_X11_XK_x 0x0078
+					#define MUCOSA_X11_XK_y 0x0079
+					#define MUCOSA_X11_XK_z 0x007a
+					#define MUCOSA_X11_XK_Super_L 0xffeb
+					#define MUCOSA_X11_XK_Super_R 0xffec
+					#define MUCOSA_X11_XK_KP_0 0xffb0
+					#define MUCOSA_X11_XK_KP_1 0xffb1
+					#define MUCOSA_X11_XK_KP_2 0xffb2
+					#define MUCOSA_X11_XK_KP_3 0xffb3
+					#define MUCOSA_X11_XK_KP_4 0xffb4
+					#define MUCOSA_X11_XK_KP_5 0xffb5
+					#define MUCOSA_X11_XK_KP_6 0xffb6
+					#define MUCOSA_X11_XK_KP_7 0xffb7
+					#define MUCOSA_X11_XK_KP_8 0xffb8
+					#define MUCOSA_X11_XK_KP_9 0xffb9
+					#define MUCOSA_X11_XK_KP_Multiply 0xffaa
+					#define MUCOSA_X11_XK_KP_Add 0xffab
+					#define MUCOSA_X11_XK_KP_Separator 0xffac
+					#define MUCOSA_X11_XK_KP_Subtract 0xffad
+					#define MUCOSA_X11_XK_KP_Decimal 0xffae
+					#define MUCOSA_X11_XK_KP_Divide 0xffaf
+					#define MUCOSA_X11_XK_F1 0xffbe
+					#define MUCOSA_X11_XK_F2 0xffbf
+					#define MUCOSA_X11_XK_F3 0xffc0
+					#define MUCOSA_X11_XK_F4 0xffc1
+					#define MUCOSA_X11_XK_F5 0xffc2
+					#define MUCOSA_X11_XK_F6 0xffc3
+					#define MUCOSA_X11_XK_F7 0xffc4
+					#define MUCOSA_X11_XK_F8 0xffc5
+					#define MUCOSA_X11_XK_F9 0xffc6
+					#define MUCOSA_X11_XK_F10 0xffc7
+					#define MUCOSA_X11_XK_F11 0xffc8
+					#define MUCOSA_X11_XK_F12 0xffc9
+					#define MUCOSA_X11_XK_F13 0xffca
+					#define MUCOSA_X11_XK_F14 0xffcb
+					#define MUCOSA_X11_XK_F15 0xffcc
+					#define MUCOSA_X11_XK_F16 0xffcd
+					#define MUCOSA_X11_XK_F17 0xffce
+					#define MUCOSA_X11_XK_F18 0xffcf
+					#define MUCOSA_X11_XK_F19 0xffd0
+					#define MUCOSA_X11_XK_F20 0xffd1
+					#define MUCOSA_X11_XK_F21 0xffd2
+					#define MUCOSA_X11_XK_F22 0xffd3
+					#define MUCOSA_X11_XK_F23 0xffd4
+					#define MUCOSA_X11_XK_F24 0xffd5
+					#define MUCOSA_X11_XK_Num_Lock 0xff7f
+					#define MUCOSA_X11_XK_Scroll_Lock 0xff14
+					#define MUCOSA_X11_XK_Shift_L 0xffe1
+					#define MUCOSA_X11_XK_Shift_R 0xffe2
+					#define MUCOSA_X11_XK_Control_L 0xffe3
+					#define MUCOSA_X11_XK_Control_R 0xffe4
+					#define MUCOSA_X11_XK_Menu 0xff67
+					#define MUCOSA_X11_XK_3270_Attn 0xfd0e
+					#define MUCOSA_X11_XK_3270_CursorSelect 0xfd1c
+					#define MUCOSA_X11_XK_3270_ExSelect 0xfd1b
+					#define MUCOSA_X11_XK_3270_EraseEOF 0xfd06
+					#define MUCOSA_X11_XK_3270_Play 0xfd16
+					#define MUCOSA_X11_XK_3270_PA1 0xfd0a
+
+				int muCOSA_X11_keyboard_key_get_XK_key(muKeyboardKey key) {
+					switch (key) {
+						default: return MUCOSA_X11_XK_VoidSymbol; break;
+						case MU_KEYBOARD_KEY_BACKSPACE: return MUCOSA_X11_XK_BackSpace; break;
+						case MU_KEYBOARD_KEY_TAB: return MUCOSA_X11_XK_Tab; break;
+						case MU_KEYBOARD_KEY_CLEAR: return MUCOSA_X11_XK_Clear; break;
+						case MU_KEYBOARD_KEY_RETURN: return MUCOSA_X11_XK_Return; break;
+						case MU_KEYBOARD_KEY_PAUSE: return MUCOSA_X11_XK_Pause; break;
+						case MU_KEYBOARD_KEY_ESCAPE: return MUCOSA_X11_XK_Escape; break;
+						case MU_KEYBOARD_KEY_MODECHANGE: return MUCOSA_X11_XK_Mode_switch; break;
+						case MU_KEYBOARD_KEY_SPACE: return MUCOSA_X11_XK_space; break;
+						case MU_KEYBOARD_KEY_PRIOR: return MUCOSA_X11_XK_Prior; break;
+						case MU_KEYBOARD_KEY_NEXT: return MUCOSA_X11_XK_Next; break;
+						case MU_KEYBOARD_KEY_END: return MUCOSA_X11_XK_End; break;
+						case MU_KEYBOARD_KEY_HOME: return MUCOSA_X11_XK_Home; break;
+						case MU_KEYBOARD_KEY_LEFT: return MUCOSA_X11_XK_Left; break;
+						case MU_KEYBOARD_KEY_UP: return MUCOSA_X11_XK_Up; break;
+						case MU_KEYBOARD_KEY_RIGHT: return MUCOSA_X11_XK_Right; break;
+						case MU_KEYBOARD_KEY_DOWN: return MUCOSA_X11_XK_Down; break;
+						case MU_KEYBOARD_KEY_SELECT: return MUCOSA_X11_XK_Select; break;
+						case MU_KEYBOARD_KEY_PRINT: return MUCOSA_X11_XK_Print; break;
+						case MU_KEYBOARD_KEY_EXECUTE: return MUCOSA_X11_XK_Execute; break;
+						case MU_KEYBOARD_KEY_INSERT: return MUCOSA_X11_XK_Insert; break;
+						case MU_KEYBOARD_KEY_DELETE: return MUCOSA_X11_XK_Delete; break;
+						case MU_KEYBOARD_KEY_HELP: return MUCOSA_X11_XK_Help; break;
+						case MU_KEYBOARD_KEY_0: return MUCOSA_X11_XK_0; break;
+						case MU_KEYBOARD_KEY_1: return MUCOSA_X11_XK_1; break;
+						case MU_KEYBOARD_KEY_2: return MUCOSA_X11_XK_2; break;
+						case MU_KEYBOARD_KEY_3: return MUCOSA_X11_XK_3; break;
+						case MU_KEYBOARD_KEY_4: return MUCOSA_X11_XK_4; break;
+						case MU_KEYBOARD_KEY_5: return MUCOSA_X11_XK_5; break;
+						case MU_KEYBOARD_KEY_6: return MUCOSA_X11_XK_6; break;
+						case MU_KEYBOARD_KEY_7: return MUCOSA_X11_XK_7; break;
+						case MU_KEYBOARD_KEY_8: return MUCOSA_X11_XK_8; break;
+						case MU_KEYBOARD_KEY_9: return MUCOSA_X11_XK_9; break;
+						case MU_KEYBOARD_KEY_A: return MUCOSA_X11_XK_a; break;
+						case MU_KEYBOARD_KEY_B: return MUCOSA_X11_XK_b; break;
+						case MU_KEYBOARD_KEY_C: return MUCOSA_X11_XK_c; break;
+						case MU_KEYBOARD_KEY_D: return MUCOSA_X11_XK_d; break;
+						case MU_KEYBOARD_KEY_E: return MUCOSA_X11_XK_e; break;
+						case MU_KEYBOARD_KEY_F: return MUCOSA_X11_XK_f; break;
+						case MU_KEYBOARD_KEY_G: return MUCOSA_X11_XK_g; break;
+						case MU_KEYBOARD_KEY_H: return MUCOSA_X11_XK_h; break;
+						case MU_KEYBOARD_KEY_I: return MUCOSA_X11_XK_i; break;
+						case MU_KEYBOARD_KEY_J: return MUCOSA_X11_XK_j; break;
+						case MU_KEYBOARD_KEY_K: return MUCOSA_X11_XK_k; break;
+						case MU_KEYBOARD_KEY_L: return MUCOSA_X11_XK_l; break;
+						case MU_KEYBOARD_KEY_M: return MUCOSA_X11_XK_m; break;
+						case MU_KEYBOARD_KEY_N: return MUCOSA_X11_XK_n; break;
+						case MU_KEYBOARD_KEY_O: return MUCOSA_X11_XK_o; break;
+						case MU_KEYBOARD_KEY_P: return MUCOSA_X11_XK_p; break;
+						case MU_KEYBOARD_KEY_Q: return MUCOSA_X11_XK_q; break;
+						case MU_KEYBOARD_KEY_R: return MUCOSA_X11_XK_r; break;
+						case MU_KEYBOARD_KEY_S: return MUCOSA_X11_XK_s; break;
+						case MU_KEYBOARD_KEY_T: return MUCOSA_X11_XK_t; break;
+						case MU_KEYBOARD_KEY_U: return MUCOSA_X11_XK_u; break;
+						case MU_KEYBOARD_KEY_V: return MUCOSA_X11_XK_v; break;
+						case MU_KEYBOARD_KEY_W: return MUCOSA_X11_XK_w; break;
+						case MU_KEYBOARD_KEY_X: return MUCOSA_X11_XK_x; break;
+						case MU_KEYBOARD_KEY_Y: return MUCOSA_X11_XK_y; break;
+						case MU_KEYBOARD_KEY_Z: return MUCOSA_X11_XK_z; break;
+						case MU_KEYBOARD_KEY_LEFT_WINDOWS: return MUCOSA_X11_XK_Super_L; break;
+						case MU_KEYBOARD_KEY_RIGHT_WINDOWS: return MUCOSA_X11_XK_Super_R; break;
+						case MU_KEYBOARD_KEY_NUMPAD_0: return MUCOSA_X11_XK_KP_0; break;
+						case MU_KEYBOARD_KEY_NUMPAD_1: return MUCOSA_X11_XK_KP_1; break;
+						case MU_KEYBOARD_KEY_NUMPAD_2: return MUCOSA_X11_XK_KP_2; break;
+						case MU_KEYBOARD_KEY_NUMPAD_3: return MUCOSA_X11_XK_KP_3; break;
+						case MU_KEYBOARD_KEY_NUMPAD_4: return MUCOSA_X11_XK_KP_4; break;
+						case MU_KEYBOARD_KEY_NUMPAD_5: return MUCOSA_X11_XK_KP_5; break;
+						case MU_KEYBOARD_KEY_NUMPAD_6: return MUCOSA_X11_XK_KP_6; break;
+						case MU_KEYBOARD_KEY_NUMPAD_7: return MUCOSA_X11_XK_KP_7; break;
+						case MU_KEYBOARD_KEY_NUMPAD_8: return MUCOSA_X11_XK_KP_8; break;
+						case MU_KEYBOARD_KEY_NUMPAD_9: return MUCOSA_X11_XK_KP_9; break;
+						case MU_KEYBOARD_KEY_MULTIPLY: return MUCOSA_X11_XK_KP_Multiply; break;
+						case MU_KEYBOARD_KEY_ADD: return MUCOSA_X11_XK_KP_Add; break;
+						case MU_KEYBOARD_KEY_SEPARATOR: return MUCOSA_X11_XK_KP_Separator; break;
+						case MU_KEYBOARD_KEY_SUBTRACT: return MUCOSA_X11_XK_KP_Subtract; break;
+						case MU_KEYBOARD_KEY_DECIMAL: return MUCOSA_X11_XK_KP_Decimal; break;
+						case MU_KEYBOARD_KEY_DIVIDE: return MUCOSA_X11_XK_KP_Divide; break;
+						case MU_KEYBOARD_KEY_F1: return MUCOSA_X11_XK_F1; break;
+						case MU_KEYBOARD_KEY_F2: return MUCOSA_X11_XK_F2; break;
+						case MU_KEYBOARD_KEY_F3: return MUCOSA_X11_XK_F3; break;
+						case MU_KEYBOARD_KEY_F4: return MUCOSA_X11_XK_F4; break;
+						case MU_KEYBOARD_KEY_F5: return MUCOSA_X11_XK_F5; break;
+						case MU_KEYBOARD_KEY_F6: return MUCOSA_X11_XK_F6; break;
+						case MU_KEYBOARD_KEY_F7: return MUCOSA_X11_XK_F7; break;
+						case MU_KEYBOARD_KEY_F8: return MUCOSA_X11_XK_F8; break;
+						case MU_KEYBOARD_KEY_F9: return MUCOSA_X11_XK_F9; break;
+						case MU_KEYBOARD_KEY_F10: return MUCOSA_X11_XK_F10;break;
+						case MU_KEYBOARD_KEY_F11: return MUCOSA_X11_XK_F11;break;
+						case MU_KEYBOARD_KEY_F12: return MUCOSA_X11_XK_F12; break;
+						case MU_KEYBOARD_KEY_F13: return MUCOSA_X11_XK_F13; break;
+						case MU_KEYBOARD_KEY_F14: return MUCOSA_X11_XK_F14; break;
+						case MU_KEYBOARD_KEY_F15: return MUCOSA_X11_XK_F15; break;
+						case MU_KEYBOARD_KEY_F16: return MUCOSA_X11_XK_F16; break;
+						case MU_KEYBOARD_KEY_F17: return MUCOSA_X11_XK_F17; break;
+						case MU_KEYBOARD_KEY_F18: return MUCOSA_X11_XK_F18; break;
+						case MU_KEYBOARD_KEY_F19: return MUCOSA_X11_XK_F19; break;
+						case MU_KEYBOARD_KEY_F20: return MUCOSA_X11_XK_F20; break;
+						case MU_KEYBOARD_KEY_F21: return MUCOSA_X11_XK_F21; break;
+						case MU_KEYBOARD_KEY_F22: return MUCOSA_X11_XK_F22; break;
+						case MU_KEYBOARD_KEY_F23: return MUCOSA_X11_XK_F23; break;
+						case MU_KEYBOARD_KEY_F24: return MUCOSA_X11_XK_F24; break;
+						case MU_KEYBOARD_KEY_NUMLOCK: return MUCOSA_X11_XK_Num_Lock; break;
+						case MU_KEYBOARD_KEY_SCROLL: return MUCOSA_X11_XK_Scroll_Lock; break;
+						case MU_KEYBOARD_KEY_LEFT_SHIFT: return MUCOSA_X11_XK_Shift_L; break;
+						case MU_KEYBOARD_KEY_RIGHT_SHIFT: return MUCOSA_X11_XK_Shift_R; break;
+						case MU_KEYBOARD_KEY_LEFT_CONTROL: return MUCOSA_X11_XK_Control_L; break;
+						case MU_KEYBOARD_KEY_RIGHT_CONTROL: return MUCOSA_X11_XK_Control_R; break;
+						case MU_KEYBOARD_KEY_LEFT_MENU: return MUCOSA_X11_XK_Menu; break;
+						case MU_KEYBOARD_KEY_RIGHT_MENU: return MUCOSA_X11_XK_Menu; break;
+						case MU_KEYBOARD_KEY_ATTN: return MUCOSA_X11_XK_3270_Attn; break;
+						case MU_KEYBOARD_KEY_CRSEL: return MUCOSA_X11_XK_3270_CursorSelect; break;
+						case MU_KEYBOARD_KEY_EXSEL: return MUCOSA_X11_XK_3270_ExSelect; break;
+						case MU_KEYBOARD_KEY_EREOF: return MUCOSA_X11_XK_3270_EraseEOF; break;
+						case MU_KEYBOARD_KEY_PLAY: return MUCOSA_X11_XK_3270_Play; break;
+						case MU_KEYBOARD_KEY_PA1: return MUCOSA_X11_XK_3270_PA1; break;
+					}
+				}
+
+				muKeyboardKey muCOSA_X11_XK_key_to_keyboard_key(int key) {
+					switch (key) {
+						default: return MU_KEYBOARD_KEY_UNKNOWN; break;
+						case MUCOSA_X11_XK_BackSpace: return MU_KEYBOARD_KEY_BACKSPACE; break;
+						case MUCOSA_X11_XK_Tab: return MU_KEYBOARD_KEY_TAB; break;
+						case MUCOSA_X11_XK_Clear: return MU_KEYBOARD_KEY_CLEAR; break;
+						case MUCOSA_X11_XK_Return: return MU_KEYBOARD_KEY_RETURN; break;
+						case MUCOSA_X11_XK_Menu: return MU_KEYBOARD_KEY_LEFT_MENU; break;
+						case MUCOSA_X11_XK_Pause: return MU_KEYBOARD_KEY_PAUSE; break;
+						case MUCOSA_X11_XK_Escape: return MU_KEYBOARD_KEY_ESCAPE; break;
+						case MUCOSA_X11_XK_Mode_switch: return MU_KEYBOARD_KEY_MODECHANGE; break;
+						case MUCOSA_X11_XK_space: return MU_KEYBOARD_KEY_SPACE; break;
+						case MUCOSA_X11_XK_Prior: return MU_KEYBOARD_KEY_PRIOR; break;
+						case MUCOSA_X11_XK_Next: return MU_KEYBOARD_KEY_NEXT; break;
+						case MUCOSA_X11_XK_End: return MU_KEYBOARD_KEY_END; break;
+						case MUCOSA_X11_XK_Home: return MU_KEYBOARD_KEY_HOME; break;
+						case MUCOSA_X11_XK_Left: return MU_KEYBOARD_KEY_LEFT; break;
+						case MUCOSA_X11_XK_Up: return MU_KEYBOARD_KEY_UP; break;
+						case MUCOSA_X11_XK_Right: return MU_KEYBOARD_KEY_RIGHT; break;
+						case MUCOSA_X11_XK_Down: return MU_KEYBOARD_KEY_DOWN; break;
+						case MUCOSA_X11_XK_Select: return MU_KEYBOARD_KEY_SELECT; break;
+						case MUCOSA_X11_XK_Print: return MU_KEYBOARD_KEY_PRINT; break;
+						case MUCOSA_X11_XK_Execute: return MU_KEYBOARD_KEY_EXECUTE; break;
+						case MUCOSA_X11_XK_Insert: return MU_KEYBOARD_KEY_INSERT; break;
+						case MUCOSA_X11_XK_Delete: return MU_KEYBOARD_KEY_DELETE; break;
+						case MUCOSA_X11_XK_Help: return MU_KEYBOARD_KEY_HELP; break;
+						case MUCOSA_X11_XK_0: return MU_KEYBOARD_KEY_0; break;
+						case MUCOSA_X11_XK_1: return MU_KEYBOARD_KEY_1; break;
+						case MUCOSA_X11_XK_2: return MU_KEYBOARD_KEY_2; break;
+						case MUCOSA_X11_XK_3: return MU_KEYBOARD_KEY_3; break;
+						case MUCOSA_X11_XK_4: return MU_KEYBOARD_KEY_4; break;
+						case MUCOSA_X11_XK_5: return MU_KEYBOARD_KEY_5; break;
+						case MUCOSA_X11_XK_6: return MU_KEYBOARD_KEY_6; break;
+						case MUCOSA_X11_XK_7: return MU_KEYBOARD_KEY_7; break;
+						case MUCOSA_X11_XK_8: return MU_KEYBOARD_KEY_8; break;
+						case MUCOSA_X11_XK_9: return MU_KEYBOARD_KEY_9; break;
+						case MUCOSA_X11_XK_a: return MU_KEYBOARD_KEY_A; break;
+						case MUCOSA_X11_XK_b: return MU_KEYBOARD_KEY_B; break;
+						case MUCOSA_X11_XK_c: return MU_KEYBOARD_KEY_C; break;
+						case MUCOSA_X11_XK_d: return MU_KEYBOARD_KEY_D; break;
+						case MUCOSA_X11_XK_e: return MU_KEYBOARD_KEY_E; break;
+						case MUCOSA_X11_XK_f: return MU_KEYBOARD_KEY_F; break;
+						case MUCOSA_X11_XK_g: return MU_KEYBOARD_KEY_G; break;
+						case MUCOSA_X11_XK_h: return MU_KEYBOARD_KEY_H; break;
+						case MUCOSA_X11_XK_i: return MU_KEYBOARD_KEY_I; break;
+						case MUCOSA_X11_XK_j: return MU_KEYBOARD_KEY_J; break;
+						case MUCOSA_X11_XK_k: return MU_KEYBOARD_KEY_K; break;
+						case MUCOSA_X11_XK_l: return MU_KEYBOARD_KEY_L; break;
+						case MUCOSA_X11_XK_m: return MU_KEYBOARD_KEY_M; break;
+						case MUCOSA_X11_XK_n: return MU_KEYBOARD_KEY_N; break;
+						case MUCOSA_X11_XK_o: return MU_KEYBOARD_KEY_O; break;
+						case MUCOSA_X11_XK_p: return MU_KEYBOARD_KEY_P; break;
+						case MUCOSA_X11_XK_q: return MU_KEYBOARD_KEY_Q; break;
+						case MUCOSA_X11_XK_r: return MU_KEYBOARD_KEY_R; break;
+						case MUCOSA_X11_XK_s: return MU_KEYBOARD_KEY_S; break;
+						case MUCOSA_X11_XK_t: return MU_KEYBOARD_KEY_T; break;
+						case MUCOSA_X11_XK_u: return MU_KEYBOARD_KEY_U; break;
+						case MUCOSA_X11_XK_v: return MU_KEYBOARD_KEY_V; break;
+						case MUCOSA_X11_XK_w: return MU_KEYBOARD_KEY_W; break;
+						case MUCOSA_X11_XK_x: return MU_KEYBOARD_KEY_X; break;
+						case MUCOSA_X11_XK_y: return MU_KEYBOARD_KEY_Y; break;
+						case MUCOSA_X11_XK_z: return MU_KEYBOARD_KEY_Z; break;
+						case MUCOSA_X11_XK_Super_L: return MU_KEYBOARD_KEY_LEFT_WINDOWS; break;
+						case MUCOSA_X11_XK_Super_R: return MU_KEYBOARD_KEY_RIGHT_WINDOWS; break;
+						case MUCOSA_X11_XK_KP_0: return MU_KEYBOARD_KEY_NUMPAD_0; break;
+						case MUCOSA_X11_XK_KP_1: return MU_KEYBOARD_KEY_NUMPAD_1; break;
+						case MUCOSA_X11_XK_KP_2: return MU_KEYBOARD_KEY_NUMPAD_2; break;
+						case MUCOSA_X11_XK_KP_3: return MU_KEYBOARD_KEY_NUMPAD_3; break;
+						case MUCOSA_X11_XK_KP_4: return MU_KEYBOARD_KEY_NUMPAD_4; break;
+						case MUCOSA_X11_XK_KP_5: return MU_KEYBOARD_KEY_NUMPAD_5; break;
+						case MUCOSA_X11_XK_KP_6: return MU_KEYBOARD_KEY_NUMPAD_6; break;
+						case MUCOSA_X11_XK_KP_7: return MU_KEYBOARD_KEY_NUMPAD_7; break;
+						case MUCOSA_X11_XK_KP_8: return MU_KEYBOARD_KEY_NUMPAD_8; break;
+						case MUCOSA_X11_XK_KP_9: return MU_KEYBOARD_KEY_NUMPAD_9; break;
+						case MUCOSA_X11_XK_KP_Multiply: return MU_KEYBOARD_KEY_MULTIPLY; break;
+						case MUCOSA_X11_XK_KP_Add: return MU_KEYBOARD_KEY_ADD; break;
+						case MUCOSA_X11_XK_KP_Separator: return MU_KEYBOARD_KEY_SEPARATOR; break;
+						case MUCOSA_X11_XK_KP_Subtract: return MU_KEYBOARD_KEY_SUBTRACT; break;
+						case MUCOSA_X11_XK_KP_Decimal: return MU_KEYBOARD_KEY_DECIMAL; break;
+						case MUCOSA_X11_XK_KP_Divide: return MU_KEYBOARD_KEY_DIVIDE; break;
+						case MUCOSA_X11_XK_F1: return MU_KEYBOARD_KEY_F1; break;
+						case MUCOSA_X11_XK_F2: return MU_KEYBOARD_KEY_F2; break;
+						case MUCOSA_X11_XK_F3: return MU_KEYBOARD_KEY_F3; break;
+						case MUCOSA_X11_XK_F4: return MU_KEYBOARD_KEY_F4; break;
+						case MUCOSA_X11_XK_F5: return MU_KEYBOARD_KEY_F5; break;
+						case MUCOSA_X11_XK_F6: return MU_KEYBOARD_KEY_F6; break;
+						case MUCOSA_X11_XK_F7: return MU_KEYBOARD_KEY_F7; break;
+						case MUCOSA_X11_XK_F8: return MU_KEYBOARD_KEY_F8; break;
+						case MUCOSA_X11_XK_F9: return MU_KEYBOARD_KEY_F9; break;
+						case MUCOSA_X11_XK_F10: return MU_KEYBOARD_KEY_F10; break;
+						case MUCOSA_X11_XK_F11: return MU_KEYBOARD_KEY_F11; break;
+						case MUCOSA_X11_XK_F12: return MU_KEYBOARD_KEY_F12; break;
+						case MUCOSA_X11_XK_F13: return MU_KEYBOARD_KEY_F13; break;
+						case MUCOSA_X11_XK_F14: return MU_KEYBOARD_KEY_F14; break;
+						case MUCOSA_X11_XK_F15: return MU_KEYBOARD_KEY_F15; break;
+						case MUCOSA_X11_XK_F16: return MU_KEYBOARD_KEY_F16; break;
+						case MUCOSA_X11_XK_F17: return MU_KEYBOARD_KEY_F17; break;
+						case MUCOSA_X11_XK_F18: return MU_KEYBOARD_KEY_F18; break;
+						case MUCOSA_X11_XK_F19: return MU_KEYBOARD_KEY_F19; break;
+						case MUCOSA_X11_XK_F20: return MU_KEYBOARD_KEY_F20; break;
+						case MUCOSA_X11_XK_F21: return MU_KEYBOARD_KEY_F21; break;
+						case MUCOSA_X11_XK_F22: return MU_KEYBOARD_KEY_F22; break;
+						case MUCOSA_X11_XK_F23: return MU_KEYBOARD_KEY_F23; break;
+						case MUCOSA_X11_XK_F24: return MU_KEYBOARD_KEY_F24; break;
+						case MUCOSA_X11_XK_Num_Lock: return MU_KEYBOARD_KEY_NUMLOCK; break;
+						case MUCOSA_X11_XK_Scroll_Lock: return MU_KEYBOARD_KEY_SCROLL; break;
+						case MUCOSA_X11_XK_Shift_L: return MU_KEYBOARD_KEY_LEFT_SHIFT; break;
+						case MUCOSA_X11_XK_Shift_R: return MU_KEYBOARD_KEY_RIGHT_SHIFT; break;
+						case MUCOSA_X11_XK_Control_L: return MU_KEYBOARD_KEY_LEFT_CONTROL; break;
+						case MUCOSA_X11_XK_Control_R: return MU_KEYBOARD_KEY_RIGHT_CONTROL; break;
+						case MUCOSA_X11_XK_3270_Attn: return MU_KEYBOARD_KEY_ATTN; break;
+						case MUCOSA_X11_XK_3270_CursorSelect: return MU_KEYBOARD_KEY_CRSEL; break;
+						case MUCOSA_X11_XK_3270_ExSelect: return MU_KEYBOARD_KEY_EXSEL; break;
+						case MUCOSA_X11_XK_3270_EraseEOF: return MU_KEYBOARD_KEY_EREOF; break;
+						case MUCOSA_X11_XK_3270_Play: return MU_KEYBOARD_KEY_PLAY; break;
+						case MUCOSA_X11_XK_3270_PA1: return MU_KEYBOARD_KEY_PA1; break;
+					}
+				}
+
+				void muCOSA_X11_keyboard_key_handle_event(muWindow window, muCOSA_X11Window* p_win, unsigned int keycode, muByte down) {
+					muKeyboardKey key = muCOSA_X11_XK_key_to_keyboard_key(XkbKeycodeToKeysym(p_win->display, keycode, 0, 0));
+					if (key == MU_KEYBOARD_KEY_UNKNOWN) {
+						return;
+					}
+
+					p_win->input.keyboard_key_states[key-MU_KEYBOARD_KEY_FIRST] = down;
+
+					if (p_win->keyboard_key_callback != MU_NULL_PTR) {
+						p_win->keyboard_key_callback(window, key, p_win->input.keyboard_key_states[key-MU_KEYBOARD_KEY_FIRST]);
+					}
+				}
+
 			/* Cursor */
 
+				// https://tronche.com/gui/x/xlib/appendix/b/
 				int muCOSA_X11_cursor_get_style(muCursorStyle style) {
 					switch (style) {
 						default: return 2; break;
@@ -4284,7 +4808,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					}
 				}
 
-				void muCOSA_X11_cursor_handle_button_release_event(muCOSA_X11Window* p_win, int button, muByte down) {
+				void muCOSA_X11_cursor_handle_event(muCOSA_X11Window* p_win, int button, muByte down) {
 					// down = true -> button being pressed down
 					// down = false -> button being released
 					switch (button) {
@@ -4310,7 +4834,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 			/* Window */
 
-				muCOSAResult muCOSA_X11Window_handle_event(muCOSA_X11Window* p_win, XEvent event) {
+				muCOSAResult muCOSA_X11Window_handle_event(muWindow window, muCOSA_X11Window* p_win, XEvent event) {
 					switch (event.type) {
 						default: return MUCOSA_SUCCESS; break;
 
@@ -4322,13 +4846,22 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 							}
 						} break;
 
+						/* Mouse button press */
 						case ButtonPress: {
-							muCOSA_X11_cursor_handle_button_release_event(p_win, event.xbutton.button, MU_TRUE);
+							muCOSA_X11_cursor_handle_event(p_win, event.xbutton.button, MU_TRUE);
 						} break;
-
 						/* Mouse button release */
 						case ButtonRelease: {
-							muCOSA_X11_cursor_handle_button_release_event(p_win, event.xbutton.button, MU_FALSE);
+							muCOSA_X11_cursor_handle_event(p_win, event.xbutton.button, MU_FALSE);
+						} break;
+
+						/* Keyboard key press */
+						case KeyPress: {
+							muCOSA_X11_keyboard_key_handle_event(window, p_win, event.xkey.keycode, MU_TRUE);
+						} break;
+						/* Keyboard key release */
+						case KeyRelease: {
+							muCOSA_X11_keyboard_key_handle_event(window, p_win, event.xkey.keycode, MU_FALSE);
 						} break;
 					}
 
@@ -4503,6 +5036,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 							XFree(c->windows.data[win].size_hints);
 							MU_RELEASE(c->windows, win, muCOSA_X11Window_) return MU_NONE;)
 
+						XAutoRepeatOff(c->windows.data[win].display);
+
 						/*
 						The XCloseDisplay function closes the connection to the X server for the
 						display specified in the Display structure and destroys all windows,
@@ -4669,6 +5204,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						c->windows.data[win].max_width = create_info.max_width;
 						c->windows.data[win].max_height = create_info.max_height;
 						c->windows.data[win].scroll_level = 0;
+						c->windows.data[win].input = MU_ZERO_STRUCT(muCOSA_X11_input);
+						c->windows.data[win].keyboard_key_callback = create_info.keyboard_key_callback;
 						MU_RELEASE(c->windows, win, muCOSA_X11Window_)
 						return win;
 					}
@@ -4723,7 +5260,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 							XEvent event;
 							XNextEvent(c->windows.data[window].display, &event);
 
-							mu_res = muCOSA_X11Window_handle_event(&c->windows.data[window], event);
+							mu_res = muCOSA_X11Window_handle_event(window, &c->windows.data[window], event);
 							MU_ASSERT(mu_res == MUCOSA_SUCCESS, result, mu_res, MU_RELEASE(c->windows, window, muCOSA_X11Window_) return;)
 						}
 
@@ -5084,9 +5621,29 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
 
+					muButtonState muCOSA_X11_window_get_keyboard_key_state(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, muKeyboardKey key) {
+						MU_ASSERT(key >= MU_KEYBOARD_KEY_FIRST && key <= MU_KEYBOARD_KEY_LAST, result, MUCOSA_UNKNOWN_KEYBOARD_KEY, return 0;)
+
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return 0;, muCOSA_X11Window_)
+
+						muButtonState state = c->windows.data[window].input.keyboard_key_states[key-MU_KEYBOARD_KEY_FIRST];
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+
+						return state;
+					}
+
 				/* Set */
 
-					// ...
+					void muCOSA_X11_window_set_keyboard_key_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].keyboard_key_callback = callback;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
 
 			/* OpenGL */
 
@@ -5133,6 +5690,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						case MUCOSA_ALLOCATION_FAILED: return "MUCOSA_ALLOCATION_FAILED"; break;
 						case MUCOSA_UNKNOWN_WINDOW_SYSTEM: return "MUCOSA_UNKNOWN_WINDOW_SYSTEM"; break;
 						case MUCOSA_UNKNOWN_GRAPHICS_API: return "MUCOSA_UNKNOWN_GRAPHICS_API"; break;
+						case MUCOSA_UNKNOWN_KEYBOARD_KEY: return "MUCOSA_UNKNOWN_KEYBOARD_KEY"; break;
 						case MUCOSA_UNSUPPORTED_WINDOW_SYSTEM: return "MUCOSA_UNSUPPORTED_WINDOW_SYSTEM"; break;
 						case MUCOSA_UNSUPPORTED_FEATURE: return "MUCOSA_UNSUPPORTED_FEATURE"; break;
 						case MUCOSA_FAILED_CONNECTION_TO_SERVER: return "MUCOSA_FAILED_CONNECTION_TO_SERVER"; break;
@@ -5151,6 +5709,246 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						case MUCOSA_MUMA_INVALID_INDEX: return "MUCOSA_MUMA_INVALID_INDEX"; break;
 						case MUCOSA_MUMA_INVALID_SHIFT_AMOUNT: return "MUCOSA_MUMA_INVALID_SHIFT_AMOUNT"; break;
 						case MUCOSA_MUMA_NOT_FOUND: return "MUCOSA_MUMA_NOT_FOUND"; break;
+					}
+				}
+
+				MUDEF const char* muCOSA_keyboard_key_get_name(muKeyboardKey key) {
+					switch (key) {
+						default: return "MU_KEYBOARD_KEY_UNKNOWN"; break;
+						case MU_KEYBOARD_KEY_BACKSPACE: return "MU_KEYBOARD_KEY_BACKSPACE"; break;
+						case MU_KEYBOARD_KEY_TAB: return "MU_KEYBOARD_KEY_TAB"; break;
+						case MU_KEYBOARD_KEY_CLEAR: return "MU_KEYBOARD_KEY_CLEAR"; break;
+						case MU_KEYBOARD_KEY_RETURN: return "MU_KEYBOARD_KEY_RETURN"; break;
+						case MU_KEYBOARD_KEY_PAUSE: return "MU_KEYBOARD_KEY_PAUSE"; break;
+						case MU_KEYBOARD_KEY_ESCAPE: return "MU_KEYBOARD_KEY_ESCAPE"; break;
+						case MU_KEYBOARD_KEY_MODECHANGE: return "MU_KEYBOARD_KEY_MODECHANGE"; break;
+						case MU_KEYBOARD_KEY_SPACE: return "MU_KEYBOARD_KEY_SPACE"; break;
+						case MU_KEYBOARD_KEY_PRIOR: return "MU_KEYBOARD_KEY_PRIOR"; break;
+						case MU_KEYBOARD_KEY_NEXT: return "MU_KEYBOARD_KEY_NEXT"; break;
+						case MU_KEYBOARD_KEY_END: return "MU_KEYBOARD_KEY_END"; break;
+						case MU_KEYBOARD_KEY_HOME: return "MU_KEYBOARD_KEY_HOME"; break;
+						case MU_KEYBOARD_KEY_LEFT: return "MU_KEYBOARD_KEY_LEFT"; break;
+						case MU_KEYBOARD_KEY_UP: return "MU_KEYBOARD_KEY_UP"; break;
+						case MU_KEYBOARD_KEY_RIGHT: return "MU_KEYBOARD_KEY_RIGHT"; break;
+						case MU_KEYBOARD_KEY_DOWN: return "MU_KEYBOARD_KEY_DOWN"; break;
+						case MU_KEYBOARD_KEY_SELECT: return "MU_KEYBOARD_KEY_SELECT"; break;
+						case MU_KEYBOARD_KEY_PRINT: return "MU_KEYBOARD_KEY_PRINT"; break;
+						case MU_KEYBOARD_KEY_EXECUTE: return "MU_KEYBOARD_KEY_EXECUTE"; break;
+						case MU_KEYBOARD_KEY_INSERT: return "MU_KEYBOARD_KEY_INSERT"; break;
+						case MU_KEYBOARD_KEY_DELETE: return "MU_KEYBOARD_KEY_DELETE"; break;
+						case MU_KEYBOARD_KEY_HELP: return "MU_KEYBOARD_KEY_HELP"; break;
+						case MU_KEYBOARD_KEY_0: return "MU_KEYBOARD_KEY_0"; break;
+						case MU_KEYBOARD_KEY_1: return "MU_KEYBOARD_KEY_1"; break;
+						case MU_KEYBOARD_KEY_2: return "MU_KEYBOARD_KEY_2"; break;
+						case MU_KEYBOARD_KEY_3: return "MU_KEYBOARD_KEY_3"; break;
+						case MU_KEYBOARD_KEY_4: return "MU_KEYBOARD_KEY_4"; break;
+						case MU_KEYBOARD_KEY_5: return "MU_KEYBOARD_KEY_5"; break;
+						case MU_KEYBOARD_KEY_6: return "MU_KEYBOARD_KEY_6"; break;
+						case MU_KEYBOARD_KEY_7: return "MU_KEYBOARD_KEY_7"; break;
+						case MU_KEYBOARD_KEY_8: return "MU_KEYBOARD_KEY_8"; break;
+						case MU_KEYBOARD_KEY_9: return "MU_KEYBOARD_KEY_9"; break;
+						case MU_KEYBOARD_KEY_A: return "MU_KEYBOARD_KEY_A"; break;
+						case MU_KEYBOARD_KEY_B: return "MU_KEYBOARD_KEY_B"; break;
+						case MU_KEYBOARD_KEY_C: return "MU_KEYBOARD_KEY_C"; break;
+						case MU_KEYBOARD_KEY_D: return "MU_KEYBOARD_KEY_D"; break;
+						case MU_KEYBOARD_KEY_E: return "MU_KEYBOARD_KEY_E"; break;
+						case MU_KEYBOARD_KEY_F: return "MU_KEYBOARD_KEY_F"; break;
+						case MU_KEYBOARD_KEY_G: return "MU_KEYBOARD_KEY_G"; break;
+						case MU_KEYBOARD_KEY_H: return "MU_KEYBOARD_KEY_H"; break;
+						case MU_KEYBOARD_KEY_I: return "MU_KEYBOARD_KEY_I"; break;
+						case MU_KEYBOARD_KEY_J: return "MU_KEYBOARD_KEY_J"; break;
+						case MU_KEYBOARD_KEY_K: return "MU_KEYBOARD_KEY_K"; break;
+						case MU_KEYBOARD_KEY_L: return "MU_KEYBOARD_KEY_L"; break;
+						case MU_KEYBOARD_KEY_M: return "MU_KEYBOARD_KEY_M"; break;
+						case MU_KEYBOARD_KEY_N: return "MU_KEYBOARD_KEY_N"; break;
+						case MU_KEYBOARD_KEY_O: return "MU_KEYBOARD_KEY_O"; break;
+						case MU_KEYBOARD_KEY_P: return "MU_KEYBOARD_KEY_P"; break;
+						case MU_KEYBOARD_KEY_Q: return "MU_KEYBOARD_KEY_Q"; break;
+						case MU_KEYBOARD_KEY_R: return "MU_KEYBOARD_KEY_R"; break;
+						case MU_KEYBOARD_KEY_S: return "MU_KEYBOARD_KEY_S"; break;
+						case MU_KEYBOARD_KEY_T: return "MU_KEYBOARD_KEY_T"; break;
+						case MU_KEYBOARD_KEY_U: return "MU_KEYBOARD_KEY_U"; break;
+						case MU_KEYBOARD_KEY_V: return "MU_KEYBOARD_KEY_V"; break;
+						case MU_KEYBOARD_KEY_W: return "MU_KEYBOARD_KEY_W"; break;
+						case MU_KEYBOARD_KEY_X: return "MU_KEYBOARD_KEY_X"; break;
+						case MU_KEYBOARD_KEY_Y: return "MU_KEYBOARD_KEY_Y"; break;
+						case MU_KEYBOARD_KEY_Z: return "MU_KEYBOARD_KEY_Z"; break;
+						case MU_KEYBOARD_KEY_LEFT_WINDOWS: return "MU_KEYBOARD_KEY_LEFT_WINDOWS"; break;
+						case MU_KEYBOARD_KEY_RIGHT_WINDOWS: return "MU_KEYBOARD_KEY_RIGHT_WINDOWS"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_0: return "MU_KEYBOARD_KEY_NUMPAD_0"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_1: return "MU_KEYBOARD_KEY_NUMPAD_1"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_2: return "MU_KEYBOARD_KEY_NUMPAD_2"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_3: return "MU_KEYBOARD_KEY_NUMPAD_3"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_4: return "MU_KEYBOARD_KEY_NUMPAD_4"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_5: return "MU_KEYBOARD_KEY_NUMPAD_5"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_6: return "MU_KEYBOARD_KEY_NUMPAD_6"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_7: return "MU_KEYBOARD_KEY_NUMPAD_7"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_8: return "MU_KEYBOARD_KEY_NUMPAD_8"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_9: return "MU_KEYBOARD_KEY_NUMPAD_9"; break;
+						case MU_KEYBOARD_KEY_MULTIPLY: return "MU_KEYBOARD_KEY_MULTIPLY"; break;
+						case MU_KEYBOARD_KEY_ADD: return "MU_KEYBOARD_KEY_ADD"; break;
+						case MU_KEYBOARD_KEY_SEPARATOR: return "MU_KEYBOARD_KEY_SEPARATOR"; break;
+						case MU_KEYBOARD_KEY_SUBTRACT: return "MU_KEYBOARD_KEY_SUBTRACT"; break;
+						case MU_KEYBOARD_KEY_DECIMAL: return "MU_KEYBOARD_KEY_DECIMAL"; break;
+						case MU_KEYBOARD_KEY_DIVIDE: return "MU_KEYBOARD_KEY_DIVIDE"; break;
+						case MU_KEYBOARD_KEY_F1: return "MU_KEYBOARD_KEY_F1"; break;
+						case MU_KEYBOARD_KEY_F2: return "MU_KEYBOARD_KEY_F2"; break;
+						case MU_KEYBOARD_KEY_F3: return "MU_KEYBOARD_KEY_F3"; break;
+						case MU_KEYBOARD_KEY_F4: return "MU_KEYBOARD_KEY_F4"; break;
+						case MU_KEYBOARD_KEY_F5: return "MU_KEYBOARD_KEY_F5"; break;
+						case MU_KEYBOARD_KEY_F6: return "MU_KEYBOARD_KEY_F6"; break;
+						case MU_KEYBOARD_KEY_F7: return "MU_KEYBOARD_KEY_F7"; break;
+						case MU_KEYBOARD_KEY_F8: return "MU_KEYBOARD_KEY_F8"; break;
+						case MU_KEYBOARD_KEY_F9: return "MU_KEYBOARD_KEY_F9"; break;
+						case MU_KEYBOARD_KEY_F10: return "MU_KEYBOARD_KEY_F10"; break;
+						case MU_KEYBOARD_KEY_F11: return "MU_KEYBOARD_KEY_F11"; break;
+						case MU_KEYBOARD_KEY_F12: return "MU_KEYBOARD_KEY_F12"; break;
+						case MU_KEYBOARD_KEY_F13: return "MU_KEYBOARD_KEY_F13"; break;
+						case MU_KEYBOARD_KEY_F14: return "MU_KEYBOARD_KEY_F14"; break;
+						case MU_KEYBOARD_KEY_F15: return "MU_KEYBOARD_KEY_F15"; break;
+						case MU_KEYBOARD_KEY_F16: return "MU_KEYBOARD_KEY_F16"; break;
+						case MU_KEYBOARD_KEY_F17: return "MU_KEYBOARD_KEY_F17"; break;
+						case MU_KEYBOARD_KEY_F18: return "MU_KEYBOARD_KEY_F18"; break;
+						case MU_KEYBOARD_KEY_F19: return "MU_KEYBOARD_KEY_F19"; break;
+						case MU_KEYBOARD_KEY_F20: return "MU_KEYBOARD_KEY_F20"; break;
+						case MU_KEYBOARD_KEY_F21: return "MU_KEYBOARD_KEY_F21"; break;
+						case MU_KEYBOARD_KEY_F22: return "MU_KEYBOARD_KEY_F22"; break;
+						case MU_KEYBOARD_KEY_F23: return "MU_KEYBOARD_KEY_F23"; break;
+						case MU_KEYBOARD_KEY_F24: return "MU_KEYBOARD_KEY_F24"; break;
+						case MU_KEYBOARD_KEY_NUMLOCK: return "MU_KEYBOARD_KEY_NUMLOCK"; break;
+						case MU_KEYBOARD_KEY_SCROLL: return "MU_KEYBOARD_KEY_SCROLL"; break;
+						case MU_KEYBOARD_KEY_LEFT_SHIFT: return "MU_KEYBOARD_KEY_LEFT_SHIFT"; break;
+						case MU_KEYBOARD_KEY_RIGHT_SHIFT: return "MU_KEYBOARD_KEY_RIGHT_SHIFT"; break;
+						case MU_KEYBOARD_KEY_LEFT_CONTROL: return "MU_KEYBOARD_KEY_LEFT_CONTROL"; break;
+						case MU_KEYBOARD_KEY_RIGHT_CONTROL: return "MU_KEYBOARD_KEY_RIGHT_CONTROL"; break;
+						case MU_KEYBOARD_KEY_LEFT_MENU: return "MU_KEYBOARD_KEY_LEFT_MENU"; break;
+						case MU_KEYBOARD_KEY_RIGHT_MENU: return "MU_KEYBOARD_KEY_RIGHT_MENU"; break;
+						case MU_KEYBOARD_KEY_ATTN: return "MU_KEYBOARD_KEY_ATTN"; break;
+						case MU_KEYBOARD_KEY_CRSEL: return "MU_KEYBOARD_KEY_CRSEL"; break;
+						case MU_KEYBOARD_KEY_EXSEL: return "MU_KEYBOARD_KEY_EXSEL"; break;
+						case MU_KEYBOARD_KEY_EREOF: return "MU_KEYBOARD_KEY_EREOF"; break;
+						case MU_KEYBOARD_KEY_PLAY: return "MU_KEYBOARD_KEY_PLAY"; break;
+						case MU_KEYBOARD_KEY_PA1: return "MU_KEYBOARD_KEY_PA1"; break;
+					}
+				}
+
+				MUDEF const char* muCOSA_keyboard_key_get_nice_name(muKeyboardKey key) {
+					switch (key) {
+						default: return "Unknown"; break;
+						case MU_KEYBOARD_KEY_BACKSPACE: return "Backspace"; break;
+						case MU_KEYBOARD_KEY_TAB: return "Tab"; break;
+						case MU_KEYBOARD_KEY_CLEAR: return "Clear"; break;
+						case MU_KEYBOARD_KEY_RETURN: return "Return"; break;
+						case MU_KEYBOARD_KEY_PAUSE: return "Pause"; break;
+						case MU_KEYBOARD_KEY_ESCAPE: return "Escape"; break;
+						case MU_KEYBOARD_KEY_MODECHANGE: return "Mode Change"; break;
+						case MU_KEYBOARD_KEY_SPACE: return "Space"; break;
+						case MU_KEYBOARD_KEY_PRIOR: return "Prior"; break;
+						case MU_KEYBOARD_KEY_NEXT: return "Next"; break;
+						case MU_KEYBOARD_KEY_END: return "End"; break;
+						case MU_KEYBOARD_KEY_HOME: return "Home"; break;
+						case MU_KEYBOARD_KEY_LEFT: return "Left"; break;
+						case MU_KEYBOARD_KEY_UP: return "Up"; break;
+						case MU_KEYBOARD_KEY_RIGHT: return "Right"; break;
+						case MU_KEYBOARD_KEY_DOWN: return "Down"; break;
+						case MU_KEYBOARD_KEY_SELECT: return "Select"; break;
+						case MU_KEYBOARD_KEY_PRINT: return "Print"; break;
+						case MU_KEYBOARD_KEY_EXECUTE: return "Execute"; break;
+						case MU_KEYBOARD_KEY_INSERT: return "Insert"; break;
+						case MU_KEYBOARD_KEY_DELETE: return "Delete"; break;
+						case MU_KEYBOARD_KEY_HELP: return "Help"; break;
+						case MU_KEYBOARD_KEY_0: return "0"; break;
+						case MU_KEYBOARD_KEY_1: return "1"; break;
+						case MU_KEYBOARD_KEY_2: return "2"; break;
+						case MU_KEYBOARD_KEY_3: return "3"; break;
+						case MU_KEYBOARD_KEY_4: return "4"; break;
+						case MU_KEYBOARD_KEY_5: return "5"; break;
+						case MU_KEYBOARD_KEY_6: return "6"; break;
+						case MU_KEYBOARD_KEY_7: return "7"; break;
+						case MU_KEYBOARD_KEY_8: return "8"; break;
+						case MU_KEYBOARD_KEY_9: return "9"; break;
+						case MU_KEYBOARD_KEY_A: return "A"; break;
+						case MU_KEYBOARD_KEY_B: return "B"; break;
+						case MU_KEYBOARD_KEY_C: return "C"; break;
+						case MU_KEYBOARD_KEY_D: return "D"; break;
+						case MU_KEYBOARD_KEY_E: return "E"; break;
+						case MU_KEYBOARD_KEY_F: return "F"; break;
+						case MU_KEYBOARD_KEY_G: return "G"; break;
+						case MU_KEYBOARD_KEY_H: return "H"; break;
+						case MU_KEYBOARD_KEY_I: return "I"; break;
+						case MU_KEYBOARD_KEY_J: return "J"; break;
+						case MU_KEYBOARD_KEY_K: return "K"; break;
+						case MU_KEYBOARD_KEY_L: return "L"; break;
+						case MU_KEYBOARD_KEY_M: return "M"; break;
+						case MU_KEYBOARD_KEY_N: return "N"; break;
+						case MU_KEYBOARD_KEY_O: return "O"; break;
+						case MU_KEYBOARD_KEY_P: return "P"; break;
+						case MU_KEYBOARD_KEY_Q: return "Q"; break;
+						case MU_KEYBOARD_KEY_R: return "R"; break;
+						case MU_KEYBOARD_KEY_S: return "S"; break;
+						case MU_KEYBOARD_KEY_T: return "T"; break;
+						case MU_KEYBOARD_KEY_U: return "U"; break;
+						case MU_KEYBOARD_KEY_V: return "V"; break;
+						case MU_KEYBOARD_KEY_W: return "W"; break;
+						case MU_KEYBOARD_KEY_X: return "X"; break;
+						case MU_KEYBOARD_KEY_Y: return "Y"; break;
+						case MU_KEYBOARD_KEY_Z: return "Z"; break;
+						case MU_KEYBOARD_KEY_LEFT_WINDOWS: return "Left Windows"; break;
+						case MU_KEYBOARD_KEY_RIGHT_WINDOWS: return "Right Windows"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_0: return "Numpad 0"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_1: return "Numpad 1"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_2: return "Numpad 2"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_3: return "Numpad 3"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_4: return "Numpad 4"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_5: return "Numpad 5"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_6: return "Numpad 6"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_7: return "Numpad 7"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_8: return "Numpad 8"; break;
+						case MU_KEYBOARD_KEY_NUMPAD_9: return "Numpad 9"; break;
+						case MU_KEYBOARD_KEY_MULTIPLY: return "Multiply"; break;
+						case MU_KEYBOARD_KEY_ADD: return "Add"; break;
+						case MU_KEYBOARD_KEY_SEPARATOR: return "Separator"; break;
+						case MU_KEYBOARD_KEY_SUBTRACT: return "Subtract"; break;
+						case MU_KEYBOARD_KEY_DECIMAL: return "Decimal"; break;
+						case MU_KEYBOARD_KEY_DIVIDE: return "Divide"; break;
+						case MU_KEYBOARD_KEY_F1: return "F1"; break;
+						case MU_KEYBOARD_KEY_F2: return "F2"; break;
+						case MU_KEYBOARD_KEY_F3: return "F3"; break;
+						case MU_KEYBOARD_KEY_F4: return "F4"; break;
+						case MU_KEYBOARD_KEY_F5: return "F5"; break;
+						case MU_KEYBOARD_KEY_F6: return "F6"; break;
+						case MU_KEYBOARD_KEY_F7: return "F7"; break;
+						case MU_KEYBOARD_KEY_F8: return "F8"; break;
+						case MU_KEYBOARD_KEY_F9: return "F9"; break;
+						case MU_KEYBOARD_KEY_F10: return "F10"; break;
+						case MU_KEYBOARD_KEY_F11: return "F11"; break;
+						case MU_KEYBOARD_KEY_F12: return "F12"; break;
+						case MU_KEYBOARD_KEY_F13: return "F13"; break;
+						case MU_KEYBOARD_KEY_F14: return "F14"; break;
+						case MU_KEYBOARD_KEY_F15: return "F15"; break;
+						case MU_KEYBOARD_KEY_F16: return "F16"; break;
+						case MU_KEYBOARD_KEY_F17: return "F17"; break;
+						case MU_KEYBOARD_KEY_F18: return "F18"; break;
+						case MU_KEYBOARD_KEY_F19: return "F19"; break;
+						case MU_KEYBOARD_KEY_F20: return "F20"; break;
+						case MU_KEYBOARD_KEY_F21: return "F21"; break;
+						case MU_KEYBOARD_KEY_F22: return "F22"; break;
+						case MU_KEYBOARD_KEY_F23: return "F23"; break;
+						case MU_KEYBOARD_KEY_F24: return "F24"; break;
+						case MU_KEYBOARD_KEY_NUMLOCK: return "Num Lock"; break;
+						case MU_KEYBOARD_KEY_SCROLL: return "Key Scroll"; break;
+						case MU_KEYBOARD_KEY_LEFT_SHIFT: return "Left Shift"; break;
+						case MU_KEYBOARD_KEY_RIGHT_SHIFT: return "Right Shift"; break;
+						case MU_KEYBOARD_KEY_LEFT_CONTROL: return "Left Control"; break;
+						case MU_KEYBOARD_KEY_RIGHT_CONTROL: return "Right Control"; break;
+						case MU_KEYBOARD_KEY_LEFT_MENU: return "Left Menu"; break;
+						case MU_KEYBOARD_KEY_RIGHT_MENU: return "Right Menu"; break;
+						case MU_KEYBOARD_KEY_ATTN: return "Attention"; break;
+						case MU_KEYBOARD_KEY_CRSEL: return "CrSel"; break;
+						case MU_KEYBOARD_KEY_EXSEL: return "ExSel"; break;
+						case MU_KEYBOARD_KEY_EREOF: return "Erase End Of File (EREOF)"; break;
+						case MU_KEYBOARD_KEY_PLAY: return "Play"; break;
+						case MU_KEYBOARD_KEY_PA1: return "PA1"; break;
 					}
 				}
 			#endif
@@ -5248,6 +6046,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					ci.max_width = 30720;
 					ci.max_height = 17280;
 					ci.cursor_style = MU_CURSOR_STYLE_DEFAULT;
+
+					ci.keyboard_key_callback = MU_NULL_PTR;
 
 					return ci;
 				}
@@ -5615,9 +6415,31 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					}
 				}
 
+				MUDEF muButtonState mu_window_get_keyboard_key_state(muCOSAResult* result, muWindow window, muKeyboardKey key) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return 0;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return 0; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							return muCOSA_X11_window_get_keyboard_key_state(result, &MUCOSA_GX11, window, key);
+						} break;)
+					}
+				}
+
 			/* Set */
 
-				// ...
+				MUDEF void mu_window_set_keyboard_key_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_keyboard_key_callback(result, &MUCOSA_GX11, window, callback);
+						} break;)
+					}
+				}
 
 		/* OpenGL */
 
