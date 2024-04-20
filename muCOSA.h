@@ -10,6 +10,7 @@ More explicit license information at the end of file.
 @MENTION For now, muCOSA is targeted at operating systems that work around a mouse/keyboard/display
 interface.
 @MENTION muCOSA is largely untested on multi-display setups.
+@MENTION Key callback repeats on hold.
 
 As of right now, muCOSA assumes 2 things:
 1. A keyboard and mouse are available, being the primary forms of input.
@@ -1519,6 +1520,10 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			#define MU_BUTTON_STATE_RELEASED 0
 			#define MU_BUTTON_STATE_HELD 1
 
+			#define muState muBool
+			#define MU_ON 1
+			#define MU_OFF 0
+
 	/* Enums */
 
 		MU_ENUM(muCOSAResult,
@@ -1533,6 +1538,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			MUCOSA_UNKNOWN_WINDOW_SYSTEM,
 			MUCOSA_UNKNOWN_GRAPHICS_API,
 			MUCOSA_UNKNOWN_KEYBOARD_KEY,
+			MUCOSA_UNKNOWN_KEYBOARD_STATE,
+			MUCOSA_UNKNOWN_MOUSE_BUTTON,
 
 			MUCOSA_UNSUPPORTED_WINDOW_SYSTEM,
 			MUCOSA_UNSUPPORTED_FEATURE, // Could mean that it rather can't be (or hasn't been) implemented, or that
@@ -1750,6 +1757,26 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 		#define MU_KEYBOARD_KEY_FIRST MU_KEYBOARD_KEY_BACKSPACE
 		#define MU_KEYBOARD_KEY_LAST MU_KEYBOARD_KEY_PA1
 
+		MU_ENUM(muKeyboardState,
+			MU_KEYBOARD_STATE_UNKNOWN,
+
+			MU_KEYBOARD_STATE_CAPS_LOCK,
+			MU_KEYBOARD_STATE_SCROLL_LOCK,
+			MU_KEYBOARD_STATE_NUM_LOCK,
+		)
+		#define MU_KEYBOARD_STATE_FIRST MU_KEYBOARD_STATE_CAPS_LOCK
+		#define MU_KEYBOARD_STATE_LAST MU_KEYBOARD_STATE_NUM_LOCK
+
+		MU_ENUM(muMouseButton,
+			MU_MOUSE_BUTTON_UNKNOWN,
+
+			MU_MOUSE_BUTTON_LEFT,
+			MU_MOUSE_BUTTON_RIGHT,
+			MU_MOUSE_BUTTON_MIDDLE,
+		)
+		#define MU_MOUSE_BUTTON_FIRST MU_MOUSE_BUTTON_LEFT
+		#define MU_MOUSE_BUTTON_LAST MU_MOUSE_BUTTON_MIDDLE
+
 	/* Struct */
 
 		struct muPixelFormat {
@@ -1785,6 +1812,9 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			muCursorStyle cursor_style; // <-- Not permenant, only existing as the style first used upon the window's creation
 
 			void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
+			void (*keyboard_state_callback)(muWindow window, muKeyboardState keyboard_state, muState state);
+
+			void (*mouse_button_callback)(muWindow window, muMouseButton mouse_button, muButtonState state);
 		};
 		typedef struct muWindowCreateInfo muWindowCreateInfo;
 
@@ -1867,10 +1897,18 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 				MUDEF void mu_window_get_frame_extents(muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
 
 				MUDEF muButtonState mu_window_get_keyboard_key_state(muCOSAResult* result, muWindow window, muKeyboardKey key);
+				MUDEF muState mu_window_get_keyboard_state_state(muCOSAResult* result, muWindow window, muKeyboardState state);
+
+				MUDEF muButtonState mu_window_get_mouse_button_state(muCOSAResult* result, muWindow window, muMouseButton button);
 
 			/* Set */
 
+				MUDEF void mu_window_set_title(muCOSAResult* result, muWindow window, muByte* title);
+
 				MUDEF void mu_window_set_keyboard_key_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
+				MUDEF void mu_window_set_keyboard_state_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
+
+				MUDEF void mu_window_set_mouse_button_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state));
 
 		/* OpenGL */
 
@@ -4380,6 +4418,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 			struct muCOSA_X11_input {
 				muButtonState keyboard_key_states[MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1];
+				muState keyboard_state_states[MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1];
+				muButtonState mouse_button_states[MU_MOUSE_BUTTON_LAST-MU_MOUSE_BUTTON_FIRST+1];
 			};
 			typedef struct muCOSA_X11_input muCOSA_X11_input;
 
@@ -4413,6 +4453,10 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 				muCOSA_X11_input input;
 
 				void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
+				void (*keyboard_state_callback)(muWindow window, muKeyboardState keyboard_state, muState state);
+
+				void (*mouse_button_callback)(muWindow window, muMouseButton mouse_button, muButtonState state);
+
 			};
 			typedef struct muCOSA_X11Window muCOSA_X11Window;
 
@@ -4420,7 +4464,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 		/* Useful funcs */
 
-			/* Key input */
+			/* Keyboard key input */
 
 				// https://www.cl.cam.ac.uk/~mgk25/ucs/keysymdef.h
 					#define MUCOSA_X11_XK_VoidSymbol 0xffffff
@@ -4790,6 +4834,31 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					}
 				}
 
+			/* Keyboard state input */
+
+				void muCOSA_X11_check_state_input(muWindow window, muCOSA_X11Window* p_win, unsigned int n, const char* name, muKeyboardState state) {
+					muBool check = (n & (XInternAtom(p_win->display, name, False) - 1)) != 0;
+					if (check != p_win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST]) {
+						p_win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST] = check;
+
+						if (p_win->keyboard_state_callback != MU_NULL_PTR) {
+							p_win->keyboard_state_callback(window, state, check);
+						}
+					}
+				}
+
+				void muCOSA_X11_handle_state_input(muWindow window, muCOSA_X11Window* p_win) {
+					// http://levonp.blogspot.com/2010/08/retrieving-caps-lock-info-using-xlib.html
+					unsigned int n;
+					XkbGetIndicatorState(p_win->display, XkbUseCoreKbd, &n);
+
+					muCOSA_X11_check_state_input(window, p_win, n, "Caps Lock", MU_KEYBOARD_STATE_CAPS_LOCK);
+					muCOSA_X11_check_state_input(window, p_win, n, "Num Lock", MU_KEYBOARD_STATE_NUM_LOCK);
+					// Been having issues with this... being triggered by Caps Lock and Num Lock
+					// sometimes... :L
+					muCOSA_X11_check_state_input(window, p_win, n, "Scroll Lock", MU_KEYBOARD_STATE_SCROLL_LOCK);
+				}
+
 			/* Cursor */
 
 				// https://tronche.com/gui/x/xlib/appendix/b/
@@ -4808,11 +4877,32 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					}
 				}
 
-				void muCOSA_X11_cursor_handle_event(muCOSA_X11Window* p_win, int button, muByte down) {
+				void muCOSA_X11_cursor_handle_event(muWindow window, muCOSA_X11Window* p_win, int button, muByte down) {
 					// down = true -> button being pressed down
 					// down = false -> button being released
 					switch (button) {
 						default: break;
+
+						case Button1: {
+							p_win->input.mouse_button_states[MU_MOUSE_BUTTON_LEFT-MU_MOUSE_BUTTON_FIRST] = down;
+							if (p_win->mouse_button_callback != MU_NULL_PTR) {
+								p_win->mouse_button_callback(window, MU_MOUSE_BUTTON_LEFT, down);
+							}
+						} break;
+
+						case Button2: {
+							p_win->input.mouse_button_states[MU_MOUSE_BUTTON_MIDDLE-MU_MOUSE_BUTTON_FIRST] = down;
+							if (p_win->mouse_button_callback != MU_NULL_PTR) {
+								p_win->mouse_button_callback(window, MU_MOUSE_BUTTON_MIDDLE, down);
+							}
+						} break;
+
+						case Button3: {
+							p_win->input.mouse_button_states[MU_MOUSE_BUTTON_RIGHT-MU_MOUSE_BUTTON_FIRST] = down;
+							if (p_win->mouse_button_callback != MU_NULL_PTR) {
+								p_win->mouse_button_callback(window, MU_MOUSE_BUTTON_RIGHT, down);
+							}
+						} break;
 
 						// Not 100% sure if 120 is the appropriate value here for matching with window's WM_MOUSEWHEEL.
 
@@ -4848,11 +4938,11 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 						/* Mouse button press */
 						case ButtonPress: {
-							muCOSA_X11_cursor_handle_event(p_win, event.xbutton.button, MU_TRUE);
+							muCOSA_X11_cursor_handle_event(window, p_win, event.xbutton.button, MU_TRUE);
 						} break;
 						/* Mouse button release */
 						case ButtonRelease: {
-							muCOSA_X11_cursor_handle_event(p_win, event.xbutton.button, MU_FALSE);
+							muCOSA_X11_cursor_handle_event(window, p_win, event.xbutton.button, MU_FALSE);
 						} break;
 
 						/* Keyboard key press */
@@ -5036,8 +5126,6 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 							XFree(c->windows.data[win].size_hints);
 							MU_RELEASE(c->windows, win, muCOSA_X11Window_) return MU_NONE;)
 
-						XAutoRepeatOff(c->windows.data[win].display);
-
 						/*
 						The XCloseDisplay function closes the connection to the X server for the
 						display specified in the Display structure and destroys all windows,
@@ -5206,6 +5294,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						c->windows.data[win].scroll_level = 0;
 						c->windows.data[win].input = MU_ZERO_STRUCT(muCOSA_X11_input);
 						c->windows.data[win].keyboard_key_callback = create_info.keyboard_key_callback;
+						c->windows.data[win].keyboard_state_callback = create_info.keyboard_state_callback;
+						c->windows.data[win].mouse_button_callback = create_info.mouse_button_callback;
 						MU_RELEASE(c->windows, win, muCOSA_X11Window_)
 						return win;
 					}
@@ -5263,6 +5353,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 							mu_res = muCOSA_X11Window_handle_event(window, &c->windows.data[window], event);
 							MU_ASSERT(mu_res == MUCOSA_SUCCESS, result, mu_res, MU_RELEASE(c->windows, window, muCOSA_X11Window_) return;)
 						}
+
+						muCOSA_X11_handle_state_input(window, &c->windows.data[window]);
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -5337,10 +5429,10 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 						if (visible && !c->windows.data[window].visible) {
 							XMapWindow(c->windows.data[window].display, c->windows.data[window].window);
-							// @TODO Flush input here
+							c->windows.data[window].input = MU_ZERO_STRUCT(muCOSA_X11_input);
 						} else if (!visible && c->windows.data[window].visible) {
 							XUnmapWindow(c->windows.data[window].display, c->windows.data[window].window);
-							// @TODO Flush input here
+							c->windows.data[window].input = MU_ZERO_STRUCT(muCOSA_X11_input);
 						}
 
 						c->windows.data[window].visible = visible;
@@ -5634,13 +5726,70 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						return state;
 					}
 
+					muState muCOSA_X11_window_get_keyboard_state_state(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, muKeyboardState state) {
+						MU_ASSERT(state >= MU_KEYBOARD_STATE_FIRST && state <= MU_KEYBOARD_STATE_LAST, result, MUCOSA_UNKNOWN_KEYBOARD_STATE, return 0;)
+
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return 0;, muCOSA_X11Window_)
+
+						muState ret_state = c->windows.data[window].input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST];
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+
+						return ret_state;
+					}
+
+					muButtonState muCOSA_X11_window_get_mouse_button_state(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, muMouseButton button) {
+						MU_ASSERT(button >= MU_MOUSE_BUTTON_FIRST && button <= MU_MOUSE_BUTTON_LAST, result, MUCOSA_UNKNOWN_MOUSE_BUTTON, return 0;)
+
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return 0;, muCOSA_X11Window_)
+
+						muButtonState state = c->windows.data[window].input.mouse_button_states[button-MU_MOUSE_BUTTON_FIRST];
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+
+						return state;
+					}
+
 				/* Set */
+
+					void muCOSA_X11_window_set_title(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, muByte* title) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						XChangeProperty(c->windows.data[window].display, c->windows.data[window].window,
+							XInternAtom(c->windows.data[window].display, "_NET_WM_NAME", False),
+							XInternAtom(c->windows.data[window].display, "UTF8_STRING", False),
+							8, PropModeReplace, (unsigned char*)title, (int)mu_strlen((const char*)title)
+						);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
 
 					void muCOSA_X11_window_set_keyboard_key_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
 						MU_SET_RESULT(result, MUCOSA_SUCCESS)
 						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
 
 						c->windows.data[window].keyboard_key_callback = callback;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_keyboard_state_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].keyboard_state_callback = callback;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_mouse_button_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].mouse_button_callback = callback;
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -5691,6 +5840,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						case MUCOSA_UNKNOWN_WINDOW_SYSTEM: return "MUCOSA_UNKNOWN_WINDOW_SYSTEM"; break;
 						case MUCOSA_UNKNOWN_GRAPHICS_API: return "MUCOSA_UNKNOWN_GRAPHICS_API"; break;
 						case MUCOSA_UNKNOWN_KEYBOARD_KEY: return "MUCOSA_UNKNOWN_KEYBOARD_KEY"; break;
+						case MUCOSA_UNKNOWN_KEYBOARD_STATE: return "MUCOSA_UNKNOWN_KEYBOARD_STATE"; break;
+						case MUCOSA_UNKNOWN_MOUSE_BUTTON: return "MUCOSA_UNKNOWN_MOUSE_BUTTON"; break;
 						case MUCOSA_UNSUPPORTED_WINDOW_SYSTEM: return "MUCOSA_UNSUPPORTED_WINDOW_SYSTEM"; break;
 						case MUCOSA_UNSUPPORTED_FEATURE: return "MUCOSA_UNSUPPORTED_FEATURE"; break;
 						case MUCOSA_FAILED_CONNECTION_TO_SERVER: return "MUCOSA_FAILED_CONNECTION_TO_SERVER"; break;
@@ -6048,6 +6199,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					ci.cursor_style = MU_CURSOR_STYLE_DEFAULT;
 
 					ci.keyboard_key_callback = MU_NULL_PTR;
+					ci.keyboard_state_callback = MU_NULL_PTR;
 
 					return ci;
 				}
@@ -6427,7 +6579,43 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					}
 				}
 
+				MUDEF muState mu_window_get_keyboard_state_state(muCOSAResult* result, muWindow window, muKeyboardState state) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return 0;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return 0; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							return muCOSA_X11_window_get_keyboard_state_state(result, &MUCOSA_GX11, window, state);
+						} break;)
+					}
+				}
+
+				MUDEF muButtonState mu_window_get_mouse_button_state(muCOSAResult* result, muWindow window, muMouseButton button) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return 0;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return 0; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							return muCOSA_X11_window_get_mouse_button_state(result, &MUCOSA_GX11, window, button);
+						} break;)
+					}
+				}
+
 			/* Set */
+
+				MUDEF void mu_window_set_title(muCOSAResult* result, muWindow window, muByte* title) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_title(result, &MUCOSA_GX11, window, title);
+						} break;)
+					}
+				}
 
 				MUDEF void mu_window_set_keyboard_key_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
@@ -6437,6 +6625,30 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 						MUCOSA_X11_CALL(case MU_X11: {
 							muCOSA_X11_window_set_keyboard_key_callback(result, &MUCOSA_GX11, window, callback);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_keyboard_state_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_keyboard_state_callback(result, &MUCOSA_GX11, window, callback);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_mouse_button_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_mouse_button_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
 				}
