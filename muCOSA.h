@@ -10,7 +10,11 @@ More explicit license information at the end of file.
 @MENTION For now, muCOSA is targeted at operating systems that work around a mouse/keyboard/display
 interface.
 @MENTION muCOSA is largely untested on multi-display setups.
-@MENTION Key callback repeats on hold.
+@MENTION Key callback repeats on hold. This is inteded, as to allow hold times to be handled by the
+OS.
+@MENTION Setting attributes about windows may invoke 2 identical callbacks. In general, non-
+identical callbacks or duplicate callbacks are not guaranteed to not occur.
+@MENTION Callbacks do NOT only occur on calls to mu_window_update, although they usually do.
 
 As of right now, muCOSA assumes 2 things:
 1. A keyboard and mouse are available, being the primary forms of input.
@@ -1795,6 +1799,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 		struct muWindowCreateInfo {
 			muPixelFormat pixel_format;
 
+			// @TODO Make some of these actually do it on X11
 			muBool visible;
 			muBool resizable;
 
@@ -1809,7 +1814,13 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			uint32_m max_width;
 			uint32_m max_height;
 
-			muCursorStyle cursor_style; // <-- Not permenant, only existing as the style first used upon the window's creation
+			muCursorStyle cursor_style; // <-- Not permanant, only existing as the style first used upon the window's creation
+
+			void (*dimensions_callback)(muWindow window, uint32_m width, uint32_m height);
+			void (*position_callback)(muWindow window, int32_m x, int32_m y);
+			void (*focus_callback)(muWindow window, muBool focused);
+			void (*maximize_callback)(muWindow window, muBool maximized);
+			void (*minimize_callback)(muWindow window, muBool minimized);
 
 			void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
 			void (*keyboard_state_callback)(muWindow window, muKeyboardState keyboard_state, muState state);
@@ -1904,6 +1915,12 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 			/* Set */
 
 				MUDEF void mu_window_set_title(muCOSAResult* result, muWindow window, muByte* title);
+
+				MUDEF void mu_window_set_dimensions_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height));
+				MUDEF void mu_window_set_position_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y));
+				MUDEF void mu_window_set_focus_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused));
+				MUDEF void mu_window_set_maximize_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized));
+				MUDEF void mu_window_set_minimize_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized));
 
 				MUDEF void mu_window_set_keyboard_key_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
 				MUDEF void mu_window_set_keyboard_state_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
@@ -4452,6 +4469,17 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 				muCOSA_X11_input input;
 
+				int32_m x;
+				int32_m y;
+				muBool minimized;
+				muBool maximized;
+
+				void (*dimensions_callback)(muWindow window, uint32_m width, uint32_m height);
+				void (*position_callback)(muWindow window, int32_m x, int32_m y);
+				void (*focus_callback)(muWindow window, muBool focused);
+				void (*maximize_callback)(muWindow window, muBool maximized);
+				void (*minimize_callback)(muWindow window, muBool minimized);
+
 				void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
 				void (*keyboard_state_callback)(muWindow window, muKeyboardState keyboard_state, muState state);
 
@@ -4834,31 +4862,6 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					}
 				}
 
-			/* Keyboard state input */
-
-				void muCOSA_X11_check_state_input(muWindow window, muCOSA_X11Window* p_win, unsigned int n, const char* name, muKeyboardState state) {
-					muBool check = (n & (XInternAtom(p_win->display, name, False) - 1)) != 0;
-					if (check != p_win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST]) {
-						p_win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST] = check;
-
-						if (p_win->keyboard_state_callback != MU_NULL_PTR) {
-							p_win->keyboard_state_callback(window, state, check);
-						}
-					}
-				}
-
-				void muCOSA_X11_handle_state_input(muWindow window, muCOSA_X11Window* p_win) {
-					// http://levonp.blogspot.com/2010/08/retrieving-caps-lock-info-using-xlib.html
-					unsigned int n;
-					XkbGetIndicatorState(p_win->display, XkbUseCoreKbd, &n);
-
-					muCOSA_X11_check_state_input(window, p_win, n, "Caps Lock", MU_KEYBOARD_STATE_CAPS_LOCK);
-					muCOSA_X11_check_state_input(window, p_win, n, "Num Lock", MU_KEYBOARD_STATE_NUM_LOCK);
-					// Been having issues with this... being triggered by Caps Lock and Num Lock
-					// sometimes... :L
-					muCOSA_X11_check_state_input(window, p_win, n, "Scroll Lock", MU_KEYBOARD_STATE_SCROLL_LOCK);
-				}
-
 			/* Cursor */
 
 				// https://tronche.com/gui/x/xlib/appendix/b/
@@ -4923,40 +4926,6 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 				}
 
 			/* Window */
-
-				muCOSAResult muCOSA_X11Window_handle_event(muWindow window, muCOSA_X11Window* p_win, XEvent event) {
-					switch (event.type) {
-						default: return MUCOSA_SUCCESS; break;
-
-						/* Closing the window */
-						case ClientMessage: {
-							if (event.xclient.data.l[0] == (long int)p_win->delete_atom) {
-								XUnmapWindow(p_win->display, p_win->window);
-								p_win->closed = MU_TRUE;
-							}
-						} break;
-
-						/* Mouse button press */
-						case ButtonPress: {
-							muCOSA_X11_cursor_handle_event(window, p_win, event.xbutton.button, MU_TRUE);
-						} break;
-						/* Mouse button release */
-						case ButtonRelease: {
-							muCOSA_X11_cursor_handle_event(window, p_win, event.xbutton.button, MU_FALSE);
-						} break;
-
-						/* Keyboard key press */
-						case KeyPress: {
-							muCOSA_X11_keyboard_key_handle_event(window, p_win, event.xkey.keycode, MU_TRUE);
-						} break;
-						/* Keyboard key release */
-						case KeyRelease: {
-							muCOSA_X11_keyboard_key_handle_event(window, p_win, event.xkey.keycode, MU_FALSE);
-						} break;
-					}
-
-					return MUCOSA_SUCCESS;
-				}
 
 				// https://www.linuxquestions.org/questions/programming-9/how-to-read-the-state-by-using-_net_wm_state-in-xlib-836879/
 				Atom muCOSA_X11Window_get_atom_plural(muCOSA_X11Window* p_win, const char** names, size_m namelen) {
@@ -5055,6 +5024,143 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					XGetWindowAttributes(display, window, &xwa);
 
 					XMoveWindow(display, window, (x-xwa.x), (y-xwa.y));
+				}
+
+				muBool muCOSA_X11_inner_get_maximized(muCOSA_X11Window* p_win) {
+					static const char* names[2] = { "_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ" };
+					if (muCOSA_X11Window_get_atom_plural(p_win, names, 2) != None) {
+						return MU_TRUE;
+					}
+					return MU_FALSE;
+				}
+
+				muBool muCOSA_X11_inner_get_minimized(muCOSA_X11Window* p_win) {
+					if (muCOSA_X11Window_get_atom(p_win, "_NET_WM_STATE_HIDDEN") != None) {
+						return MU_TRUE;
+					}
+					return MU_FALSE;
+				}
+
+			/* Event */
+
+				muCOSAResult muCOSA_X11Window_handle_event(muWindow window, muCOSA_X11Window* p_win, XEvent event) {
+					switch (event.type) {
+						default: return MUCOSA_SUCCESS; break;
+
+						/* Closing the window */
+						case ClientMessage: {
+							if (event.xclient.data.l[0] == (long int)p_win->delete_atom) {
+								XUnmapWindow(p_win->display, p_win->window);
+								p_win->closed = MU_TRUE;
+							}
+						} break;
+
+						/* Mouse button press */
+						case ButtonPress: {
+							muCOSA_X11_cursor_handle_event(window, p_win, event.xbutton.button, MU_TRUE);
+						} break;
+						/* Mouse button release */
+						case ButtonRelease: {
+							muCOSA_X11_cursor_handle_event(window, p_win, event.xbutton.button, MU_FALSE);
+						} break;
+
+						/* Keyboard key press */
+						case KeyPress: {
+							muCOSA_X11_keyboard_key_handle_event(window, p_win, event.xkey.keycode, MU_TRUE);
+						} break;
+						/* Keyboard key release */
+						case KeyRelease: {
+							muCOSA_X11_keyboard_key_handle_event(window, p_win, event.xkey.keycode, MU_FALSE);
+						} break;
+
+						/* Dimension changing */
+						case Expose: {
+							XWindowAttributes attribs;
+							XGetWindowAttributes(p_win->display, p_win->window, &attribs);
+							if (p_win->dimensions_callback != MU_NULL_PTR) {
+								p_win->dimensions_callback(window, (uint32_m)attribs.width, (uint32_m)attribs.height);
+							}
+						} break;
+
+						/* Position changing */
+						case ConfigureNotify: {
+							if (p_win->x != event.xconfigure.x || p_win->y != event.xconfigure.y) {
+								p_win->x = (int32_m)event.xconfigure.x;
+								p_win->y = (int32_m)event.xconfigure.y;
+								if (p_win->position_callback != MU_NULL_PTR) {
+									p_win->position_callback(window, p_win->x, p_win->y);
+								}
+							}
+						} break;
+
+						/* Focusing in/out */
+						// @TODO Fix FocusIn/FocusOut getting called when window is being dragged
+						case FocusIn: {
+							if (p_win->focus_callback != MU_NULL_PTR) {
+								p_win->focus_callback(window, MU_TRUE);
+							}
+						} break;
+						case FocusOut: {
+							if (p_win->focus_callback != MU_NULL_PTR) {
+								p_win->focus_callback(window, MU_FALSE);
+							}
+						} break;
+					}
+
+					return MUCOSA_SUCCESS;
+				}
+
+				void muCOSA_X11Window_handle_focus_input_flushing(muCOSA_X11Window* p_win) {
+					Window focused_window;
+					int revert_to;
+					XGetInputFocus(p_win->display, &focused_window, &revert_to);
+
+					if (focused_window != p_win->window) {
+						p_win->input = MU_ZERO_STRUCT(muCOSA_X11_input);
+					}
+				}
+
+				void muCOSA_X11Window_handle_min_max_events(muWindow window, muCOSA_X11Window* p_win) {
+					muBool maximized = muCOSA_X11_inner_get_maximized(p_win);
+					if (p_win->maximized != maximized) {
+						p_win->maximized = maximized;
+						if (p_win->maximize_callback != MU_NULL_PTR) {
+							p_win->maximize_callback(window, maximized);
+						}
+					}
+
+					muBool minimized = muCOSA_X11_inner_get_minimized(p_win);
+					if (p_win->minimized != minimized) {
+						p_win->minimized = minimized;
+						if (p_win->minimize_callback != MU_NULL_PTR) {
+							p_win->minimize_callback(window, minimized);
+						}
+					}
+				}
+
+			/* Keyboard state input */
+
+				void muCOSA_X11_check_state_input(muWindow window, muCOSA_X11Window* p_win, unsigned int n, const char* name, muKeyboardState state) {
+					muBool check = (n & (XInternAtom(p_win->display, name, False) - 1)) != 0;
+					if (check != p_win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST]) {
+						p_win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST] = check;
+
+						if (p_win->keyboard_state_callback != MU_NULL_PTR) {
+							p_win->keyboard_state_callback(window, state, check);
+						}
+					}
+				}
+
+				void muCOSA_X11_handle_state_input(muWindow window, muCOSA_X11Window* p_win) {
+					// http://levonp.blogspot.com/2010/08/retrieving-caps-lock-info-using-xlib.html
+					unsigned int n;
+					XkbGetIndicatorState(p_win->display, XkbUseCoreKbd, &n);
+
+					muCOSA_X11_check_state_input(window, p_win, n, "Caps Lock", MU_KEYBOARD_STATE_CAPS_LOCK);
+					muCOSA_X11_check_state_input(window, p_win, n, "Num Lock", MU_KEYBOARD_STATE_NUM_LOCK);
+					// Been having issues with this... being triggered by Caps Lock and Num Lock
+					// sometimes... :L
+					muCOSA_X11_check_state_input(window, p_win, n, "Scroll Lock", MU_KEYBOARD_STATE_SCROLL_LOCK);
 				}
 
 		/* Functions */
@@ -5293,9 +5399,18 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						c->windows.data[win].max_height = create_info.max_height;
 						c->windows.data[win].scroll_level = 0;
 						c->windows.data[win].input = MU_ZERO_STRUCT(muCOSA_X11_input);
+						c->windows.data[win].dimensions_callback = create_info.dimensions_callback;
+						c->windows.data[win].position_callback = create_info.position_callback;
+						c->windows.data[win].focus_callback = create_info.focus_callback;
+						c->windows.data[win].maximize_callback = create_info.maximize_callback;
+						c->windows.data[win].minimize_callback = create_info.minimize_callback;
 						c->windows.data[win].keyboard_key_callback = create_info.keyboard_key_callback;
 						c->windows.data[win].keyboard_state_callback = create_info.keyboard_state_callback;
 						c->windows.data[win].mouse_button_callback = create_info.mouse_button_callback;
+						c->windows.data[win].x = create_info.x;
+						c->windows.data[win].y = create_info.y;
+						c->windows.data[win].minimized = create_info.minimized;
+						c->windows.data[win].maximized = create_info.maximized;
 						MU_RELEASE(c->windows, win, muCOSA_X11Window_)
 						return win;
 					}
@@ -5355,6 +5470,8 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						}
 
 						muCOSA_X11_handle_state_input(window, &c->windows.data[window]);
+						muCOSA_X11Window_handle_focus_input_flushing(&c->windows.data[window]);
+						muCOSA_X11Window_handle_min_max_events(window, &c->windows.data[window]);
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -5408,6 +5525,9 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 						XSetInputFocus(c->windows.data[window].display, c->windows.data[window].window, RevertToPointerRoot, CurrentTime);
 						XRaiseWindow(c->windows.data[window].display, c->windows.data[window].window);
+						if (c->windows.data[window].focus_callback != MU_NULL_PTR) {
+							c->windows.data[window].focus_callback(window, MU_TRUE);
+						}
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -5457,6 +5577,11 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
 
 						muCOSA_X11_inner_window_set_position(c->windows.data[window].display, c->windows.data[window].window, c->windows.data[window].parent_window, x, y);
+						c->windows.data[window].x = x;
+						c->windows.data[window].y = y;
+						if (c->windows.data[window].position_callback != MU_NULL_PTR) {
+							c->windows.data[window].position_callback(window, x, y);
+						}
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -5483,6 +5608,9 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						)
 
 						XResizeWindow(c->windows.data[window].display, c->windows.data[window].window, width, height);
+						if (c->windows.data[window].dimensions_callback != MU_NULL_PTR) {
+							c->windows.data[window].dimensions_callback(window, width, height);
+						}
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -5491,11 +5619,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						MU_SET_RESULT(result, MUCOSA_SUCCESS)
 						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_X11Window_)
 
-						muBool maximized = MU_FALSE;
-						static const char* names[2] = { "_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ" };
-						if (muCOSA_X11Window_get_atom_plural(&c->windows.data[window], names, 2) != None) {
-							maximized = MU_TRUE;
-						}
+						muBool maximized = muCOSA_X11_inner_get_maximized(&c->windows.data[window]);
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 
@@ -5520,6 +5644,10 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						);
 						XFlush(c->windows.data[window].display);
 
+						if (c->windows.data[window].maximize_callback != MU_NULL_PTR) {
+							c->windows.data[window].maximize_callback(window, maximized);
+						}
+
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
 
@@ -5527,10 +5655,7 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 						MU_SET_RESULT(result, MUCOSA_SUCCESS)
 						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_X11Window_)
 
-						muBool minimized = MU_FALSE;
-						if (muCOSA_X11Window_get_atom(&c->windows.data[window], "_NET_WM_STATE_HIDDEN") != None) {
-							minimized = MU_TRUE;
-						}
+						muBool minimized = muCOSA_X11_inner_get_minimized(&c->windows.data[window]);
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 
@@ -5557,6 +5682,10 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 							False, SubstructureRedirectMask | SubstructureNotifyMask, (XEvent*)&ev
 						);
 						XFlush(c->windows.data[window].display);
+
+						if (c->windows.data[window].minimize_callback != MU_NULL_PTR) {
+							c->windows.data[window].minimize_callback(window, minimized);
+						}
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -5763,6 +5892,51 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 							XInternAtom(c->windows.data[window].display, "UTF8_STRING", False),
 							8, PropModeReplace, (unsigned char*)title, (int)mu_strlen((const char*)title)
 						);
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_dimensions_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].dimensions_callback = callback;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_position_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].position_callback = callback;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_focus_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, muBool focused)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].focus_callback = callback;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_maximize_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, muBool maximized)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].maximize_callback = callback;
+
+						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
+					}
+
+					void muCOSA_X11_window_set_minimize_callback(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void (*callback)(muWindow window, muBool minimized)) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
+
+						c->windows.data[window].minimize_callback = callback;
 
 						MU_RELEASE(c->windows, window, muCOSA_X11Window_)
 					}
@@ -6198,6 +6372,12 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 					ci.max_height = 17280;
 					ci.cursor_style = MU_CURSOR_STYLE_DEFAULT;
 
+					ci.dimensions_callback = MU_NULL_PTR;
+					ci.position_callback = MU_NULL_PTR;
+					ci.focus_callback = MU_NULL_PTR;
+					ci.maximize_callback = MU_NULL_PTR;
+					ci.minimize_callback = MU_NULL_PTR;
+
 					ci.keyboard_key_callback = MU_NULL_PTR;
 					ci.keyboard_state_callback = MU_NULL_PTR;
 
@@ -6613,6 +6793,66 @@ https://forums.gentoo.org/viewtopic-t-757913-start-0.html
 
 						MUCOSA_X11_CALL(case MU_X11: {
 							muCOSA_X11_window_set_title(result, &MUCOSA_GX11, window, title);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_dimensions_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_dimensions_callback(result, &MUCOSA_GX11, window, callback);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_position_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_position_callback(result, &MUCOSA_GX11, window, callback);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_focus_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_focus_callback(result, &MUCOSA_GX11, window, callback);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_maximize_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_maximize_callback(result, &MUCOSA_GX11, window, callback);
+						} break;)
+					}
+				}
+
+				MUDEF void mu_window_set_minimize_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized)) {
+					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+					switch (MUCOSA_GWINSYS) {
+						default: return; break;
+
+						MUCOSA_X11_CALL(case MU_X11: {
+							muCOSA_X11_window_set_minimize_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
 				}
