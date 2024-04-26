@@ -1532,6 +1532,21 @@ primarily around a traditional desktop OS environment.
 
 		#endif
 
+		#if !defined(mu_fflush) || \
+			!defined(mu_stdout)
+
+			#include <stdio.h>
+
+			#ifndef mu_fflush
+				#define mu_fflush fflush
+			#endif
+
+			#ifndef mu_stdout
+				#define mu_stdout stdout
+			#endif
+
+		#endif
+
 	/* Incomplete types */
 
 		typedef struct muCOSAContext muCOSAContext;
@@ -1622,6 +1637,7 @@ primarily around a traditional desktop OS environment.
 			MUCOSA_INVALID_POINTER,
 			MUCOSA_INVALID_WINDOW_STATE, // For example, when you try to focus a window that is
 			// invisible or minimized in X11 (but only sometimes, IT'S COMPLICATED).
+			MUCOSA_INVALID_TIME, // Like if you try passing a negative value to sleep for example.
 
 			MUCOSA_NONEXISTENT_DEVICE, // For example, you requested the position of the cursor,
 			// but there is no cursor. For whatever reason, lmao.
@@ -2035,6 +2051,8 @@ primarily around a traditional desktop OS environment.
 
 			MUDEF double mu_time_get(muCOSAResult* result);
 			MUDEF void mu_time_set(muCOSAResult* result, double time);
+
+			MUDEF void mu_sleep(muCOSAResult* result, double time);
 
 		/* Clipboard */
 
@@ -4469,6 +4487,7 @@ primarily around a traditional desktop OS environment.
 
 		#include <time.h>
 		#include <pthread.h>
+		#include <unistd.h> // For nanosleep (and sleep as a backup because Linux is Linux)
 
 		/* OpenGL */
 
@@ -5552,6 +5571,12 @@ primarily around a traditional desktop OS environment.
 					XEvent ev;
 					muBool got_event = MU_FALSE;
 					while (!got_event && c->clipboard_thread_running) {
+						while (!XPending(d)) {
+							if (!c->clipboard_thread_running) {
+								XCloseDisplay(d);
+								return 0;
+							}
+						}
 						XNextEvent(d, &ev);
 						switch (ev.type) {
 							default: break;
@@ -5636,9 +5661,6 @@ primarily around a traditional desktop OS environment.
 					if (c->clipboard_thread_running) {
 						c->clipboard_thread_running = MU_FALSE;
 						MU_ASSERT(pthread_join(c->clipboard_thread, NULL) == 0, result, MUCOSA_FAILED_JOIN_THREAD, return;)
-						if (c->clipboard_text) {
-							mu_free(c->clipboard_text);
-						}
 					}
 					if (c->clipboard_text) {
 						mu_free(c->clipboard_text);
@@ -6519,6 +6541,28 @@ primarily around a traditional desktop OS environment.
 					c->original_time = c->original_time + (muCOSA_X11_inner_get_time() - c->original_time) - time;
 				}
 
+				void muCOSA_X11_sleep(muCOSAResult* result, muCOSA_X11Context* c, double time) {
+					if (c) {}
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					MU_ASSERT(time >= 0.f, result, MUCOSA_INVALID_TIME, return;)
+
+					// https://stackoverflow.com/a/1157217
+
+					struct timespec ts;
+					ts.tv_sec = (time_t)time;
+					ts.tv_nsec = (long)(time * (double)1e+9);
+
+					mu_fflush(mu_stdout);
+					int n = nanosleep(&ts, NULL);
+
+					// Dunno about you guys, but nanosleep literally just doesn't work on my
+					// system. Literally, it always returns -1, I have never gotten it to work.
+					if (n != 0) {
+						sleep((unsigned)time);
+					}
+				}
+
 			/* Clipboard */
 
 				// https://www.uninformativ.de/blog/postings/2017-04-02/0/POSTING-en.html
@@ -6787,6 +6831,7 @@ primarily around a traditional desktop OS environment.
 						case MUCOSA_INVALID_DIMENSIONS: return "MUCOSA_INVALID_DIMENSIONS"; break;
 						case MUCOSA_INVALID_POINTER: return "MUCOSA_INVALID_POINTER"; break;
 						case MUCOSA_INVALID_WINDOW_STATE: return "MUCOSA_INVALID_WINDOW_STATE"; break;
+						case MUCOSA_INVALID_TIME: return "MUCOSA_INVALID_TIME"; break;
 						case MUCOSA_NONEXISTENT_DEVICE: return "MUCOSA_NONEXISTENT_DEVICE"; break;
 						case MUCOSA_OVERSIZED_CLIPBOARD: return "MUCOSA_OVERSIZED_CLIPBOARD"; break;
 						case MUCOSA_WINDOW_NON_RESIZABLE: return "MUCOSA_WINDOW_NON_RESIZABLE"; break;
@@ -7927,6 +7972,18 @@ primarily around a traditional desktop OS environment.
 
 					MUCOSA_X11_CALL(case MU_X11: {
 						muCOSA_X11_time_set(result, &MUCOSA_GX11, time);
+					} break;)
+				}
+			}
+
+			MUDEF void mu_sleep(muCOSAResult* result, double time) {
+				MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+				switch (MUCOSA_GWINSYS) {
+					default: return; break;
+
+					MUCOSA_X11_CALL(case MU_X11: {
+						muCOSA_X11_sleep(result, &MUCOSA_GX11, time);
 					} break;)
 				}
 			}
