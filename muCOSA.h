@@ -4444,6 +4444,15 @@ primarily around a traditional desktop OS environment.
 	extern "C" { // }
 	#endif
 
+	/* Macro handling */
+
+		#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
+			#ifndef MUCOSA_VULKAN_INCLUDE_PATH
+				#pragma message("[MUCOSA] If MUCOSA_VULKAN is defined and MUCOSA_NO_INCLUDE_VULKAN is not defined, then the include path for Vulkan is expected to be defined in the macro MUCOSA_VULKAN_INCLUDE_PATH; acting as if MUCOSA_VULKAN was not defined from this point on")
+				#undef MUCOSA_VULKAN
+			#endif
+		#endif
+
 	/* Shared functions */
 
 		muCOSAResult muma_result_to_muCOSA_result(mumaResult result) {
@@ -6737,6 +6746,11 @@ primarily around a traditional desktop OS environment.
 				}
 
 			/* Vulkan */
+
+				#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
+					#define VK_USE_PLATFORM_XLIB_KHR
+					#include MUCOSA_VULKAN_INCLUDE_PATH
+				#endif
 
 				const char** muCOSA_X11_vulkan_get_surface_instance_extensions(muCOSAResult* result, size_m* count) {
 					#ifndef MUCOSA_VULKAN
