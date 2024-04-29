@@ -29,7 +29,7 @@ it can cause feedback loops really easily.
 @MENTION pthread dependency.
 @MENTION POSIX in general.
 @MENTION Uncleared screen contents are undefined, and since there's no way to clear the screen
-without a graphics API, a window with no graphics API has undefined screen contents.
+without a graphics API*, a window with no graphics API has undefined screen contents.
 @MENTION It is not guaranteed that an initial callback will be triggered.
 @MENTION X11 often calls an intial invalid position callback because X11 sucks.
 @MENTION It is not guaranteed that the mu_window_get/set_cursor_position functions will work when
@@ -2077,8 +2077,8 @@ primarily around a traditional desktop OS environment.
 			// Note: also not necessarily UTF-8
 			MUDEF const char** mu_vulkan_get_surface_instance_extensions(muCOSAResult* result, size_m* count);
 
-			// VkResult* vk_result, VkInstance instance, const VkAllocationCallbacks* allocator, VkSurfaceKHR* surface
-			MUDEF void mu_vulkan_create_window_surface(muCOSAResult* result, muWindow window, void** vk_result, void* instance, void** allocator, void** surface);
+			// vk_result interpreted as VkResult*, instance as VkInstance*, allocator as const VkAllocationCallbacks*, and surface as VkSurfaceKHR*
+			MUDEF void mu_vulkan_create_window_surface(muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface);
 
 	#ifdef __cplusplus
 	}
@@ -5935,6 +5935,7 @@ primarily around a traditional desktop OS environment.
 
 						XFree(c->windows.data[window].size_hints);
 
+						XSync(c->windows.data[window].display, False);
 						XCloseDisplay(c->windows.data[window].display);
 
 						c->windows.data[window].active = MU_FALSE;
@@ -6765,16 +6766,12 @@ primarily around a traditional desktop OS environment.
 					#endif
 				}
 
-				void muCOSA_X11_vulkan_create_window_surface(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void** vk_result, void* instance, void** allocator, void** surface) {
+				void muCOSA_X11_vulkan_create_window_surface(muCOSAResult* result, muCOSA_X11Context* c, muWindow window, void* vk_result, void* instance, void* allocator, void* surface) {
 					#ifndef MUCOSA_VULKAN
 						MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_GRAPHICS_API)
 						if (c) {} if (window) {} if (vk_result) {} if (instance) {} if (allocator) {} if (surface) {}
 					#else
 						MU_SET_RESULT(result, MUCOSA_SUCCESS)
-						MU_ASSERT(/*vk_result != MU_NULL_PTR &&*/ instance != MU_NULL_PTR && 
-							allocator != MU_NULL_PTR && surface != MU_NULL_PTR,
-							result, MUCOSA_INVALID_POINTER, return;
-						)
 
 						MU_SET_RESULT(result, MUCOSA_SUCCESS)
 						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_X11Window_)
@@ -6784,11 +6781,12 @@ primarily around a traditional desktop OS environment.
 						create_info.dpy = c->windows.data[window].display;
 						create_info.window = c->windows.data[window].window;
 
-						VkResult vkres = vkCreateXlibSurfaceKHR(
-							*((VkInstance*)instance), &create_info,
-							*((const VkAllocationCallbacks**)allocator),
-							*((VkSurfaceKHR**)surface)
-						);
+						VkInstance r_instance = VK_NULL_HANDLE;
+						if (instance != 0) {
+							r_instance = *((VkInstance*)instance);
+						}
+
+						VkResult vkres = vkCreateXlibSurfaceKHR(r_instance, &create_info, (const VkAllocationCallbacks*)allocator, (VkSurfaceKHR*)surface);
 						if (vk_result != MU_NULL_PTR) {
 							*((VkResult*)vk_result) = vkres;
 						}
@@ -8085,7 +8083,7 @@ primarily around a traditional desktop OS environment.
 				}
 			}
 
-			MUDEF void mu_vulkan_create_window_surface(muCOSAResult* result, muWindow window, void** vk_result, void* instance, void** allocator, void** surface) {
+			MUDEF void mu_vulkan_create_window_surface(muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface) {
 				MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 				switch (MUCOSA_GWINSYS) {
