@@ -1569,6 +1569,10 @@ primarily around a traditional desktop OS environment.
 					#define MUCOSA_X11
 				#endif
 
+				#ifdef MU_WIN32
+					#define MUCOSA_WIN32
+				#endif
+
 			#endif
 
 			#ifdef MUCOSA_OPENGL
@@ -1659,7 +1663,8 @@ primarily around a traditional desktop OS environment.
 			MU_WINDOW_SYSTEM_UNKNOWN,
 
 			MU_WINDOW_SYSTEM_AUTO,
-			MU_X11
+			MU_WINDOW_SYSTEM_X11,
+			MU_WINDOW_SYSTEM_WIN32,
 		)
 
 		MU_ENUM(muWindowHandle,
@@ -1961,7 +1966,7 @@ primarily around a traditional desktop OS environment.
 
 			/* Creation / Destruction */
 
-				MUDEF muWindowCreateInfo mu_window_default_create_info();
+				MUDEF muWindowCreateInfo mu_window_default_create_info(void);
 
 				MUDEF muWindow mu_window_create(muCOSAResult* result, 
 					muGraphicsAPI api, muBool (*load_functions)(void),
@@ -4677,8 +4682,8 @@ primarily around a traditional desktop OS environment.
 			};
 			typedef struct muCOSA_X11Context muCOSA_X11Context;
 
-			double muCOSA_X11_inner_get_time();
-			muCOSA_X11Context muCOSA_X11Context_init() {
+			double muCOSA_X11_inner_get_time(void);
+			muCOSA_X11Context muCOSA_X11Context_init(void) {
 				muCOSA_X11Context context = MU_ZERO_STRUCT(muCOSA_X11Context);
 				context.original_time = muCOSA_X11_inner_get_time();
 				context.clipboard_thread_exists = MU_FALSE;
@@ -4700,7 +4705,7 @@ primarily around a traditional desktop OS environment.
 				// https://github.com/wez/wezterm/issues/250
 				// https://handmade.network/forums/articles/t/2834-tutorial_a_tour_through_xlib_and_related_technologies
 
-				void muCOSA_X11_set_ic_locale() {
+				void muCOSA_X11_set_ic_locale(void) {
 					#ifndef MUCOSA_NO_LOCALE_MOD
 						mu_setlocale(LC_CTYPE, "");
 						XSetLocaleModifiers("");
@@ -5560,7 +5565,7 @@ primarily around a traditional desktop OS environment.
 			/* Time */
 
 				// https://stackoverflow.com/questions/3756323/how-to-get-the-current-time-in-milliseconds-from-c-in-linux
-				double muCOSA_X11_inner_get_time() {
+				double muCOSA_X11_inner_get_time(void) {
 					struct timespec spec;
 					clock_gettime(CLOCK_REALTIME, &spec);
 					return (double)((double)(spec.tv_sec) + ((double)(spec.tv_nsec) / (double)(1.0e9)));
@@ -5646,7 +5651,7 @@ primarily around a traditional desktop OS environment.
 
 			/* Is supported */
 
-				muBool muCOSA_X11_is_supported() {
+				muBool muCOSA_X11_is_supported(void) {
 					return MU_TRUE;
 				}
 
@@ -6799,6 +6804,50 @@ primarily around a traditional desktop OS environment.
 		#define MUCOSA_X11_CALL(...)
 	#endif  /* MUCOSA_X11 */
 
+	/* Win32 implementation */
+
+	#ifdef MUCOSA_WIN32
+		#define MUCOSA_WIN32_CALL(...) __VA_ARGS__
+
+		#include <windows.h>
+
+		/* Structs */
+
+			struct muCOSA_Win32Context {
+				int filler;
+			};
+			typedef struct muCOSA_Win32Context muCOSA_Win32Context;
+
+			muCOSA_Win32Context muCOSA_Win32Context_init(void) {
+				muCOSA_Win32Context context = MU_ZERO_STRUCT(muCOSA_Win32Context);
+				return context;
+			}
+
+		/* Functions */
+
+			/* Is supported */
+
+				muBool muCOSA_Win32_is_supported(void) {
+					return MU_TRUE;
+				}
+
+			/* Initiation / Termination */
+
+				void muCOSA_Win32_init(muCOSAResult* result, muCOSA_Win32Context* c) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					if (c) {}
+				}
+
+				void muCOSA_Win32_term(muCOSAResult* result, muCOSA_Win32Context* c) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					if (c) {}
+				}
+	#else
+		#define MUCOSA_WIN32_CALL(...)
+	#endif /* MUCOSA_WIN32 */
+
 	/* API-level functions */
 
 		/* Names */
@@ -6859,7 +6908,7 @@ primarily around a traditional desktop OS environment.
 					switch (system) {
 						default: return "MU_WINDOW_SYSTEM_UNKNOWN"; break;
 						case MU_WINDOW_SYSTEM_AUTO: return "MU_WINDOW_SYSTEM_AUTO"; break;
-						case MU_X11: return "MU_X11"; break;
+						case MU_WINDOW_SYSTEM_X11: return "MU_WINDOW_SYSTEM_X11"; break;
 					}
 				}
 
@@ -6867,7 +6916,7 @@ primarily around a traditional desktop OS environment.
 					switch (system) {
 						default: return "Unknown"; break;
 						case MU_WINDOW_SYSTEM_AUTO: return "Auto"; break;
-						case MU_X11: return "X11"; break;
+						case MU_WINDOW_SYSTEM_X11: return "X11"; break;
 					}
 				}
 
@@ -7283,8 +7332,12 @@ primarily around a traditional desktop OS environment.
 			struct muCOSAContext {
 				muWindowSystem window_system;
 				#define MUCOSA_GWINSYS muCOSA_global_context->window_system
+
 				MUCOSA_X11_CALL(muCOSA_X11Context X11;)
 				#define MUCOSA_GX11 muCOSA_global_context->X11
+
+				MUCOSA_WIN32_CALL(muCOSA_Win32Context win32;)
+				#define MUCOSA_GWIN32 muCOSA_global_context->win32
 			};
 
 			muCOSAContext* muCOSA_global_context = MU_NULL_PTR;
@@ -7298,30 +7351,43 @@ primarily around a traditional desktop OS environment.
 				MU_ASSERT(muCOSA_global_context != 0, result, MUCOSA_ALLOCATION_FAILED, return;)
 
 				MUCOSA_X11_CALL(MUCOSA_GX11 = muCOSA_X11Context_init();)
+				MUCOSA_WIN32_CALL(MUCOSA_GWIN32 = muCOSA_Win32Context_init();)
 
 				if (window_system == MU_WINDOW_SYSTEM_AUTO) {
-					#ifdef MU_UNIX
-						MUCOSA_X11_CALL(
-							if (muCOSA_X11_is_supported()) {
-								window_system = MU_X11;
-							}
-						)
-					#endif
+					MUCOSA_X11_CALL(
+						if (muCOSA_X11_is_supported()) {
+							window_system = MU_WINDOW_SYSTEM_X11;
+						}
+					)
+					MUCOSA_WIN32_CALL(
+						if (muCOSA_Win32_is_supported()) {
+							window_system = MU_WINDOW_SYSTEM_WIN32;
+						}
+					)
 				} else {
 					switch (window_system) {
 						default: MU_SET_RESULT(result, MUCOSA_UNKNOWN_WINDOW_SYSTEM) mu_free(muCOSA_global_context); return; break;
-						MUCOSA_X11_CALL(case MU_X11: MU_ASSERT(muCOSA_X11_is_supported(), result, MUCOSA_UNSUPPORTED_WINDOW_SYSTEM, mu_free(muCOSA_global_context); return;) break;)
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: MU_ASSERT(muCOSA_X11_is_supported(), result, MUCOSA_UNSUPPORTED_WINDOW_SYSTEM, mu_free(muCOSA_global_context); return;) break;)
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: MU_ASSERT(muCOSA_Win32_is_supported(), result, MUCOSA_UNSUPPORTED_WINDOW_SYSTEM, mu_free(muCOSA_global_context); return;) break;)
 					}
 				}
 
 				switch (window_system) {
 					default: MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_WINDOW_SYSTEM) mu_free(muCOSA_global_context); return; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSAResult res = MUCOSA_SUCCESS;
 						muCOSA_X11_init(&res, &MUCOSA_GX11);
 						MU_ASSERT(res == MUCOSA_SUCCESS, result, res, mu_free(muCOSA_global_context); return;)
-						MUCOSA_GWINSYS = MU_X11;
+						MUCOSA_GWINSYS = MU_WINDOW_SYSTEM_X11;
+						return;
+					} break;)
+
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+						muCOSAResult res = MUCOSA_SUCCESS;
+						muCOSA_Win32_init(&res, &MUCOSA_GWIN32);
+						MU_ASSERT(res == MUCOSA_SUCCESS, result, res, mu_free(muCOSA_global_context); return;)
+						MUCOSA_GWINSYS = MU_WINDOW_SYSTEM_WIN32;
 						return;
 					} break;)
 				}
@@ -7334,9 +7400,15 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSAResult res = MUCOSA_SUCCESS;
 						muCOSA_X11_term(&res, &MUCOSA_GX11);
+						MU_ASSERT(res == MUCOSA_SUCCESS, result, res, return;)
+					} break;)
+
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+						muCOSAResult res = MUCOSA_SUCCESS;
+						muCOSA_Win32_term(&res, &MUCOSA_GWIN32);
 						MU_ASSERT(res == MUCOSA_SUCCESS, result, res, return;)
 					} break;)
 				}
@@ -7355,7 +7427,7 @@ primarily around a traditional desktop OS environment.
 
 			/* Creation / Destruction */
 
-				MUDEF muWindowCreateInfo mu_window_default_create_info() {
+				MUDEF muWindowCreateInfo mu_window_default_create_info(void) {
 					muWindowCreateInfo ci = MU_ZERO_STRUCT(muWindowCreateInfo);
 
 					ci.pixel_format.red_bits = 8;
@@ -7406,10 +7478,13 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return MU_NONE; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_create(result, &MUCOSA_GX11, api, load_functions, name, width, height, create_info);
 						} break;)
 					}
+
+					// To avoid unused parameter warnings
+					if (api) {} if (load_functions) {} if (name) {} if (width) {} if (height) {} if (create_info.min_width) {}
 				}
 
 				MUDEF muWindow mu_window_destroy(muCOSAResult* result, muWindow window) {
@@ -7418,10 +7493,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return window; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_destroy(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 			/* Main loop */
@@ -7432,10 +7509,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return window; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_closed(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_close(muCOSAResult* result, muWindow window) {
@@ -7444,10 +7523,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_close(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_update(muCOSAResult* result, muWindow window) {
@@ -7456,10 +7537,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_update(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_swap_buffers(muCOSAResult* result, muWindow window) {
@@ -7468,10 +7551,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_swap_buffers(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 			/* Get / Set */
@@ -7482,10 +7567,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return MU_FALSE; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_focused(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_focus(muCOSAResult* result, muWindow window, muBool callback) {
@@ -7494,10 +7581,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_focus(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF muBool mu_window_get_visible(muCOSAResult* result, muWindow window) {
@@ -7506,10 +7595,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return MU_FALSE; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_visible(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_set_visible(muCOSAResult* result, muWindow window, muBool visible) {
@@ -7518,10 +7609,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_visible(result, &MUCOSA_GX11, window, visible);
 						} break;)
 					}
+
+					if (window) {} if (visible) {}
 				}
 
 				MUDEF void mu_window_get_position(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y) {
@@ -7530,10 +7623,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_position(result, &MUCOSA_GX11, window, x, y);
 						} break;)
 					}
+
+					if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_set_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y, muBool callback) {
@@ -7542,10 +7637,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_position(result, &MUCOSA_GX11, window, x, y, callback);
 						} break;)
 					}
+
+					if (window) {} if (x) {} if (y) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_get_dimensions(muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height) {
@@ -7554,10 +7651,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_dimensions(result, &MUCOSA_GX11, window, width, height);
 						} break;)
 					}
+
+					if (window) {} if (width) {} if (height) {}
 				}
 
 				MUDEF void mu_window_set_dimensions(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height, muBool callback) {
@@ -7566,10 +7665,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_dimensions(result, &MUCOSA_GX11, window, width, height, callback);
 						} break;)
 					}
+
+					if (window) {} if (width) {} if (height) {} if (callback) {}
 				}
 
 				MUDEF muBool mu_window_get_maximized(muCOSAResult* result, muWindow window) {
@@ -7578,10 +7679,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return MU_FALSE; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_maximized(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_set_maximized(muCOSAResult* result, muWindow window, muBool maximized, muBool callback) {
@@ -7590,10 +7693,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_maximized(result, &MUCOSA_GX11, window, maximized, callback);
 						} break;)
 					}
+
+					if (window) {} if (maximized) {} if (callback) {}
 				}
 
 				MUDEF muBool mu_window_get_minimized(muCOSAResult* result, muWindow window) {
@@ -7602,10 +7707,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return MU_FALSE; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_minimized(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_set_minimized(muCOSAResult* result, muWindow window, muBool minimized, muBool callback) {
@@ -7614,10 +7721,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_minimized(result, &MUCOSA_GX11, window, minimized, callback);
 						} break;)
 					}
+
+					if (window) {} if (minimized) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_get_minimum_dimensions(muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height) {
@@ -7626,10 +7735,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_minimum_dimensions(result, &MUCOSA_GX11, window, min_width, min_height);
 						} break;)
 					}
+
+					if (window) {} if (min_width) {} if (min_height) {}
 				}
 
 				MUDEF void mu_window_set_minimum_dimensions(muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height) {
@@ -7638,10 +7749,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_minimum_dimensions(result, &MUCOSA_GX11, window, min_width, min_height);
 						} break;)
 					}
+
+					if (window) {} if (min_width) {} if (min_height) {}
 				}
 
 				MUDEF void mu_window_get_maximum_dimensions(muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height) {
@@ -7650,10 +7763,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_maximum_dimensions(result, &MUCOSA_GX11, window, max_width, max_height);
 						} break;)
 					}
+
+					if (window) {} if (max_width) {} if (max_height) {}
 				}
 
 				MUDEF void mu_window_set_maximum_dimensions(muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height) {
@@ -7662,10 +7777,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_maximum_dimensions(result, &MUCOSA_GX11, window, max_width, max_height);
 						} break;)
 					}
+
+					if (window) {} if (max_width) {} if (max_height) {}
 				}
 
 				MUDEF void mu_window_get_cursor_position(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y) {
@@ -7674,10 +7791,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_cursor_position(result, &MUCOSA_GX11, window, x, y);
 						} break;)
 					}
+
+					if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_set_cursor_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y, muBool callback) {
@@ -7686,10 +7805,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_cursor_position(result, &MUCOSA_GX11, window, x, y, callback);
 						} break;)
 					}
+
+					if (window) {} if (x) {} if (y) {} if (callback) {}
 				}
 
 				MUDEF muCursorStyle mu_window_get_cursor_style(muCOSAResult* result, muWindow window) {
@@ -7698,10 +7819,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return MU_CURSOR_STYLE_UNKNOWN; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_cursor_style(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_set_cursor_style(muCOSAResult* result, muWindow window, muCursorStyle style) {
@@ -7710,10 +7833,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_cursor_style(result, &MUCOSA_GX11, window, style);
 						} break;)
 					}
+
+					if (window) {} if (style) {}
 				}
 
 				MUDEF int32_m mu_window_get_scroll_level(muCOSAResult* result, muWindow window) {
@@ -7722,10 +7847,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return 0; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_scroll_level(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 				MUDEF void mu_window_set_scroll_level(muCOSAResult* result, muWindow window, int32_m scroll_level, muBool callback) {
@@ -7734,37 +7861,15 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_scroll_level(result, &MUCOSA_GX11, window, scroll_level, callback);
 						} break;)
 					}
+
+					if (window) {} if (scroll_level) {} if (callback) {}
 				}
 
 			/* Get / Let */
-
-				/*MUDEF void mu_window_get_text_input_focus(muCOSAResult* result, muWindow window) {
-					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
-
-					switch (MUCOSA_GWINSYS) {
-						default: return; break;
-
-						MUCOSA_X11_CALL(case MU_X11: {
-							muCOSA_X11_window_get_text_input_focus(result, &MUCOSA_GX11, window);
-						} break;)
-					}
-				}
-
-				MUDEF void mu_window_let_text_input_focus(muCOSAResult* result, muWindow window) {
-					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
-
-					switch (MUCOSA_GWINSYS) {
-						default: return; break;
-
-						MUCOSA_X11_CALL(case MU_X11: {
-							muCOSA_X11_window_let_text_input_focus(result, &MUCOSA_GX11, window);
-						} break;)
-					}
-				}*/
 
 				MUDEF void mu_window_get_text_input_focus(muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, muByte* input)) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
@@ -7772,10 +7877,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_text_input_focus(result, &MUCOSA_GX11, window, text_cursor_x, text_cursor_y, callback);
 						} break;)
 					}
+
+					if (window) {} if (text_cursor_x) {} if (text_cursor_y) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_update_text_cursor(muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
@@ -7784,10 +7891,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_update_text_cursor(result, &MUCOSA_GX11, window, x, y);
 						} break;)
 					}
+
+					if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_let_text_input_focus(muCOSAResult* result, muWindow window) {
@@ -7796,10 +7905,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_let_text_input_focus(result, &MUCOSA_GX11, window);
 						} break;)
 					}
+
+					if (window) {}
 				}
 
 			/* Get */
@@ -7810,10 +7921,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_frame_extents(result, &MUCOSA_GX11, window, left, right, top, bottom);
 						} break;)
 					}
+
+					if (window) {} if (left) {} if (right) {} if (top) {} if (bottom) {}
 				}
 
 				MUDEF muButtonState mu_window_get_keyboard_key_state(muCOSAResult* result, muWindow window, muKeyboardKey key) {
@@ -7822,10 +7935,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return 0; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_keyboard_key_state(result, &MUCOSA_GX11, window, key);
 						} break;)
 					}
+
+					if (window) {} if (key) {}
 				}
 
 				MUDEF muState mu_window_get_keyboard_state_state(muCOSAResult* result, muWindow window, muKeyboardState state) {
@@ -7834,10 +7949,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return 0; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_keyboard_state_state(result, &MUCOSA_GX11, window, state);
 						} break;)
 					}
+
+					if (window) {} if (state) {}
 				}
 
 				MUDEF muButtonState mu_window_get_mouse_button_state(muCOSAResult* result, muWindow window, muMouseButton button) {
@@ -7846,10 +7963,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return 0; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_mouse_button_state(result, &MUCOSA_GX11, window, button);
 						} break;)
 					}
+
+					if (window) {} if (button) {}
 				}
 
 			/* Set */
@@ -7860,10 +7979,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_title(result, &MUCOSA_GX11, window, title);
 						} break;)
 					}
+
+					if (window) {} if (title) {}
 				}
 
 				MUDEF void mu_window_set_dimensions_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height)) {
@@ -7872,10 +7993,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_dimensions_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_position_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
@@ -7884,10 +8007,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_position_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_focus_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused)) {
@@ -7896,10 +8021,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_focus_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_maximize_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized)) {
@@ -7908,10 +8035,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_maximize_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_minimize_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized)) {
@@ -7920,10 +8049,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_minimize_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_keyboard_key_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
@@ -7932,10 +8063,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_keyboard_key_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_keyboard_state_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state)) {
@@ -7944,10 +8077,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_keyboard_state_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_mouse_button_callback(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state)) {
@@ -7956,10 +8091,12 @@ primarily around a traditional desktop OS environment.
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
-						MUCOSA_X11_CALL(case MU_X11: {
+						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_mouse_button_callback(result, &MUCOSA_GX11, window, callback);
 						} break;)
 					}
+
+					if (window) {} if (callback) {}
 				}
 
 		/* Time */
@@ -7970,7 +8107,7 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return 0.f; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						return muCOSA_X11_time_get(result, &MUCOSA_GX11);
 					} break;)
 				}
@@ -7982,10 +8119,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSA_X11_time_set(result, &MUCOSA_GX11, time);
 					} break;)
 				}
+
+				if (time) {}
 			}
 
 			MUDEF void mu_sleep(muCOSAResult* result, double time) {
@@ -7994,10 +8133,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSA_X11_sleep(result, &MUCOSA_GX11, time);
 					} break;)
 				}
+
+				if (time) {}
 			}
 
 		/* Clipboard */
@@ -8008,7 +8149,7 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return 0; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						return muCOSA_X11_clipboard_get(result, &MUCOSA_GX11);
 					} break;)
 				}
@@ -8020,10 +8161,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSA_X11_clipboard_set(result, &MUCOSA_GX11, text, text_size);
 					} break;)
 				}
+
+				if (text) {} if (text_size) {}
 			}
 
 		/* OS functions */
@@ -8034,10 +8177,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return MU_NULL_PTR; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						return muCOSA_X11_os_get_window_handle(result, &MUCOSA_GX11, window, handle);
 					} break;)
 				}
+
+				if (window) {} if (handle) {}
 			}
 
 		/* OpenGL */
@@ -8048,10 +8193,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSA_X11_opengl_bind_window(result, &MUCOSA_GX11, window);
 					} break;)
 				}
+
+				if (window) {}
 			}
 
 			MUDEF void* mu_opengl_get_function_address(const muByte* name) {
@@ -8062,10 +8209,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return 0; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						return muCOSA_X11_opengl_get_function_address(name);
 					} break;)
 				}
+
+				if (name) {}
 			}
 
 		/* Vulkan */
@@ -8077,10 +8226,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return MU_NULL_PTR; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						return muCOSA_X11_vulkan_get_surface_instance_extensions(result, count);
 					} break;)
 				}
+
+				if (count) {}
 			}
 
 			MUDEF void mu_vulkan_create_window_surface(muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface) {
@@ -8089,10 +8240,12 @@ primarily around a traditional desktop OS environment.
 				switch (MUCOSA_GWINSYS) {
 					default: return; break;
 
-					MUCOSA_X11_CALL(case MU_X11: {
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSA_X11_vulkan_create_window_surface(result, &MUCOSA_GX11, window, vk_result, instance, allocator, surface);
 					} break;)
 				}
+
+				if (window) {} if (vk_result) {} if (instance) {} if (allocator) {} if (surface) {}
 			}
 
 	#ifdef __cplusplus
