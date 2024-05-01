@@ -43,6 +43,10 @@ be empty, while also unlikely.
 @MENTION Text input callback is guaranteed to have the last byte equal to 0.
 @MENTION mu_window_update_text_cursor is safe to call even when text input isn't focused.
 @MENTION Text input focus is automatically let go on termination.
+@MENTION Things you need to link against usually for doing stuff in muCOSA, like OpenGL.
+@MENTION Link against User32.lib
+@MENTION Termination isn't really threadsafe. It isn't THAT unthreadsafe, like, some pretty
+unlikely events need to occur one after the other, but still.
 
 @TODO Audio.
 @TODO Non-text clipboards.
@@ -51,6 +55,12 @@ be empty, while also unlikely.
 @TODO X_HAVE_UTF8_STRING.
 @TODO Copy + paste for text input on X11.
 @TODO "Stay awake" function that prevents the computer from auto-sleeping.
+@TODO More OS-specific functions that allow you to have finer control over window attributes (like
+window styling on windows).
+@TODO Make termination threadsafe.
+@TODO Avoid the infamous WM_NCLBUTTONDOWN trap.
+@TODO Replace all "VK_" macros with defines.
+@TODO Remove redundant callback parts of X11/Win32 inner funcs.
 
 As of right now, muCOSA assumes 2 things:
 1. A keyboard and mouse are available, being the primary forms of input.
@@ -1561,26 +1571,6 @@ primarily around a traditional desktop OS environment.
 
 			#define muWindow size_m
 
-		/* API choice */
-
-			#ifndef MUCOSA_NO_AUTOMATIC_API
-
-				#ifdef MU_UNIX
-					#define MUCOSA_X11
-				#endif
-
-				#ifdef MU_WIN32
-					#define MUCOSA_WIN32
-				#endif
-
-			#endif
-
-			#ifdef MUCOSA_OPENGL
-				#define MUCOSA_OPENGL_CALL(...) __VA_ARGS__
-			#else
-				#define MUCOSA_OPENGL_CALL(...)
-			#endif
-
 		/* States */
 
 			#define muButtonState muBool
@@ -1616,7 +1606,7 @@ primarily around a traditional desktop OS environment.
 			MUCOSA_UNSUPPORTED_FEATURE, // Could mean that it rather can't be (or hasn't been) implemented, or that
 			// the specific thing you're trying to do won't work on this device/OS for some reason (for example, on X11,
 			// an Atom needed for that task can't be found).
-			MUCOSA_UNSUPPORTED_OPENGL_FEATURE, // Something relating to OpenGL couldn't be done.
+			MUCOSA_UNSUPPORTED_OPENGL_FEATURE, // Something relating to OpenGL isn't supported or couldn't be found.
 			MUCOSA_UNSUPPORTED_GRAPHICS_API, // Graphics API function was called when that API
 			// wasn't explicity defined.
 
@@ -1625,6 +1615,7 @@ primarily around a traditional desktop OS environment.
 			MUCOSA_FAILED_LOAD_FUNCTIONS,
 			MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER, // Not fatal
 			MUCOSA_FAILED_CREATE_OPENGL_CONTEXT,
+			MUCOSA_FAILED_LOAD_OPENGL_CONTEXT,
 			MUCOSA_FAILED_USE_PIXEL_FORMAT, // Not fatal
 			MUCOSA_FAILED_JOIN_THREAD,
 			MUCOSA_FAILED_CREATE_THREAD,
@@ -1632,6 +1623,14 @@ primarily around a traditional desktop OS environment.
 			MUCOSA_FAILED_GET_INPUT_STYLES, // (X11)
 			MUCOSA_FAILED_FIND_COMPATIBLE_INPUT_STYLE, // (X11)
 			MUCOSA_FAILED_CREATE_INPUT_CONTEXT, // (X11)
+			MUCOSA_FAILED_REGISTER_WINDOW_CLASS, // (Win32)
+			MUCOSA_FAILED_CONVERT_UTF8_TO_WCHAR, // (Win32)
+			MUCOSA_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS, // (Win32)
+			MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW, // (Win32)
+			MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT, // (Win32)
+			MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT, // (Win32)
+			MUCOSA_FAILED_QUERY_WINDOW_INFO, // (Win32)
+			MUCOSA_FAILED_SET_WINDOW_INFO, // (Win32)
 
 			MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS,
 			MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS,
@@ -1989,22 +1988,22 @@ primarily around a traditional desktop OS environment.
 			/* Get / Set */
 
 				MUDEF muBool mu_window_get_focused(muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_focus(muCOSAResult* result, muWindow window, muBool callback);
+				MUDEF void mu_window_focus(muCOSAResult* result, muWindow window);
 
 				MUDEF muBool mu_window_get_visible(muCOSAResult* result, muWindow window);
 				MUDEF void mu_window_set_visible(muCOSAResult* result, muWindow window, muBool visible);
 
 				MUDEF void mu_window_get_position(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-				MUDEF void mu_window_set_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y, muBool callback);
+				MUDEF void mu_window_set_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y);
 
 				MUDEF void mu_window_get_dimensions(muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height);
-				MUDEF void mu_window_set_dimensions(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height, muBool callback);
+				MUDEF void mu_window_set_dimensions(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height);
 
 				MUDEF muBool mu_window_get_maximized(muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_maximized(muCOSAResult* result, muWindow window, muBool maximized, muBool callback);
+				MUDEF void mu_window_set_maximized(muCOSAResult* result, muWindow window, muBool maximized);
 
 				MUDEF muBool mu_window_get_minimized(muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_minimized(muCOSAResult* result, muWindow window, muBool minimized, muBool callback);
+				MUDEF void mu_window_set_minimized(muCOSAResult* result, muWindow window, muBool minimized);
 
 				MUDEF void mu_window_get_minimum_dimensions(muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height);
 				MUDEF void mu_window_set_minimum_dimensions(muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height);
@@ -2012,13 +2011,13 @@ primarily around a traditional desktop OS environment.
 				MUDEF void mu_window_set_maximum_dimensions(muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height);
 
 				MUDEF void mu_window_get_cursor_position(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-				MUDEF void mu_window_set_cursor_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y, muBool callback);
+				MUDEF void mu_window_set_cursor_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y);
 
 				MUDEF muCursorStyle mu_window_get_cursor_style(muCOSAResult* result, muWindow window);
 				MUDEF void mu_window_set_cursor_style(muCOSAResult* result, muWindow window, muCursorStyle style);
 
 				MUDEF int32_m mu_window_get_scroll_level(muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_scroll_level(muCOSAResult* result, muWindow window, int32_m scroll_level, muBool callback);
+				MUDEF void mu_window_set_scroll_level(muCOSAResult* result, muWindow window, int32_m scroll_level);
 
 			/* Get / Let */
 
@@ -4451,6 +4450,24 @@ primarily around a traditional desktop OS environment.
 
 	/* Macro handling */
 
+		#ifndef MUCOSA_NO_AUTOMATIC_API
+
+			#ifdef MU_UNIX
+				#define MUCOSA_X11
+			#endif
+
+			#ifdef MU_WIN32
+				#define MUCOSA_WIN32
+			#endif
+
+		#endif
+
+		#ifdef MUCOSA_OPENGL
+			#define MUCOSA_OPENGL_CALL(...) __VA_ARGS__
+		#else
+			#define MUCOSA_OPENGL_CALL(...)
+		#endif
+
 		#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
 			#ifndef MUCOSA_VULKAN_INCLUDE_PATH
 				#pragma message("[MUCOSA] If MUCOSA_VULKAN is defined and MUCOSA_NO_INCLUDE_VULKAN is not defined, then the include path for Vulkan is expected to be defined in the macro MUCOSA_VULKAN_INCLUDE_PATH; acting as if MUCOSA_VULKAN was not defined from this point on")
@@ -4674,6 +4691,7 @@ primarily around a traditional desktop OS environment.
 
 				muCOSA_X11Window_array windows;
 
+				// @TODO Threadsafe here (?)
 				pthread_t clipboard_thread;
 				muBool clipboard_thread_exists;
 				muBool clipboard_thread_running;
@@ -6811,17 +6829,1082 @@ primarily around a traditional desktop OS environment.
 
 		#include <windows.h>
 
+		/* Misc useful functions */
+
+			EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+			HINSTANCE muCOSA_innerWin32_get_hinstance(void) {
+				return ((HINSTANCE)&__ImageBase);
+			}
+
+		/* OpenGL */
+
+		#ifdef MUCOSA_OPENGL
+
+			#ifndef MUCOSA_NO_INCLUDE_OPENGL
+				#ifndef glClearColor
+					#include <gl/gl.h>
+					#include <gl/glu.h>
+				#endif
+			#endif
+
+			#include <wingdi.h>
+
+			typedef HGLRC WINAPI wglCreateContextAttribsARB_type(HDC hdc, HGLRC hShareContext, const int* attribList);
+			typedef BOOL WINAPI wglChoosePixelFormatARB_type(HDC hdc, const int* piAttribIList, const FLOAT* pfAttribFList, UINT nMaxFormats, int* piFormats, UINT* nNumFormats);
+
+			struct muCOSA_Win32WGL_SwapInterval {
+				MU_LOCK
+				BOOL (*wglSwapIntervalEXT)(int interval);
+			};
+			typedef struct muCOSA_Win32WGL_SwapInterval muCOSA_Win32WGL_SwapInterval;
+
+			struct muCOSA_Win32WGL {
+				MU_LOCK
+				wglCreateContextAttribsARB_type* wglCreateContextAttribsARB;
+				wglChoosePixelFormatARB_type* wglChoosePixelFormatARB;
+				muCOSA_Win32WGL_SwapInterval si;
+			};
+			typedef struct muCOSA_Win32WGL muCOSA_Win32WGL;
+
+			muCOSA_Win32WGL muCOSA_Win32WGL_init(void) {
+				muCOSA_Win32WGL wwgl = MU_ZERO_STRUCT(muCOSA_Win32WGL);
+				MU_LOCK_CREATE(wwgl.lock, wwgl.lock_active)
+				MU_LOCK_CREATE(wwgl.si.lock, wwgl.si.lock_active)
+				return wwgl;
+			}
+			void muCOSA_Win32WGL_term(muCOSA_Win32WGL wwgl) {
+				MU_LOCK_DESTROY(wwgl.lock, wwgl.lock_active)
+				MU_LOCK_DESTROY(wwgl.si.lock, wwgl.si.lock_active)
+			}
+
+			/* WGL tokens */
+				// @TODO Remove the ones we're not using
+
+				// https://registry.khronos.org/OpenGL/extensions/ARB/WGL_ARB_create_context.txt
+
+				#define WGL_CONTEXT_MAJOR_VERSION_ARB             0x2091
+				#define WGL_CONTEXT_MINOR_VERSION_ARB             0x2092
+				#define WGL_CONTEXT_LAYER_PLANE_ARB               0x2093
+				#define WGL_CONTEXT_FLAGS_ARB                     0x2094
+				#define WGL_CONTEXT_PROFILE_MASK_ARB              0x9126
+
+				#define WGL_CONTEXT_DEBUG_BIT_ARB                 0x0001
+				#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB    0x0002
+
+				#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB          0x00000001
+				#define WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB 0x00000002
+
+				#define ERROR_INVALID_VERSION_ARB                 0x2095
+				#define ERROR_INVALID_PROFILE_ARB                 0x2096
+
+				// https://registry.khronos.org/OpenGL/extensions/ARB/WGL_ARB_pixel_format.txt
+
+				#define WGL_NUMBER_PIXEL_FORMATS_ARB    0x2000
+				#define WGL_DRAW_TO_WINDOW_ARB          0x2001
+				#define WGL_DRAW_TO_BITMAP_ARB          0x2002
+				#define WGL_ACCELERATION_ARB            0x2003
+				#define WGL_NEED_PALETTE_ARB            0x2004
+				#define WGL_NEED_SYSTEM_PALETTE_ARB     0x2005
+				#define WGL_SWAP_LAYER_BUFFERS_ARB      0x2006
+				#define WGL_SWAP_METHOD_ARB             0x2007
+				#define WGL_NUMBER_OVERLAYS_ARB         0x2008
+				#define WGL_NUMBER_UNDERLAYS_ARB        0x2009
+				#define WGL_TRANSPARENT_ARB             0x200A
+				#define WGL_TRANSPARENT_RED_VALUE_ARB   0x2037
+				#define WGL_TRANSPARENT_GREEN_VALUE_ARB 0x2038
+				#define WGL_TRANSPARENT_BLUE_VALUE_ARB  0x2039
+				#define WGL_TRANSPARENT_ALPHA_VALUE_ARB 0x203A
+				#define WGL_TRANSPARENT_INDEX_VALUE_ARB 0x203B
+				#define WGL_SHARE_DEPTH_ARB             0x200C
+				#define WGL_SHARE_STENCIL_ARB           0x200D
+				#define WGL_SHARE_ACCUM_ARB             0x200E
+				#define WGL_SUPPORT_GDI_ARB             0x200F
+				#define WGL_SUPPORT_OPENGL_ARB          0x2010
+				#define WGL_DOUBLE_BUFFER_ARB           0x2011
+				#define WGL_STEREO_ARB                  0x2012
+				#define WGL_PIXEL_TYPE_ARB              0x2013
+				#define WGL_COLOR_BITS_ARB              0x2014
+				#define WGL_RED_BITS_ARB                0x2015
+				#define WGL_RED_SHIFT_ARB               0x2016
+				#define WGL_GREEN_BITS_ARB              0x2017
+				#define WGL_GREEN_SHIFT_ARB             0x2018
+				#define WGL_BLUE_BITS_ARB               0x2019
+				#define WGL_BLUE_SHIFT_ARB              0x201A
+				#define WGL_ALPHA_BITS_ARB              0x201B
+				#define WGL_ALPHA_SHIFT_ARB             0x201C
+				#define WGL_ACCUM_BITS_ARB              0x201D
+				#define WGL_ACCUM_RED_BITS_ARB          0x201E
+				#define WGL_ACCUM_GREEN_BITS_ARB        0x201F
+				#define WGL_ACCUM_BLUE_BITS_ARB         0x2020
+				#define WGL_ACCUM_ALPHA_BITS_ARB        0x2021
+				#define WGL_DEPTH_BITS_ARB              0x2022
+				#define WGL_STENCIL_BITS_ARB            0x2023
+				#define WGL_AUX_BUFFERS_ARB             0x2024
+
+				#define WGL_NO_ACCELERATION_ARB         0x2025
+				#define WGL_GENERIC_ACCELERATION_ARB    0x2026
+				#define WGL_FULL_ACCELERATION_ARB       0x2027
+
+				#define WGL_SWAP_EXCHANGE_ARB           0x2028
+				#define WGL_SWAP_COPY_ARB               0x2029
+				#define WGL_SWAP_UNDEFINED_ARB          0x202A
+
+				#define WGL_TYPE_RGBA_ARB               0x202B
+				#define WGL_TYPE_COLORINDEX_ARB         0x202C
+
+				// https://nehe.gamedev.net/tutorial/fullscreen_antialiasing/16008/
+
+				#define WGL_SAMPLE_BUFFERS_ARB  0x2041
+				#define WGL_SAMPLES_ARB     0x2042
+
+			/* Functions */
+
+				// https://gist.github.com/nickrolfe/1127313ed1dbf80254b614a721b3ee9c
+
+				muCOSAResult muCOSA_Win32_init_opengl_extensions(muCOSA_Win32WGL* p_wgl) {
+					WNDCLASSA wclass = MU_ZERO_STRUCT(WNDCLASSA);
+					wclass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+					wclass.lpfnWndProc = DefWindowProcA;
+					wclass.hInstance = muCOSA_innerWin32_get_hinstance();
+					wclass.lpszClassName = "Dummy WGL window class";
+
+					if (!RegisterClassA(&wclass)) {
+						return MUCOSA_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS;
+					}
+
+					HWND win = CreateWindowExA(
+						0, wclass.lpszClassName, "Dummy WGL window",
+						0, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0,
+						0, wclass.hInstance, 0
+					);
+					if (!win) {
+						UnregisterClassA(wclass.lpszClassName, wclass.hInstance);
+						return MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW;
+					}
+
+					HDC dc = GetDC(win);
+
+					HGLRC context = wglCreateContext(dc);
+					if (!context) {
+						ReleaseDC(win, dc);
+						DestroyWindow(win);
+						UnregisterClassA(wclass.lpszClassName, wclass.hInstance);
+						return MUCOSA_FAILED_CREATE_OPENGL_CONTEXT;
+					}
+					if (!wglMakeCurrent(dc, context)) {
+						wglDeleteContext(context);
+						ReleaseDC(win, dc);
+						DestroyWindow(win);
+						UnregisterClassA(wclass.lpszClassName, wclass.hInstance);
+						return MUCOSA_FAILED_LOAD_OPENGL_CONTEXT;
+					}
+
+					PROC wglCreateContextAttribsARB_proc = wglGetProcAddress("wglCreateContextAttribsARB");
+					mu_memcpy(&p_wgl->wglCreateContextAttribsARB, &wglCreateContextAttribsARB_proc, sizeof(PROC));
+					PROC wglChoosePixelFormatARB_proc = wglGetProcAddress("wglChoosePixelFormatARB");
+					mu_memcpy(&p_wgl->wglChoosePixelFormatARB, &wglChoosePixelFormatARB_proc, sizeof(PROC));
+
+					wglMakeCurrent(dc, 0);
+					wglDeleteContext(context);
+					ReleaseDC(win, dc);
+					DestroyWindow(win);
+					UnregisterClassA(wclass.lpszClassName, wclass.hInstance);
+
+					if (p_wgl->wglCreateContextAttribsARB == 0 || p_wgl->wglChoosePixelFormatARB) {
+						return MUCOSA_UNSUPPORTED_OPENGL_FEATURE;
+					}
+
+					return MUCOSA_SUCCESS;
+				}
+
+				muCOSAResult muCOSA_Win32_create_opengl_context(HDC dc, muCOSA_Win32WGL* p_wgl, muPixelFormat pf, HGLRC* p_context, muGraphicsAPI api) {
+					int pixel_format_attributes[] = {
+						WGL_DRAW_TO_WINDOW_ARB, MU_TRUE,
+						WGL_SUPPORT_OPENGL_ARB, MU_TRUE,
+						WGL_DOUBLE_BUFFER_ARB,  MU_TRUE,
+						WGL_SAMPLE_BUFFERS_ARB, MU_TRUE, // ?
+						WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB, // ?
+						WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+						WGL_RED_BITS_ARB,       pf.red_bits,
+						WGL_GREEN_BITS_ARB,     pf.green_bits,
+						WGL_BLUE_BITS_ARB,      pf.blue_bits,
+						WGL_ALPHA_BITS_ARB,     pf.alpha_bits,
+						WGL_DEPTH_BITS_ARB,     pf.depth_bits,
+						WGL_STENCIL_BITS_ARB,   pf.stencil_bits,
+						WGL_SAMPLES_ARB,        pf.samples
+					};
+
+					int pixel_format;
+					UINT format_count;
+					p_wgl->wglChoosePixelFormatARB(dc, pixel_format_attributes, 0, 1, &pixel_format, &format_count);
+					if (!format_count) {
+						return MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT;
+					}
+
+					PIXELFORMATDESCRIPTOR format;
+					if (DescribePixelFormat(dc, pixel_format, sizeof(PIXELFORMATDESCRIPTOR), &format) == 0) {
+						return MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT;
+					}
+
+					int opengl_attributes[] = {
+						WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+						WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+						WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+						0
+					};
+
+					switch (api) {
+						default: return MUCOSA_UNKNOWN_GRAPHICS_API; break;
+						case MU_OPENGL_1_0:   { opengl_attributes[1] = 1; opengl_attributes[3] = 0; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_1_1:   { opengl_attributes[1] = 1; opengl_attributes[3] = 1; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_1_2:   { opengl_attributes[1] = 1; opengl_attributes[3] = 2; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						// No idea what to do here lmao
+						case MU_OPENGL_1_2_1: { opengl_attributes[1] = 1; opengl_attributes[3] = 2; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_1_3:   { opengl_attributes[1] = 1; opengl_attributes[3] = 3; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_1_4:   { opengl_attributes[1] = 1; opengl_attributes[3] = 4; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_1_5:   { opengl_attributes[1] = 1; opengl_attributes[3] = 5; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_2_0:   { opengl_attributes[1] = 2; opengl_attributes[3] = 0; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_2_1:   { opengl_attributes[1] = 2; opengl_attributes[3] = 1; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_3_0:   { opengl_attributes[1] = 3; opengl_attributes[3] = 0; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_3_1:   { opengl_attributes[1] = 3; opengl_attributes[3] = 1; opengl_attributes[4] = 0; opengl_attributes[5] = 0; } break;
+						case MU_OPENGL_3_2_CORE:          { opengl_attributes[1] = 3; opengl_attributes[3] = 2; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_3_2_COMPATIBILITY: { opengl_attributes[1] = 3; opengl_attributes[3] = 2; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_3_3_CORE:          { opengl_attributes[1] = 3; opengl_attributes[3] = 3; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_3_3_COMPATIBILITY: { opengl_attributes[1] = 3; opengl_attributes[3] = 3; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_0_CORE:          { opengl_attributes[1] = 4; opengl_attributes[3] = 0; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_0_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 0; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_1_CORE:          { opengl_attributes[1] = 4; opengl_attributes[3] = 1; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_1_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 1; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_2_CORE:          { opengl_attributes[1] = 4; opengl_attributes[3] = 2; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_2_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 2; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_3_CORE:          { opengl_attributes[1] = 4; opengl_attributes[3] = 3; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_3_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 3; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_4_CORE:          { opengl_attributes[1] = 4; opengl_attributes[3] = 4; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_4_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 4; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_5_CORE:          { opengl_attributes[1] = 4; opengl_attributes[3] = 5; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_5_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 5; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_6_CORE:          { opengl_attributes[1] = 4; opengl_attributes[3] = 6; opengl_attributes[5] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB; } break;
+						case MU_OPENGL_4_6_COMPATIBILITY: { opengl_attributes[1] = 4; opengl_attributes[3] = 6; opengl_attributes[5] = WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB; } break;
+					}
+
+					*p_context = p_wgl->wglCreateContextAttribsARB(dc, 0, opengl_attributes);
+					if (!*p_context) {
+						return MUCOSA_FAILED_CREATE_OPENGL_CONTEXT;
+					}
+					if (!wglMakeCurrent(dc, *p_context)) {
+						return MUCOSA_FAILED_LOAD_OPENGL_CONTEXT;
+					}
+
+					return MUCOSA_SUCCESS;
+				}
+
+		#endif
+
 		/* Structs */
 
+			struct muCOSA_Win32Input {
+				muButtonState keyboard_key_states[MU_KEYBOARD_KEY_LAST-MU_KEYBOARD_KEY_FIRST+1];
+				muState keyboard_state_states[MU_KEYBOARD_STATE_LAST-MU_KEYBOARD_STATE_FIRST+1];
+				muButtonState mouse_button_states[MU_MOUSE_BUTTON_LAST-MU_MOUSE_BUTTON_FIRST+1];
+			};
+			typedef struct muCOSA_Win32Input muCOSA_Win32Input;
+
+			struct muCOSA_Win32Window {
+				muBool active;
+				MU_LOCK
+
+				wchar_t wclass_name[2];
+				HWND hwnd;
+				HINSTANCE hinstance;
+				HDC dc;
+
+				muGraphicsAPI api;
+				MUCOSA_OPENGL_CALL(
+					HGLRC glrc;
+				)
+
+				muCOSA_Win32Input input;
+
+				muBool closed;
+				muBool visible;
+				muBool maximized;
+				muBool minimized;
+
+				uint32_m min_width;
+				uint32_m min_height;
+				uint32_m max_width;
+				uint32_m max_height;
+
+				muCursorStyle cursor_style;
+				HCURSOR cursor;
+				int32_m scroll_level;
+
+				void (*dimensions_callback)(muWindow window, uint32_m width, uint32_m height);
+				void (*position_callback)(muWindow window, int32_m x, int32_m y);
+				void (*focus_callback)(muWindow window, muBool focused);
+				void (*maximize_callback)(muWindow window, muBool maximized);
+				void (*minimize_callback)(muWindow window, muBool minimized);
+
+				void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
+				void (*keyboard_state_callback)(muWindow window, muKeyboardState keyboard_state, muState state);
+
+				void (*cursor_position_callback)(muWindow window, int32_m x, int32_m y);
+				void (*mouse_button_callback)(muWindow window, muMouseButton mouse_button, muButtonState state);
+				void (*scroll_callback)(muWindow window, int32_m scroll_level_add);
+			};
+			typedef struct muCOSA_Win32Window muCOSA_Win32Window;
+
+			MU_HRARRAY_DEFAULT_FUNC(muCOSA_Win32Window)
+
 			struct muCOSA_Win32Context {
-				int filler;
+				muCOSA_Win32Window_array windows;
+
+				MUCOSA_OPENGL_CALL(muCOSA_Win32WGL wgl;)
 			};
 			typedef struct muCOSA_Win32Context muCOSA_Win32Context;
+
+			muCOSA_Win32Context* muCOSA_Win32Context_get(void);
 
 			muCOSA_Win32Context muCOSA_Win32Context_init(void) {
 				muCOSA_Win32Context context = MU_ZERO_STRUCT(muCOSA_Win32Context);
 				return context;
 			}
+
+		/* Inner functions */
+
+			/* Strings cuz Microsoft sucks */
+
+				wchar_t* muCOSA_innerWin32_utf8_to_wchar(muByte* str) {
+					int len = MultiByteToWideChar(CP_UTF8, 0, (const char*)str, -1, NULL, 0);
+					if (len == 0) {
+						return 0;
+					}
+					wchar_t* wstr = (wchar_t*)mu_malloc(len * sizeof(wchar_t));
+					if (MultiByteToWideChar(
+						CP_UTF8, 0, (const char*)str, -1, 
+						(LPWSTR)wstr, len) == 0) {
+						mu_free(wstr);
+						return 0;
+					}
+					return wstr;
+				}
+
+			/* Input handling */
+
+				/* Keyboard key */
+
+					// https://stackoverflow.com/questions/15966642/how-do-you-tell-lshift-apart-from-rshift-in-wm-keydown-events
+					// RIP Bill Gates, he would've loved this API
+					WPARAM muCOSA_innerWin32_map_left_right_keys(WPARAM vk, LPARAM lParam) {
+						UINT scancode = (lParam & 0x00ff0000) >> 16;
+						int extended  = (lParam & 0x01000000) != 0;
+
+						switch (vk) {
+							default: return vk; break;
+							case VK_SHIFT: return MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX); break;
+							case VK_CONTROL: return extended ? VK_RCONTROL : VK_LCONTROL; break;
+							case VK_MENU: return extended ? VK_RMENU : VK_LMENU; break;
+						}
+					}
+
+					muKeyboardKey muCOSA_Win32_key_to_keyboard_key(int key) {
+						switch (key) {
+							default: return MU_KEYBOARD_KEY_UNKNOWN; break;
+							case VK_BACK: return MU_KEYBOARD_KEY_BACKSPACE; break;
+							case VK_TAB: return MU_KEYBOARD_KEY_TAB; break;
+							case VK_CLEAR: return MU_KEYBOARD_KEY_CLEAR; break;
+							case VK_RETURN: return MU_KEYBOARD_KEY_RETURN; break;
+							case VK_PAUSE: return MU_KEYBOARD_KEY_PAUSE; break;
+							case VK_ESCAPE: return MU_KEYBOARD_KEY_ESCAPE; break;
+							case VK_MODECHANGE: return MU_KEYBOARD_KEY_MODECHANGE; break;
+							case VK_SPACE: return MU_KEYBOARD_KEY_SPACE; break;
+							case VK_PRIOR: return MU_KEYBOARD_KEY_PRIOR; break;
+							case VK_NEXT: return MU_KEYBOARD_KEY_NEXT; break;
+							case VK_END: return MU_KEYBOARD_KEY_END; break;
+							case VK_HOME: return MU_KEYBOARD_KEY_HOME; break;
+							case VK_LEFT: return MU_KEYBOARD_KEY_LEFT; break;
+							case VK_UP: return MU_KEYBOARD_KEY_UP; break;
+							case VK_RIGHT: return MU_KEYBOARD_KEY_RIGHT; break;
+							case VK_DOWN: return MU_KEYBOARD_KEY_DOWN; break;
+							case VK_SELECT: return MU_KEYBOARD_KEY_SELECT; break;
+							case VK_PRINT: return MU_KEYBOARD_KEY_PRINT; break;
+							case VK_EXECUTE: return MU_KEYBOARD_KEY_EXECUTE; break;
+							case VK_INSERT: return MU_KEYBOARD_KEY_INSERT; break;
+							case VK_DELETE: return MU_KEYBOARD_KEY_DELETE; break;
+							case VK_HELP: return MU_KEYBOARD_KEY_HELP; break;
+							case 0x30: return MU_KEYBOARD_KEY_0; break;
+							case 0x31: return MU_KEYBOARD_KEY_1; break;
+							case 0x32: return MU_KEYBOARD_KEY_2; break;
+							case 0x33: return MU_KEYBOARD_KEY_3; break;
+							case 0x34: return MU_KEYBOARD_KEY_4; break;
+							case 0x35: return MU_KEYBOARD_KEY_5; break;
+							case 0x36: return MU_KEYBOARD_KEY_6; break;
+							case 0x37: return MU_KEYBOARD_KEY_7; break;
+							case 0x38: return MU_KEYBOARD_KEY_8; break;
+							case 0x39: return MU_KEYBOARD_KEY_9; break;
+							case 0x41: return MU_KEYBOARD_KEY_A; break;
+							case 0x42: return MU_KEYBOARD_KEY_B; break;
+							case 0x43: return MU_KEYBOARD_KEY_C; break;
+							case 0x44: return MU_KEYBOARD_KEY_D; break;
+							case 0x45: return MU_KEYBOARD_KEY_E; break;
+							case 0x46: return MU_KEYBOARD_KEY_F; break;
+							case 0x47: return MU_KEYBOARD_KEY_G; break;
+							case 0x48: return MU_KEYBOARD_KEY_H; break;
+							case 0x49: return MU_KEYBOARD_KEY_I; break;
+							case 0x4A: return MU_KEYBOARD_KEY_J; break;
+							case 0x4B: return MU_KEYBOARD_KEY_K; break;
+							case 0x4C: return MU_KEYBOARD_KEY_L; break;
+							case 0x4D: return MU_KEYBOARD_KEY_M; break;
+							case 0x4E: return MU_KEYBOARD_KEY_N; break;
+							case 0x4F: return MU_KEYBOARD_KEY_O; break;
+							case 0x50: return MU_KEYBOARD_KEY_P; break;
+							case 0x51: return MU_KEYBOARD_KEY_Q; break;
+							case 0x52: return MU_KEYBOARD_KEY_R; break;
+							case 0x53: return MU_KEYBOARD_KEY_S; break;
+							case 0x54: return MU_KEYBOARD_KEY_T; break;
+							case 0x55: return MU_KEYBOARD_KEY_U; break;
+							case 0x56: return MU_KEYBOARD_KEY_V; break;
+							case 0x57: return MU_KEYBOARD_KEY_W; break;
+							case 0x58: return MU_KEYBOARD_KEY_X; break;
+							case 0x59: return MU_KEYBOARD_KEY_Y; break;
+							case 0x5A: return MU_KEYBOARD_KEY_Z; break;
+							case VK_LWIN: return MU_KEYBOARD_KEY_LEFT_WINDOWS; break;
+							case VK_RWIN: return MU_KEYBOARD_KEY_RIGHT_WINDOWS; break;
+							case VK_NUMPAD0: return MU_KEYBOARD_KEY_NUMPAD_0; break;
+							case VK_NUMPAD1: return MU_KEYBOARD_KEY_NUMPAD_1; break;
+							case VK_NUMPAD2: return MU_KEYBOARD_KEY_NUMPAD_2; break;
+							case VK_NUMPAD3: return MU_KEYBOARD_KEY_NUMPAD_3; break;
+							case VK_NUMPAD4: return MU_KEYBOARD_KEY_NUMPAD_4; break;
+							case VK_NUMPAD5: return MU_KEYBOARD_KEY_NUMPAD_5; break;
+							case VK_NUMPAD6: return MU_KEYBOARD_KEY_NUMPAD_6; break;
+							case VK_NUMPAD7: return MU_KEYBOARD_KEY_NUMPAD_7; break;
+							case VK_NUMPAD8: return MU_KEYBOARD_KEY_NUMPAD_8; break;
+							case VK_NUMPAD9: return MU_KEYBOARD_KEY_NUMPAD_9; break;
+							case VK_MULTIPLY: return MU_KEYBOARD_KEY_MULTIPLY; break;
+							case VK_ADD: return MU_KEYBOARD_KEY_ADD; break;
+							case VK_SEPARATOR: return MU_KEYBOARD_KEY_SEPARATOR; break;
+							case VK_SUBTRACT: return MU_KEYBOARD_KEY_SUBTRACT; break;
+							case VK_DECIMAL: return MU_KEYBOARD_KEY_DECIMAL; break;
+							case VK_DIVIDE: return MU_KEYBOARD_KEY_DIVIDE; break;
+							case VK_F1: return MU_KEYBOARD_KEY_F1; break;
+							case VK_F2: return MU_KEYBOARD_KEY_F2; break;
+							case VK_F3: return MU_KEYBOARD_KEY_F3; break;
+							case VK_F4: return MU_KEYBOARD_KEY_F4; break;
+							case VK_F5: return MU_KEYBOARD_KEY_F5; break;
+							case VK_F6: return MU_KEYBOARD_KEY_F6; break;
+							case VK_F7: return MU_KEYBOARD_KEY_F7; break;
+							case VK_F8: return MU_KEYBOARD_KEY_F8; break;
+							case VK_F9: return MU_KEYBOARD_KEY_F9; break;
+							case VK_F10: return MU_KEYBOARD_KEY_F10; break;
+							case VK_F11: return MU_KEYBOARD_KEY_F11; break;
+							case VK_F12: return MU_KEYBOARD_KEY_F12; break;
+							case VK_F13: return MU_KEYBOARD_KEY_F13; break;
+							case VK_F14: return MU_KEYBOARD_KEY_F14; break;
+							case VK_F15: return MU_KEYBOARD_KEY_F15; break;
+							case VK_F16: return MU_KEYBOARD_KEY_F16; break;
+							case VK_F17: return MU_KEYBOARD_KEY_F17; break;
+							case VK_F18: return MU_KEYBOARD_KEY_F18; break;
+							case VK_F19: return MU_KEYBOARD_KEY_F19; break;
+							case VK_F20: return MU_KEYBOARD_KEY_F20; break;
+							case VK_F21: return MU_KEYBOARD_KEY_F21; break;
+							case VK_F22: return MU_KEYBOARD_KEY_F22; break;
+							case VK_F23: return MU_KEYBOARD_KEY_F23; break;
+							case VK_F24: return MU_KEYBOARD_KEY_F24; break;
+							case VK_NUMLOCK: return MU_KEYBOARD_KEY_NUMLOCK; break;
+							case VK_SCROLL: return MU_KEYBOARD_KEY_SCROLL; break;
+							case VK_LSHIFT: return MU_KEYBOARD_KEY_LEFT_SHIFT; break;
+							case VK_RSHIFT: return MU_KEYBOARD_KEY_RIGHT_SHIFT; break;
+							case VK_LCONTROL: return MU_KEYBOARD_KEY_LEFT_CONTROL; break;
+							case VK_RCONTROL: return MU_KEYBOARD_KEY_RIGHT_CONTROL; break;
+							case VK_LMENU: return MU_KEYBOARD_KEY_LEFT_MENU; break;
+							case VK_RMENU: return MU_KEYBOARD_KEY_RIGHT_MENU; break;
+							case VK_ATTN: return MU_KEYBOARD_KEY_ATTN; break;
+							case VK_CRSEL: return MU_KEYBOARD_KEY_CRSEL; break;
+							case VK_EXSEL: return MU_KEYBOARD_KEY_EXSEL; break;
+							case VK_EREOF: return MU_KEYBOARD_KEY_EREOF; break;
+							case VK_PLAY: return MU_KEYBOARD_KEY_PLAY; break;
+							case VK_PA1: return MU_KEYBOARD_KEY_PA1; break;
+						}
+					}
+
+				/* Keyboard state */
+
+					int muCOSA_innerWin32_keyboard_state_get_win32(muKeyboardState state) {
+						switch (state) {
+							default: return VK_NONAME; break;
+							case MU_KEYBOARD_STATE_CAPS_LOCK: return VK_CAPITAL; break;
+							case MU_KEYBOARD_STATE_SCROLL_LOCK: return VK_SCROLL; break;
+							case MU_KEYBOARD_STATE_NUM_LOCK: return VK_NUMLOCK; break;
+						}
+					}
+
+					void muCOSA_innerWin32_update_state(muCOSA_Win32Window* p_win) {
+						for (size_m i = MU_KEYBOARD_STATE_FIRST; i <= MU_KEYBOARD_STATE_LAST; i++) {
+							if ((GetKeyState(muCOSA_innerWin32_keyboard_state_get_win32(i)) & 0x0001) != 0) {
+								p_win->input.keyboard_state_states[i] = MU_ON;
+							} else {
+								p_win->input.keyboard_state_states[i] = MU_OFF;
+							}
+						}
+					}
+
+				/* Cursor */
+
+					void* muCOSA_innerWin32_cursor_to_win_cursor(muCursorStyle style) {
+						switch (style) {
+							default: case MU_CURSOR_STYLE_ARROW: return IDC_ARROW; break;
+							case MU_CURSOR_STYLE_IBEAM: return IDC_IBEAM; break;
+							case MU_CURSOR_STYLE_WAIT: return IDC_WAIT; break;
+							case MU_CURSOR_STYLE_WAIT_ARROW: return IDC_APPSTARTING; break;
+							case MU_CURSOR_STYLE_CROSSHAIR: return IDC_CROSS; break;
+							case MU_CURSOR_STYLE_HAND: return IDC_HAND; break;
+							case MU_CURSOR_STYLE_SIZE_EAST_WEST: return IDC_SIZEWE; break;
+							case MU_CURSOR_STYLE_SIZE_NORTH_SOUTH: return IDC_SIZENS; break;
+							case MU_CURSOR_STYLE_SIZE_NORTH_EAST_SOUTH_WEST: return IDC_SIZENESW; break;
+							case MU_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST: return IDC_SIZENWSE; break;
+							case MU_CURSOR_STYLE_SIZE_ALL: return IDC_SIZEALL; break;
+							case MU_CURSOR_STYLE_NO: return IDC_NO; break;
+						}
+					}
+
+			/* Procedure handling */
+
+				muWindow muCOSA_innerWin32_find_window_by_hwnd(HWND hwnd) {
+					muCOSA_Win32Context* c = muCOSA_Win32Context_get();
+					if (c == 0) {
+						return MU_NONE;
+					}
+					for (size_m i = 0; i < c->windows.length; i++) {
+						if (c->windows.data[i].active && c->windows.data[i].hwnd == hwnd) {
+							return i;
+						}
+					}
+					return MU_NONE;
+				}
+
+				struct muCOSA_innerWin32_msginfo {
+					UINT uMsg;
+					WPARAM wParam;
+					LPARAM lParam;
+
+					muCOSA_Win32Window* p_win;
+					muCOSA_Win32Context* c;
+					muWindow id_window;
+				};
+				typedef struct muCOSA_innerWin32_msginfo muCOSA_innerWin32_msginfo;
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_quit(muCOSA_innerWin32_msginfo msg) {
+					PostQuitMessage(0);
+					msg.p_win->closed = MU_TRUE;
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_size(muCOSA_innerWin32_msginfo msg) {
+					muCOSAResult result = MUCOSA_SUCCESS;
+
+					if (msg.p_win->dimensions_callback != 0) {
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->dimensions_callback(msg.id_window, (int)LOWORD(msg.lParam), (int)HIWORD(msg.lParam));
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					if (msg.wParam == SIZE_MAXIMIZED && msg.p_win->maximize_callback != 0) {
+						msg.p_win->maximized = MU_TRUE;
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->maximize_callback(msg.id_window, MU_TRUE);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					// ?
+					} else if (msg.p_win->maximized
+						&& msg.wParam != SIZE_MAXIMIZED && msg.wParam != SIZE_MAXHIDE && msg.wParam != SIZE_MAXSHOW
+						&& msg.p_win->maximize_callback != 0) {
+						msg.p_win->maximized = MU_FALSE;
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->maximize_callback(msg.id_window, MU_FALSE);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					if (msg.wParam == SIZE_MINIMIZED && msg.p_win->minimize_callback != 0) {
+						msg.p_win->minimized = MU_TRUE;
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->minimize_callback(msg.id_window, MU_TRUE);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					// ?
+					} else if (msg.p_win->minimized
+						&& msg.wParam != SIZE_MINIMIZED && msg.wParam != SIZE_MAXHIDE && msg.wParam != SIZE_MAXSHOW
+						&& msg.p_win->minimize_callback != 0) {
+						msg.p_win->minimized = MU_FALSE;
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->minimize_callback(msg.id_window, MU_FALSE);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					PostMessage(msg.p_win->hwnd, WM_PAINT, 0, 0);
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_key(muCOSA_innerWin32_msginfo msg, muButtonState state) {
+					muCOSAResult result = MUCOSA_SUCCESS;
+
+					msg.wParam = muCOSA_innerWin32_map_left_right_keys(msg.wParam, msg.lParam);
+					muKeyboardKey key = muCOSA_Win32_key_to_keyboard_key(msg.wParam);
+					if (key == MU_KEYBOARD_KEY_UNKNOWN) {
+						return 0;
+					}
+
+					msg.p_win->input.keyboard_key_states[key-MU_KEYBOARD_KEY_FIRST] = state;
+
+					if (msg.p_win->keyboard_key_callback != MU_NULL_PTR) {
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->keyboard_key_callback(msg.id_window, key, state);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_move(muCOSA_innerWin32_msginfo msg) {
+					muCOSAResult result = MUCOSA_SUCCESS;
+
+					if (msg.p_win->position_callback != 0) {
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						// https://www.autohotkey.com/boards/viewtopic.php?t=27857
+						// BILL GATES... MY LOVE... YOU MAKE NO MISTAKES IN YOUR FLAWLESS,
+						// IMPECCABLE API. HOW COULD AN API GET BETTER IF THE DOCUMENTATION FOR IT
+						// IS UNIVERSALLY UNDERSTOOD AS BEING COMPLETELY WORTHLESS? I'D LET YOU
+						// FORCE UPDATE A MILLION TIMES FOR YOUR PERFECT API... Oh, Bill...
+						msg.p_win->position_callback(msg.id_window,
+							(int32_m)( msg.lParam      & 0x8000 ? - ((~msg.lParam    )&0x7FFF)+1 :  msg.lParam     &0x7FFF),
+							(int32_m)((msg.lParam>>16) & 0x8000 ? - ((~msg.lParam>>16)&0x7FFF)+1 : (msg.lParam>>16)&0x7FFF)
+						);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_focus(muCOSA_innerWin32_msginfo msg, muBool focus) {
+					muCOSAResult result = MUCOSA_SUCCESS;
+
+					if (msg.p_win->focus_callback != 0) {
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->focus_callback(msg.id_window, focus);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_minmax_info(muCOSA_innerWin32_msginfo msg) {
+					LPMINMAXINFO lp = (LPMINMAXINFO)msg.lParam;
+					// No idea why 16 and 39 need to be added here. It can't be broder stuff like
+					// the titlebar, because the border width is almost never 16 whole pixels in
+					// Windows. :|
+					lp->ptMinTrackSize.x = msg.p_win->min_width + 16;
+					lp->ptMinTrackSize.y = msg.p_win->min_height + 39;
+					lp->ptMaxTrackSize.x = msg.p_win->max_width + 16;
+					lp->ptMaxTrackSize.y = msg.p_win->max_height + 39;
+
+					return 0;
+				}
+
+				// Note: button and state must be valid, this func doesn't perform checks
+				LRESULT CALLBACK muCOSA_innerWin32_handle_mouse_button(muCOSA_innerWin32_msginfo msg, muMouseButton button, muButtonState state) {
+					muCOSAResult result = MUCOSA_SUCCESS;
+
+					msg.p_win->input.mouse_button_states[button-MU_MOUSE_BUTTON_FIRST] = state;
+
+					if (msg.p_win->mouse_button_callback != MU_NULL_PTR) {
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->mouse_button_callback(msg.id_window, button, state);
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_set_cursor(muCOSA_innerWin32_msginfo msg) {
+					if (LOWORD(msg.lParam) == HTCLIENT && msg.p_win->cursor_style != MU_CURSOR_STYLE_DEFAULT) {
+						DestroyCursor(msg.p_win->cursor);
+						msg.p_win->cursor = LoadCursor(0, (LPCSTR)muCOSA_innerWin32_cursor_to_win_cursor(msg.p_win->cursor_style));
+						SetCursor(msg.p_win->cursor);
+						return TRUE;
+					}
+
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_mouse_wheel(muCOSA_innerWin32_msginfo msg) {
+					muCOSAResult result = MUCOSA_SUCCESS;
+					msg.p_win->scroll_level += GET_WHEEL_DELTA_WPARAM(msg.wParam);
+
+					if (msg.p_win->scroll_callback != 0) {
+						MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
+						msg.p_win->scroll_callback(msg.id_window, GET_WHEEL_DELTA_WPARAM(msg.wParam));
+						MU_HOLD((&result), msg.id_window, msg.c->windows, 0, MUCOSA_, return 0;, muCOSA_Win32Window_)
+					}
+
+					return 0;
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_handle_umsg(muCOSA_innerWin32_msginfo msg) {
+					switch (msg.uMsg) {
+						default: return DefWindowProcW(msg.p_win->hwnd, msg.uMsg, msg.wParam, msg.lParam); break;
+						case WM_DESTROY: return muCOSA_innerWin32_handle_quit(msg); break;
+
+						case WM_SIZE: return muCOSA_innerWin32_handle_size(msg); break;
+
+						case WM_KEYDOWN: return muCOSA_innerWin32_handle_key(msg, MU_BUTTON_STATE_HELD); break;
+						case WM_KEYUP: return muCOSA_innerWin32_handle_key(msg, MU_BUTTON_STATE_RELEASED); break;
+
+						case WM_MOVE: return muCOSA_innerWin32_handle_move(msg); break;
+
+						case WM_SETFOCUS: return muCOSA_innerWin32_handle_focus(msg, MU_TRUE); break;
+						case WM_KILLFOCUS: return muCOSA_innerWin32_handle_focus(msg, MU_FALSE); break;
+
+						case WM_GETMINMAXINFO: return muCOSA_innerWin32_handle_minmax_info(msg); break;
+
+						case WM_LBUTTONDOWN: return muCOSA_innerWin32_handle_mouse_button(msg, MU_MOUSE_BUTTON_LEFT, MU_BUTTON_STATE_HELD); break;
+						case WM_RBUTTONDOWN: return muCOSA_innerWin32_handle_mouse_button(msg, MU_MOUSE_BUTTON_RIGHT, MU_BUTTON_STATE_HELD); break;
+						case WM_LBUTTONUP: return muCOSA_innerWin32_handle_mouse_button(msg, MU_MOUSE_BUTTON_LEFT, MU_BUTTON_STATE_RELEASED); break;
+						case WM_RBUTTONUP: return muCOSA_innerWin32_handle_mouse_button(msg, MU_MOUSE_BUTTON_RIGHT, MU_BUTTON_STATE_RELEASED); break;
+
+						case WM_SETCURSOR: return muCOSA_innerWin32_handle_set_cursor(msg); break;
+
+						case WM_MOUSEWHEEL: return muCOSA_innerWin32_handle_mouse_wheel(msg); break;
+					}
+				}
+
+				LRESULT CALLBACK muCOSA_innerWin32_proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+					muCOSA_Win32Context* c = muCOSA_Win32Context_get();
+					if (c == 0) {
+						return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+					}
+					muWindow win = muCOSA_innerWin32_find_window_by_hwnd(hwnd);
+					if (win == MU_NONE) {
+						return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+					}
+					// Hack city.
+					// Actually, don't have to do this here, should already be being held because
+					// it SHOULD (from my understanding) be triggered while we're dispatching
+					// messages within the update window func.
+					//muCOSAResult result = MUCOSA_SUCCESS;
+					//MU_HOLD((&result), win, c->windows, 0, MUCOSA_, return DefWindowProcW(hwnd, uMsg, wParam, lParam);, muCOSA_Win32Window_)
+
+					muCOSA_innerWin32_msginfo msginfo = MU_ZERO_STRUCT(muCOSA_innerWin32_msginfo);
+					msginfo.uMsg = uMsg;
+					msginfo.wParam = wParam;
+					msginfo.lParam = lParam;
+					msginfo.p_win = &c->windows.data[win];
+					msginfo.c = c;
+					msginfo.id_window = win;
+					LRESULT ret = muCOSA_innerWin32_handle_umsg(msginfo);
+
+					//MU_RELEASE(c->windows, win, muCOSA_Win32Window_)
+					return ret;
+				}
+
+			/* Window */
+
+				WNDCLASSEXW muCOSA_innerWin32_window_get_class(muCOSAResult* result,
+					wchar_t* wname, wchar_t* wclass_name
+				) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					WNDCLASSEXW wclass = MU_ZERO_STRUCT(WNDCLASSEXW);
+					wclass.cbSize = sizeof(WNDCLASSEXW);
+					wclass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+					wclass.lpfnWndProc = muCOSA_innerWin32_proc;
+					wclass.hInstance = muCOSA_innerWin32_get_hinstance();
+					wclass.lpszMenuName = wname;
+					wclass.lpszClassName = wclass_name;
+
+					return wclass;
+				}
+
+				// @TODO This is incorrect; not all window borders are the same, figure this out
+				// laterrr.
+
+				int muCOSA_innerWin32_window_xborder(DWORD style) {
+					if (style) {}
+					return (int)GetSystemMetrics(SM_CXSIZEFRAME);
+				}
+
+				int muCOSA_innerWin32_window_yborder(DWORD style) {
+					if (style) {}
+					return (int)(GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(92));
+				}
+
+				HWND muCOSA_innerWin32_window_create(
+					uint16_m width, uint16_m height, muWindowCreateInfo ci,
+					WNDCLASSEXW wclass
+				) {
+					DWORD style = WS_OVERLAPPEDWINDOW;
+					if (!ci.resizable) {
+						style = WS_OVERLAPPED | WS_MINIMIZEBOX | WS_SYSMENU;
+					}
+
+					RECT r = MU_ZERO_STRUCT(RECT);
+					r.left = r.top = 0;
+					r.right = (LONG)width;
+					r.bottom = (LONG)height;
+					AdjustWindowRect(&r, style, FALSE);
+
+					return CreateWindowExW(
+						0,
+						wclass.lpszClassName, wclass.lpszMenuName,
+						style,
+						(int)ci.x - muCOSA_innerWin32_window_xborder(style),
+						(int)ci.y - muCOSA_innerWin32_window_yborder(style),
+						r.right-r.left, r.bottom-r.top, // (Dimensions)
+						NULL, NULL,
+						wclass.hInstance,
+						NULL
+					);
+				}
+
+			/* Get / Set */
+
+				muBool muCOSA_innerWin32_window_get_focused(muCOSAResult* result, muCOSA_Win32Window* p_win) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					return GetFocus() == p_win->hwnd;
+				}
+
+				void muCOSA_innerWin32_window_focus(muCOSAResult* result, muCOSA_Win32Window* p_win) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					// https://stackoverflow.com/questions/71437203/proper-way-of-activating-a-window-using-winapi
+					// This can be made more consistent with the automation API, but I don't want
+					// to touch that with a 51!-foot pole.
+					SetForegroundWindow(p_win->hwnd);
+					if (GetForegroundWindow() != p_win->hwnd) {
+						SwitchToThisWindow(p_win->hwnd, MU_TRUE);
+						Sleep(2); // I would kiss Bill Gates on the mouth if I ever met him.
+						SetForegroundWindow(p_win->hwnd);
+					}
+				}
+
+				muBool muCOSA_innerWin32_window_get_visible(muCOSAResult* result, muCOSA_Win32Window* p_win) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					return p_win->visible;
+				}
+
+				void muCOSA_innerWin32_window_set_visible(muCOSAResult* result, muCOSA_Win32Window* p_win, muBool visible) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					if (!visible && p_win->visible) {
+						ShowWindow(p_win->hwnd, SW_HIDE);
+					} else if (visible && !p_win->visible) {
+						ShowWindow(p_win->hwnd, SW_NORMAL);
+					}
+
+					p_win->visible = visible;
+				}
+
+				void muCOSA_innerWin32_window_get_position(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m* x, int32_m* y) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					LONG style = GetWindowLongA(p_win->hwnd, GWL_STYLE);
+					int xborder = muCOSA_innerWin32_window_xborder(style), yborder = muCOSA_innerWin32_window_yborder(style);
+
+					RECT rect = MU_ZERO_STRUCT(RECT);
+					if (GetWindowRect(p_win->hwnd, &rect) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
+						return;
+					}
+
+					MU_SET_RESULT(x, (int32_m)rect.left + (int32_m)xborder)
+					MU_SET_RESULT(y, (int32_m)rect.top + (int32_m)yborder)
+				}
+
+				void muCOSA_innerWin32_window_set_position(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m x, int32_m y) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					LONG style = GetWindowLongA(p_win->hwnd, GWL_STYLE);
+					int xborder = muCOSA_innerWin32_window_xborder(style), yborder = muCOSA_innerWin32_window_yborder(style);
+
+					x -= (int32_m)xborder;
+					y -= (int32_m)yborder;
+
+					if (SetWindowPos(p_win->hwnd, HWND_TOP, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_SET_WINDOW_INFO)
+					}
+				}
+
+				void muCOSA_innerWin32_window_get_dimensions(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m* width, uint32_m* height) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					RECT rect = MU_ZERO_STRUCT(RECT);
+					if (GetClientRect(p_win->hwnd, &rect) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
+						return;
+					}
+
+					MU_SET_RESULT(width, (uint32_m)(rect.right - rect.left))
+					MU_SET_RESULT(height, (uint32_m)(rect.bottom - rect.top))
+				}
+
+				void muCOSA_innerWin32_window_set_dimensions(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m width, uint32_m height) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					WINDOWINFO wi = MU_ZERO_STRUCT(WINDOWINFO);
+					if (GetWindowInfo(p_win->hwnd, &wi) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
+						return;
+					}
+
+					RECT rect = MU_ZERO_STRUCT(RECT);
+					rect.right = width;
+					rect.bottom = height;
+					if (AdjustWindowRect(&rect, wi.dwStyle, FALSE) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_SET_WINDOW_INFO)
+						return;
+					}
+
+					if (SetWindowPos(
+							p_win->hwnd, HWND_TOP, 0, 0, rect.right-rect.left, rect.bottom-rect.top, 
+							SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE
+						) == 0
+					) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_SET_WINDOW_INFO)
+					}
+				}
+
+				muBool muCOSA_innerWin32_window_get_maximized(muCOSAResult* result, muCOSA_Win32Window* p_win) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					WINDOWPLACEMENT wp = MU_ZERO_STRUCT(WINDOWPLACEMENT);
+					wp.length = sizeof(WINDOWPLACEMENT);
+					if (GetWindowPlacement(p_win->hwnd, &wp) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
+						return MU_FALSE;
+					}
+
+					return wp.showCmd == SW_MAXIMIZE;
+				}
+
+				void muCOSA_innerWin32_window_set_maximized(muCOSAResult* result, muCOSA_Win32Window* p_win, muBool maximized) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					muCOSAResult res = MUCOSA_SUCCESS;
+					muBool b_maximized = muCOSA_innerWin32_window_get_maximized(&res, p_win);
+					MU_ASSERT(res == MUCOSA_SUCCESS, result, res, return;)
+
+					if (b_maximized == maximized) {
+						return;
+					}
+
+					if (maximized) {
+						ShowWindow(p_win->hwnd, SW_MAXIMIZE);
+					} else {
+						ShowWindow(p_win->hwnd, SW_NORMAL);
+					}
+				}
+
+				muBool muCOSA_innerWin32_window_get_minimized(muCOSAResult* result, muCOSA_Win32Window* p_win) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					return IsIconic(p_win->hwnd);
+				}
+
+				void muCOSA_innerWin32_window_set_minimized(muCOSAResult* result, muCOSA_Win32Window* p_win, muBool minimized) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					muCOSAResult res = MUCOSA_SUCCESS;
+					muBool b_minimized = muCOSA_innerWin32_window_get_minimized(&res, p_win);
+					MU_ASSERT(res == MUCOSA_SUCCESS, result, res, return;)
+
+					if (b_minimized == minimized) {
+						return;
+					}
+
+					if (minimized) {
+						ShowWindow(p_win->hwnd, SW_MINIMIZE);
+					} else {
+						if (OpenIcon(p_win->hwnd) == 0) {
+							MU_SET_RESULT(result, MUCOSA_FAILED_SET_WINDOW_INFO)
+						}
+					}
+				}
+
+				void muCOSA_innerWin32_window_get_minimum_dimensions(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m* min_width, uint32_m* min_height) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					MU_SET_RESULT(min_width, p_win->min_width)
+					MU_SET_RESULT(min_height, p_win->min_height)
+				}
+
+				void muCOSA_innerWin32_window_set_minimum_dimensions(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m min_width, uint32_m min_height) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					p_win->min_width = min_width;
+					p_win->min_height = min_height;
+				}
+
+				void muCOSA_innerWin32_window_get_maximum_dimensions(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m* max_width, uint32_m* max_height) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					MU_SET_RESULT(max_width, p_win->max_width)
+					MU_SET_RESULT(max_height, p_win->max_height)
+				}
+
+				void muCOSA_innerWin32_window_set_maximum_dimensions(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m max_width, uint32_m max_height) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					p_win->max_width = max_width;
+					p_win->max_height = max_height;
+				}
+
+				void muCOSA_innerWin32_window_get_cursor_position(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m* x, int32_m* y) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					POINT p = MU_ZERO_STRUCT(POINT);
+					if (GetCursorPos(&p) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
+						return;
+					}
+
+					int32_m wx=0, wy=0;
+					muCOSAResult res = MUCOSA_SUCCESS;
+					muCOSA_innerWin32_window_get_position(&res, p_win, &wx, &wy);
+					MU_ASSERT(res == MUCOSA_SUCCESS, result, res, return;)
+
+					MU_SET_RESULT(x, p.x-wx)
+					MU_SET_RESULT(y, p.y-wy)
+				}
+
+				void muCOSA_innerWin32_window_set_cursor_position(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m x, int32_m y) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					int32_m wx=0, wy=0;
+					muCOSAResult res = MUCOSA_SUCCESS;
+					muCOSA_innerWin32_window_get_position(&res, p_win, &wx, &wy);
+					MU_ASSERT(res == MUCOSA_SUCCESS, result, res, return;)
+
+					if (SetCursorPos(wx+x, wy+y) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_SET_WINDOW_INFO)
+					}
+				}
+
+				muCursorStyle muCOSA_innerWin32_window_get_cursor_style(muCOSAResult* result, muCOSA_Win32Window* p_win) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					return p_win->cursor_style;
+				}
+
+				void muCOSA_innerWin32_window_set_cursor_style(muCOSAResult* result, muCOSA_Win32Window* p_win, muCursorStyle style) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					p_win->cursor_style = style;
+					DestroyCursor(p_win->cursor);
+					p_win->cursor = LoadCursor(0, (LPCSTR)muCOSA_innerWin32_cursor_to_win_cursor(style));
+					SetCursor(p_win->cursor);
+				}
+
+				int32_m muCOSA_innerWin32_window_get_scroll_level(muCOSAResult* result, muCOSA_Win32Window* p_win) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					return p_win->scroll_level;
+				}
+
+				void muCOSA_innerWin32_window_set_scroll_level(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m scroll_level) {
+					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+					p_win->scroll_level = scroll_level;
+				}
 
 		/* Functions */
 
@@ -6836,13 +7919,621 @@ primarily around a traditional desktop OS environment.
 				void muCOSA_Win32_init(muCOSAResult* result, muCOSA_Win32Context* c) {
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 
+					MUCOSA_OPENGL_CALL(
+						c->wgl = muCOSA_Win32WGL_init();
+					)
+
 					if (c) {}
 				}
 
+				muWindow muCOSA_Win32_window_destroy(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window);
 				void muCOSA_Win32_term(muCOSAResult* result, muCOSA_Win32Context* c) {
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 
-					if (c) {}
+					for (size_m i = 0; i < c->windows.length; i++) {
+						muCOSA_Win32_window_destroy(0, c, i);
+					}
+
+					MUCOSA_OPENGL_CALL(
+						muCOSA_Win32WGL_term(c->wgl);
+					)
+				}
+
+			/* Window */
+
+				/* Creation / Destruction */
+
+					muWindow muCOSA_Win32_window_create(muCOSAResult* result, muCOSA_Win32Context* c,
+						muGraphicsAPI api, muBool (*load_functions)(void),
+						muByte* name, uint16_m width, uint16_m height,
+						muWindowCreateInfo create_info
+					) {
+						if (api) {} if (load_functions) {}
+
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						mumaResult muma_res = MUMA_SUCCESS;
+						muCOSAResult mu_res = MUCOSA_SUCCESS;
+
+						mu_res = muCOSA_verify_window_create_info(create_info);
+						MU_ASSERT(mu_res == MUCOSA_SUCCESS, result, mu_res, return MU_NONE;)
+
+						size_m win = MU_NONE;
+						muCOSA_Win32Window_find_push(&muma_res, &c->windows, MU_ZERO_STRUCT(muCOSA_Win32Window), &win);
+						if (muma_res != MUMA_SUCCESS) {
+							MU_SET_RESULT(result, muma_result_to_muCOSA_result(muma_res))
+							return MU_NONE;
+						}
+						muCOSA_Win32Window_hold_element(&muma_res, &c->windows, win);
+						MU_ASSERT(muma_res == MUMA_SUCCESS, result, muma_result_to_muCOSA_result(muma_res), return MU_NONE;)
+
+						c->windows.data[win] = MU_ZERO_STRUCT(muCOSA_Win32Window);
+						c->windows.data[win].active = MU_FALSE;
+
+						/* Create */
+
+						wchar_t* wname = muCOSA_innerWin32_utf8_to_wchar(name);
+						MU_ASSERT(wname != 0, result, MUCOSA_FAILED_CONVERT_UTF8_TO_WCHAR, 
+							MU_RELEASE(c->windows, win, muCOSA_Win32Window_) return MU_NONE;
+						)
+
+						c->windows.data[win].hinstance = muCOSA_innerWin32_get_hinstance();
+
+						// This might be a bad idea... :)
+						c->windows.data[win].wclass_name[0] = (wchar_t)'!' + (wchar_t)win;
+						c->windows.data[win].wclass_name[1] = (wchar_t)'\0';
+
+						WNDCLASSEXW wclass = muCOSA_innerWin32_window_get_class(&mu_res, wname, c->windows.data[win].wclass_name);
+						MU_ASSERT(mu_res == MUCOSA_SUCCESS, result, mu_res, 
+							mu_free(wname);
+							MU_RELEASE(c->windows, win, muCOSA_Win32Window_) return MU_NONE;
+						)
+
+						if (!RegisterClassExW(&wclass)) {
+							mu_free(wname);
+							MU_SET_RESULT(result, MUCOSA_FAILED_REGISTER_WINDOW_CLASS)
+							MU_RELEASE(c->windows, win, muCOSA_Win32Window_)
+							return MU_NONE;
+						}
+
+						c->windows.data[win].hwnd = muCOSA_innerWin32_window_create(
+							width, height, create_info, wclass
+						);
+
+						mu_free(wname);
+
+						MU_ASSERT(c->windows.data[win].hwnd != NULL, result, MUCOSA_FAILED_CREATE_WINDOW,
+							UnregisterClassW(c->windows.data[win].wclass_name, c->windows.data[win].hinstance);
+							MU_RELEASE(c->windows, win, muCOSA_Win32Window_) return MU_NONE;
+						);
+
+						c->windows.data[win].dc = GetDC(c->windows.data[win].hwnd);
+
+						/* Handle API */
+
+						c->windows.data[win].api = api;
+
+						MUCOSA_OPENGL_CALL(
+						if (api >= MUCOSA_OPENGL_FIRST && api <= MUCOSA_OPENGL_LAST) {
+							MU_LOCK_LOCK(c->wgl.lock, c->wgl.lock_active)
+
+							if (c->wgl.wglCreateContextAttribsARB == 0) {
+								mu_res = muCOSA_Win32_init_opengl_extensions(&c->wgl);
+								MU_ASSERT(mu_res == MUCOSA_SUCCESS, result, mu_res,
+									ReleaseDC(c->windows.data[win].hwnd, c->windows.data[win].dc);
+									DestroyWindow(c->windows.data[win].hwnd);
+									UnregisterClassW(c->windows.data[win].wclass_name, c->windows.data[win].hinstance);
+									MU_LOCK_UNLOCK(c->wgl.lock, c->wgl.lock_active)
+									MU_RELEASE(c->windows, win, muCOSA_Win32Window_) return MU_NONE;
+								)
+							}
+
+							mu_res = muCOSA_Win32_create_opengl_context(
+								c->windows.data[win].dc, &c->wgl, create_info.pixel_format, &c->windows.data[win].glrc, api
+							);
+							MU_ASSERT(mu_res == MUCOSA_SUCCESS, result, mu_res,
+								ReleaseDC(c->windows.data[win].hwnd, c->windows.data[win].dc);
+								DestroyWindow(c->windows.data[win].hwnd);
+								UnregisterClassW(c->windows.data[win].wclass_name, c->windows.data[win].hinstance);
+								MU_LOCK_UNLOCK(c->wgl.lock, c->wgl.lock_active)
+								MU_RELEASE(c->windows, win, muCOSA_Win32Window_) return MU_NONE;
+							)
+
+							MU_LOCK_UNLOCK(c->wgl.lock, c->wgl.lock_active)
+						}
+						)
+
+						if (load_functions != MU_NULL_PTR) {
+							MU_ASSERT(load_functions() == MU_TRUE, result, MUCOSA_FAILED_LOAD_FUNCTIONS, 
+								MUCOSA_OPENGL_CALL(
+									if (api >= MUCOSA_OPENGL_FIRST && api <= MUCOSA_OPENGL_LAST) {
+										wglDeleteContext(c->windows.data[win].glrc);
+									}
+								)
+
+								ReleaseDC(c->windows.data[win].hwnd, c->windows.data[win].dc);
+								DestroyWindow(c->windows.data[win].hwnd);
+								UnregisterClassW(c->windows.data[win].wclass_name, c->windows.data[win].hinstance);
+							)
+						}
+
+						/* Cursor */
+
+						c->windows.data[win].cursor_style = create_info.cursor_style;
+						c->windows.data[win].cursor = LoadCursor(0, (LPCSTR)muCOSA_innerWin32_cursor_to_win_cursor(create_info.cursor_style));
+						SetCursor(c->windows.data[win].cursor);
+
+						/* Show window */
+
+						c->windows.data[win].visible = create_info.visible;
+
+						if (c->windows.data[win].visible) {
+							if (create_info.maximized) {
+								ShowWindow(c->windows.data[win].hwnd, SW_MAXIMIZE);
+							} else if (create_info.minimized) {
+								ShowWindow(c->windows.data[win].hwnd, SW_MINIMIZE);
+							} else {
+								ShowWindow(c->windows.data[win].hwnd, SW_NORMAL);
+							}
+						} else {
+							ShowWindow(c->windows.data[win].hwnd, SW_HIDE);
+						}
+
+						/* R e t u r n */
+
+						c->windows.data[win].closed = MU_FALSE;
+						c->windows.data[win].maximized = create_info.maximized;
+						c->windows.data[win].minimized = create_info.minimized;
+						c->windows.data[win].dimensions_callback = create_info.dimensions_callback;
+						c->windows.data[win].position_callback = create_info.position_callback;
+						c->windows.data[win].focus_callback = create_info.focus_callback;
+						c->windows.data[win].maximize_callback = create_info.maximize_callback;
+						c->windows.data[win].minimize_callback = create_info.minimize_callback;
+						c->windows.data[win].keyboard_key_callback = create_info.keyboard_key_callback;
+						c->windows.data[win].keyboard_state_callback = create_info.keyboard_state_callback;
+						c->windows.data[win].cursor_position_callback = create_info.cursor_position_callback;
+						c->windows.data[win].mouse_button_callback = create_info.mouse_button_callback;
+						c->windows.data[win].scroll_callback = create_info.scroll_callback;
+						c->windows.data[win].min_width = create_info.min_width;
+						c->windows.data[win].min_height = create_info.min_height;
+						c->windows.data[win].max_width = create_info.max_width;
+						c->windows.data[win].max_height = create_info.max_height;
+
+						c->windows.data[win].active = MU_TRUE;
+						MU_RELEASE(c->windows, win, muCOSA_Win32Window_)
+						return win;
+					}
+
+					muWindow muCOSA_Win32_window_destroy(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return window;, muCOSA_Win32Window_)
+
+						MUCOSA_OPENGL_CALL(
+							if (c->windows.data[window].api >= MUCOSA_OPENGL_FIRST && c->windows.data[window].api <= MUCOSA_OPENGL_LAST) {
+								wglDeleteContext(c->windows.data[window].glrc);
+							}
+						)
+
+						ReleaseDC(c->windows.data[window].hwnd, c->windows.data[window].dc);
+						DestroyWindow(c->windows.data[window].hwnd);
+						UnregisterClassW(c->windows.data[window].wclass_name, c->windows.data[window].hinstance);
+
+						c->windows.data[window].active = MU_FALSE;
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+						return MU_NONE;
+					}
+
+				/* Main loop */
+
+					muBool muCOSA_Win32_window_get_closed(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_TRUE;, muCOSA_Win32Window_)
+
+						muBool closed = c->windows.data[window].closed;
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+						return closed;
+					}
+
+					void muCOSA_Win32_window_close(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSAResult res = MUCOSA_SUCCESS;
+						muCOSA_innerWin32_window_set_visible(&res, &c->windows.data[window], MU_FALSE);
+						MU_ASSERT(res == MUCOSA_SUCCESS, result, res, MU_RELEASE(c->windows, window, muCOSA_Win32Window_) return;)
+
+						c->windows.data[window].closed = MU_TRUE;
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_update(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						MSG msg = MU_ZERO_STRUCT(MSG);
+						while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
+							TranslateMessage(&msg);
+							DispatchMessage(&msg);
+						}
+
+						muCOSA_innerWin32_update_state(&c->windows.data[window]);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_swap_buffers(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						MUCOSA_OPENGL_CALL(
+							if (c->windows.data[window].api >= MUCOSA_OPENGL_FIRST && c->windows.data[window].api <= MUCOSA_OPENGL_LAST) {
+								SwapBuffers(c->windows.data[window].dc);
+							}
+						)
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+				/* Get / Set */
+
+					muBool muCOSA_Win32_window_get_focused(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_Win32Window_)
+
+						muBool ret = muCOSA_innerWin32_window_get_focused(result, &c->windows.data[window]);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+
+						return ret;
+					}
+
+					void muCOSA_Win32_window_focus(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, muBool callback) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_focus(result, &c->windows.data[window]);
+						if (callback) {}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					muBool muCOSA_Win32_window_get_visible(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_Win32Window_)
+
+						muBool ret = muCOSA_innerWin32_window_get_visible(result, &c->windows.data[window]);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+
+						return ret;
+					}
+
+					void muCOSA_Win32_window_set_visible(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, muBool visible) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_visible(result, &c->windows.data[window], visible);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_get_position(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, int32_m* x, int32_m* y) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_get_position(result, &c->windows.data[window], x, y);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_set_position(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, int32_m x, int32_m y, muBool callback) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_position(result, &c->windows.data[window], x, y);
+						if (callback) {}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_get_dimensions(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, uint32_m* width, uint32_m* height) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_get_dimensions(result, &c->windows.data[window], width, height);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_set_dimensions(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, uint32_m width, uint32_m height, muBool callback) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_dimensions(result, &c->windows.data[window], width, height);
+						if (callback) {}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					muBool muCOSA_Win32_window_get_maximized(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_Win32Window_)
+
+						muBool ret = muCOSA_innerWin32_window_get_maximized(result, &c->windows.data[window]);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+
+						return ret;
+					}
+
+					void muCOSA_Win32_window_set_maximized(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, muBool maximized, muBool callback) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_maximized(result, &c->windows.data[window], maximized);
+						if (callback) {}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					muBool muCOSA_Win32_window_get_minimized(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_FALSE;, muCOSA_Win32Window_)
+
+						muBool ret = muCOSA_innerWin32_window_get_minimized(result, &c->windows.data[window]);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+
+						return ret;
+					}
+
+					void muCOSA_Win32_window_set_minimized(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, muBool minimized, muBool callback) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_minimized(result, &c->windows.data[window], minimized);
+						if (callback) {}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_get_minimum_dimensions(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, uint32_m* min_width, uint32_m* min_height) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_get_minimum_dimensions(result, &c->windows.data[window], min_width, min_height);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_set_minimum_dimensions(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, uint32_m min_width, uint32_m min_height) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_minimum_dimensions(result, &c->windows.data[window], min_width, min_height);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_get_maximum_dimensions(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, uint32_m* max_width, uint32_m* max_height) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_get_maximum_dimensions(result, &c->windows.data[window], max_width, max_height);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_set_maximum_dimensions(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, uint32_m max_width, uint32_m max_height) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_maximum_dimensions(result, &c->windows.data[window], max_width, max_height);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_get_cursor_position(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, int32_m* x, int32_m* y) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_get_cursor_position(result, &c->windows.data[window], x, y);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					void muCOSA_Win32_window_set_cursor_position(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, int32_m x, int32_m y, muBool callback) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_cursor_position(result, &c->windows.data[window], x, y);
+						if (callback) {}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					muCursorStyle muCOSA_Win32_window_get_cursor_style(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return MU_CURSOR_STYLE_UNKNOWN;, muCOSA_Win32Window_)
+
+						muCursorStyle style = muCOSA_innerWin32_window_get_cursor_style(result, &c->windows.data[window]);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+
+						return style;
+					}
+
+					void muCOSA_Win32_window_set_cursor_style(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, muCursorStyle style) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_cursor_style(result, &c->windows.data[window], style);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+					int32_m muCOSA_Win32_window_get_scroll_level(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return 0;, muCOSA_Win32Window_)
+
+						int32_m level = muCOSA_innerWin32_window_get_scroll_level(result, &c->windows.data[window]);
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+
+						return level;
+					}
+
+					void muCOSA_Win32_window_set_scroll_level(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, int32_m scroll_level, muBool callback) {
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						muCOSA_innerWin32_window_set_scroll_level(result, &c->windows.data[window], scroll_level);
+						if (callback) {}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					}
+
+			/* Time */
+
+				// ...
+
+			/* Clipboard */
+
+				// ...
+
+			/* OS functions */
+
+				// ...
+
+			/* OpenGL */
+
+				void muCOSA_Win32_opengl_bind_window(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window) {
+					#ifndef MUCOSA_OPENGL
+						MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_GRAPHICS_API)
+						return;
+						if (c) {} if (window) {}
+					#else
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						if (c->windows.data[window].api >= MUCOSA_OPENGL_FIRST && c->windows.data[window].api <= MUCOSA_OPENGL_LAST) {
+							if (wglMakeCurrent(c->windows.data[window].dc, c->windows.data[window].glrc) != TRUE) {
+								MU_SET_RESULT(result, MUCOSA_FAILED_LOAD_OPENGL_CONTEXT)
+								MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+								return;
+							}
+						}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					#endif
+				}
+
+				// https://stackoverflow.com/questions/76638441/how-to-init-glad-without-the-glfw-loader-using-windows-headers
+				void* muCOSA_Win32_opengl_get_function_address(const muByte* name) {
+					MUCOSA_OPENGL_CALL(
+						PROC p = (PROC)wglGetProcAddress((LPCSTR)name);
+
+						if (p == 0 || (p == (PROC)0x1) || (p == (PROC)0x2) || (p == (PROC)0x3) || (p == (PROC)-1)) {
+							HMODULE module = LoadLibraryA("opengl32.dll");
+							p = (PROC)GetProcAddress(module, (LPCSTR)name);
+						}
+
+						void* vptr = 0;
+						mu_memcpy(&vptr, &p, sizeof(void*));
+						return vptr;
+					)
+					if (name) {}
+					return 0;
+				}
+
+				void muCOSA_Win32_opengl_window_swap_interval(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, int interval) {
+					#ifndef MUCOSA_OPENGL
+						MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_GRAPHICS_API)
+						return;
+						if (c) {} if (window) {} if (interval) {}
+					#else
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						MU_LOCK_LOCK(c->wgl.si.lock, c->wgl.si.lock_active)
+
+						// Check if extension "wglGetExtensionsStringEXT" is present
+						if (c->wgl.si.wglSwapIntervalEXT == 0) {
+							void* vptr = muCOSA_Win32_opengl_get_function_address((muByte*)"wglGetExtensionsStringEXT");
+
+							if (vptr == 0) {
+								MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_OPENGL_FEATURE)
+								MU_LOCK_UNLOCK(c->wgl.si.lock, c->wgl.si.lock_active)
+								MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+								return;
+							}
+
+							vptr = muCOSA_Win32_opengl_get_function_address((muByte*)"wglSwapIntervalEXT");
+							mu_memcpy(&c->wgl.si.wglSwapIntervalEXT, &vptr, sizeof(void*));
+						}
+
+						if (c->wgl.si.wglSwapIntervalEXT == 0) {
+							MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_OPENGL_FEATURE)
+							MU_LOCK_UNLOCK(c->wgl.si.lock, c->wgl.si.lock_active)
+							MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+							return;
+						}
+
+						c->wgl.si.wglSwapIntervalEXT(interval);
+
+						MU_LOCK_UNLOCK(c->wgl.si.lock, c->wgl.si.lock_active)
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					#endif
+				}
+
+			/* Vulkan */
+
+				#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
+					#define VK_USE_PLATFORM_WIN32_KHR
+					#include MUCOSA_VULKAN_INCLUDE_PATH
+				#endif
+
+				const char** muCOSA_Win32_vulkan_get_surface_instance_extensions(muCOSAResult* result, size_m* count) {
+					#ifndef MUCOSA_VULKAN
+						MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_GRAPHICS_API)
+						return 0;
+						if (count) {}
+					#else
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						static const char* exts[] = { "VK_KHR_surface", "VK_KHR_win32_surface" };
+						MU_SET_RESULT(count, 2)
+						return (const char**)exts;
+					#endif
+				}
+
+				void muCOSA_Win32_vulkan_create_window_surface(muCOSAResult* result, muCOSA_Win32Context* c, muWindow window, void* vk_result, void* instance, void* allocator, void* surface) {
+					#ifndef MUCOSA_VULKAN
+						MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_GRAPHICS_API)
+						return;
+						if (c) {} if (window) {} if (vk_result) {} if (instance) {} if (allocator) {} if (surface) {}
+					#else
+						MU_SET_RESULT(result, MUCOSA_SUCCESS)
+						MU_HOLD(result, window, c->windows, muCOSA_global_context, MUCOSA_, return;, muCOSA_Win32Window_)
+
+						VkWin32SurfaceCreateInfoKHR ci = MU_ZERO_STRUCT(VkWin32SurfaceCreateInfoKHR);
+						ci.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+						ci.hinstance = c->windows.data[window].hinstance;
+						ci.hwnd = c->windows.data[window].hwnd;
+
+						VkInstance r_instance = VK_NULL_HANDLE;
+						if (instance != 0) {
+							r_instance = *((VkInstance*)instance);
+						}
+
+						VkResult vkres = vkCreateWin32SurfaceKHR(r_instance, &ci, (const VkAllocationCallbacks*)allocator, (VkSurfaceKHR*)surface);
+						if (vk_result != 0) {
+							*((VkResult*)vk_result) = vkres;
+						}
+
+						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
+					#endif
 				}
 	#else
 		#define MUCOSA_WIN32_CALL(...)
@@ -6878,6 +8569,7 @@ primarily around a traditional desktop OS environment.
 						case MUCOSA_FAILED_LOAD_FUNCTIONS: return "MUCOSA_FAILED_LOAD_FUNCTIONS"; break;
 						case MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER: return "MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER"; break;
 						case MUCOSA_FAILED_CREATE_OPENGL_CONTEXT: return "MUCOSA_FAILED_CREATE_OPENGL_CONTEXT"; break;
+						case MUCOSA_FAILED_LOAD_OPENGL_CONTEXT: return "MUCOSA_FAILED_LOAD_OPENGL_CONTEXT"; break;
 						case MUCOSA_FAILED_USE_PIXEL_FORMAT: return "MUCOSA_FAILED_USE_PIXEL_FORMAT"; break;
 						case MUCOSA_FAILED_JOIN_THREAD: return "MUCOSA_FAILED_JOIN_THREAD"; break;
 						case MUCOSA_FAILED_CREATE_THREAD: return "MUCOSA_FAILED_CREATE_THREAD"; break;
@@ -6885,6 +8577,14 @@ primarily around a traditional desktop OS environment.
 						case MUCOSA_FAILED_GET_INPUT_STYLES: return "MUCOSA_FAILED_GET_INPUT_STYLES"; break;
 						case MUCOSA_FAILED_FIND_COMPATIBLE_INPUT_STYLE: return "MUCOSA_FAILED_FIND_COMPATIBLE_INPUT_STYLE"; break;
 						case MUCOSA_FAILED_CREATE_INPUT_CONTEXT: return "MUCOSA_FAILED_CREATE_INPUT_CONTEXT"; break;
+						case MUCOSA_FAILED_REGISTER_WINDOW_CLASS: return "MUCOSA_FAILED_REGISTER_WINDOW_CLASS"; break;
+						case MUCOSA_FAILED_CONVERT_UTF8_TO_WCHAR: return "MUCOSA_FAILED_CONVERT_UTF8_TO_WCHAR"; break;
+						case MUCOSA_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS: return "MUCOSA_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS"; break;
+						case MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW: return "MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW"; break;
+						case MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT: return "MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT"; break;
+						case MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT: return "MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT"; break;
+						case MUCOSA_FAILED_QUERY_WINDOW_INFO: return "MUCOSA_FAILED_QUERY_WINDOW_INFO"; break;
+						case MUCOSA_FAILED_SET_WINDOW_INFO: return "MUCOSA_FAILED_SET_WINDOW_INFO"; break;
 						case MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS: return "MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS"; break;
 						case MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS: return "MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS"; break;
 						case MUCOSA_INVALID_ID: return "MUCOSA_INVALID_ID"; break;
@@ -6909,6 +8609,7 @@ primarily around a traditional desktop OS environment.
 						default: return "MU_WINDOW_SYSTEM_UNKNOWN"; break;
 						case MU_WINDOW_SYSTEM_AUTO: return "MU_WINDOW_SYSTEM_AUTO"; break;
 						case MU_WINDOW_SYSTEM_X11: return "MU_WINDOW_SYSTEM_X11"; break;
+						case MU_WINDOW_SYSTEM_WIN32: return "MU_WINDOW_SYSTEM_WIN32"; break;
 					}
 				}
 
@@ -6917,6 +8618,7 @@ primarily around a traditional desktop OS environment.
 						default: return "Unknown"; break;
 						case MU_WINDOW_SYSTEM_AUTO: return "Auto"; break;
 						case MU_WINDOW_SYSTEM_X11: return "X11"; break;
+						case MU_WINDOW_SYSTEM_WIN32: return "Win32"; break;
 					}
 				}
 
@@ -7342,6 +9044,15 @@ primarily around a traditional desktop OS environment.
 
 			muCOSAContext* muCOSA_global_context = MU_NULL_PTR;
 
+			MUCOSA_WIN32_CALL(
+				muCOSA_Win32Context* muCOSA_Win32Context_get(void) {
+					if (muCOSA_global_context == 0) {
+						return 0;
+					}
+					return &MUCOSA_GWIN32;
+				}
+			)
+
 			MUDEF void muCOSA_init(muCOSAResult* result, muWindowSystem window_system) {
 				MU_SET_RESULT(result, MUCOSA_SUCCESS)
 
@@ -7481,6 +9192,10 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_create(result, &MUCOSA_GX11, api, load_functions, name, width, height, create_info);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_create(result, &MUCOSA_GWIN32, api, load_functions, name, width, height, create_info);
+						} break;)
 					}
 
 					// To avoid unused parameter warnings
@@ -7495,6 +9210,10 @@ primarily around a traditional desktop OS environment.
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_destroy(result, &MUCOSA_GX11, window);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_destroy(result, &MUCOSA_GWIN32, window);
 						} break;)
 					}
 
@@ -7512,6 +9231,10 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_closed(result, &MUCOSA_GX11, window);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_get_closed(result, &MUCOSA_GWIN32, window);
+						} break;)
 					}
 
 					if (window) {}
@@ -7525,6 +9248,10 @@ primarily around a traditional desktop OS environment.
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_close(result, &MUCOSA_GX11, window);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_close(result, &MUCOSA_GWIN32, window);
 						} break;)
 					}
 
@@ -7540,6 +9267,10 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_update(result, &MUCOSA_GX11, window);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_update(result, &MUCOSA_GWIN32, window);
+						} break;)
 					}
 
 					if (window) {}
@@ -7553,6 +9284,10 @@ primarily around a traditional desktop OS environment.
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_swap_buffers(result, &MUCOSA_GX11, window);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_swap_buffers(result, &MUCOSA_GWIN32, window);
 						} break;)
 					}
 
@@ -7570,23 +9305,31 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_focused(result, &MUCOSA_GX11, window);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_get_focused(result, &MUCOSA_GWIN32, window);
+						} break;)
 					}
 
 					if (window) {}
 				}
 
-				MUDEF void mu_window_focus(muCOSAResult* result, muWindow window, muBool callback) {
+				MUDEF void mu_window_focus(muCOSAResult* result, muWindow window) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
-							muCOSA_X11_window_focus(result, &MUCOSA_GX11, window, callback);
+							muCOSA_X11_window_focus(result, &MUCOSA_GX11, window, MU_TRUE);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_focus(result, &MUCOSA_GWIN32, window, MU_TRUE);
 						} break;)
 					}
 
-					if (window) {} if (callback) {}
+					if (window) {}
 				}
 
 				MUDEF muBool mu_window_get_visible(muCOSAResult* result, muWindow window) {
@@ -7597,6 +9340,10 @@ primarily around a traditional desktop OS environment.
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_visible(result, &MUCOSA_GX11, window);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_get_visible(result, &MUCOSA_GWIN32, window);
 						} break;)
 					}
 
@@ -7612,6 +9359,10 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_visible(result, &MUCOSA_GX11, window, visible);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_visible(result, &MUCOSA_GWIN32, window, visible);
+						} break;)
 					}
 
 					if (window) {} if (visible) {}
@@ -7626,23 +9377,31 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_position(result, &MUCOSA_GX11, window, x, y);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_get_position(result, &MUCOSA_GWIN32, window, x, y);
+						} break;)
 					}
 
 					if (window) {} if (x) {} if (y) {}
 				}
 
-				MUDEF void mu_window_set_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y, muBool callback) {
+				MUDEF void mu_window_set_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
-							muCOSA_X11_window_set_position(result, &MUCOSA_GX11, window, x, y, callback);
+							muCOSA_X11_window_set_position(result, &MUCOSA_GX11, window, x, y, MU_TRUE);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_position(result, &MUCOSA_GWIN32, window, x, y, MU_TRUE);
 						} break;)
 					}
 
-					if (window) {} if (x) {} if (y) {} if (callback) {}
+					if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_get_dimensions(muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height) {
@@ -7654,23 +9413,31 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_dimensions(result, &MUCOSA_GX11, window, width, height);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_get_dimensions(result, &MUCOSA_GWIN32, window, width, height);
+						} break;)
 					}
 
 					if (window) {} if (width) {} if (height) {}
 				}
 
-				MUDEF void mu_window_set_dimensions(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height, muBool callback) {
+				MUDEF void mu_window_set_dimensions(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
-							muCOSA_X11_window_set_dimensions(result, &MUCOSA_GX11, window, width, height, callback);
+							muCOSA_X11_window_set_dimensions(result, &MUCOSA_GX11, window, width, height, MU_TRUE);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_dimensions(result, &MUCOSA_GWIN32, window, width, height, MU_TRUE);
 						} break;)
 					}
 
-					if (window) {} if (width) {} if (height) {} if (callback) {}
+					if (window) {} if (width) {} if (height) {}
 				}
 
 				MUDEF muBool mu_window_get_maximized(muCOSAResult* result, muWindow window) {
@@ -7682,23 +9449,31 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_maximized(result, &MUCOSA_GX11, window);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_get_maximized(result, &MUCOSA_GWIN32, window);
+						} break;)
 					}
 
 					if (window) {}
 				}
 
-				MUDEF void mu_window_set_maximized(muCOSAResult* result, muWindow window, muBool maximized, muBool callback) {
+				MUDEF void mu_window_set_maximized(muCOSAResult* result, muWindow window, muBool maximized) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
-							muCOSA_X11_window_set_maximized(result, &MUCOSA_GX11, window, maximized, callback);
+							muCOSA_X11_window_set_maximized(result, &MUCOSA_GX11, window, maximized, MU_TRUE);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_maximized(result, &MUCOSA_GWIN32, window, maximized, MU_TRUE);
 						} break;)
 					}
 
-					if (window) {} if (maximized) {} if (callback) {}
+					if (window) {} if (maximized) {}
 				}
 
 				MUDEF muBool mu_window_get_minimized(muCOSAResult* result, muWindow window) {
@@ -7710,23 +9485,31 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_minimized(result, &MUCOSA_GX11, window);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_get_minimized(result, &MUCOSA_GWIN32, window);
+						} break;)
 					}
 
 					if (window) {}
 				}
 
-				MUDEF void mu_window_set_minimized(muCOSAResult* result, muWindow window, muBool minimized, muBool callback) {
+				MUDEF void mu_window_set_minimized(muCOSAResult* result, muWindow window, muBool minimized) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
-							muCOSA_X11_window_set_minimized(result, &MUCOSA_GX11, window, minimized, callback);
+							muCOSA_X11_window_set_minimized(result, &MUCOSA_GX11, window, minimized, MU_TRUE);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_minimized(result, &MUCOSA_GWIN32, window, minimized, MU_TRUE);
 						} break;)
 					}
 
-					if (window) {} if (minimized) {} if (callback) {}
+					if (window) {} if (minimized) {}
 				}
 
 				MUDEF void mu_window_get_minimum_dimensions(muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height) {
@@ -7737,6 +9520,10 @@ primarily around a traditional desktop OS environment.
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_minimum_dimensions(result, &MUCOSA_GX11, window, min_width, min_height);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_get_minimum_dimensions(result, &MUCOSA_GWIN32, window, min_width, min_height);
 						} break;)
 					}
 
@@ -7752,6 +9539,10 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_minimum_dimensions(result, &MUCOSA_GX11, window, min_width, min_height);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_minimum_dimensions(result, &MUCOSA_GWIN32, window, min_width, min_height);
+						} break;)
 					}
 
 					if (window) {} if (min_width) {} if (min_height) {}
@@ -7765,6 +9556,10 @@ primarily around a traditional desktop OS environment.
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_maximum_dimensions(result, &MUCOSA_GX11, window, max_width, max_height);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_get_maximum_dimensions(result, &MUCOSA_GWIN32, window, max_width, max_height);
 						} break;)
 					}
 
@@ -7780,6 +9575,10 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_maximum_dimensions(result, &MUCOSA_GX11, window, max_width, max_height);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_maximum_dimensions(result, &MUCOSA_GWIN32, window, max_width, max_height);
+						} break;)
 					}
 
 					if (window) {} if (max_width) {} if (max_height) {}
@@ -7794,23 +9593,31 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_get_cursor_position(result, &MUCOSA_GX11, window, x, y);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_get_cursor_position(result, &MUCOSA_GWIN32, window, x, y);
+						} break;)
 					}
 
 					if (window) {} if (x) {} if (y) {}
 				}
 
-				MUDEF void mu_window_set_cursor_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y, muBool callback) {
+				MUDEF void mu_window_set_cursor_position(muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
-							muCOSA_X11_window_set_cursor_position(result, &MUCOSA_GX11, window, x, y, callback);
+							muCOSA_X11_window_set_cursor_position(result, &MUCOSA_GX11, window, x, y, MU_TRUE);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_cursor_position(result, &MUCOSA_GWIN32, window, x, y, MU_TRUE);
 						} break;)
 					}
 
-					if (window) {} if (x) {} if (y) {} if (callback) {}
+					if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF muCursorStyle mu_window_get_cursor_style(muCOSAResult* result, muWindow window) {
@@ -7821,6 +9628,10 @@ primarily around a traditional desktop OS environment.
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_cursor_style(result, &MUCOSA_GX11, window);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_get_cursor_style(result, &MUCOSA_GWIN32, window);
 						} break;)
 					}
 
@@ -7836,6 +9647,10 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							muCOSA_X11_window_set_cursor_style(result, &MUCOSA_GX11, window, style);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_cursor_style(result, &MUCOSA_GWIN32, window, style);
+						} break;)
 					}
 
 					if (window) {} if (style) {}
@@ -7850,23 +9665,31 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 							return muCOSA_X11_window_get_scroll_level(result, &MUCOSA_GX11, window);
 						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							return muCOSA_Win32_window_get_scroll_level(result, &MUCOSA_GWIN32, window);
+						} break;)
 					}
 
 					if (window) {}
 				}
 
-				MUDEF void mu_window_set_scroll_level(muCOSAResult* result, muWindow window, int32_m scroll_level, muBool callback) {
+				MUDEF void mu_window_set_scroll_level(muCOSAResult* result, muWindow window, int32_m scroll_level) {
 					MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
 
 					switch (MUCOSA_GWINSYS) {
 						default: return; break;
 
 						MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
-							muCOSA_X11_window_set_scroll_level(result, &MUCOSA_GX11, window, scroll_level, callback);
+							muCOSA_X11_window_set_scroll_level(result, &MUCOSA_GX11, window, scroll_level, MU_TRUE);
+						} break;)
+
+						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+							muCOSA_Win32_window_set_scroll_level(result, &MUCOSA_GWIN32, window, scroll_level, MU_TRUE);
 						} break;)
 					}
 
-					if (window) {} if (scroll_level) {} if (callback) {}
+					if (window) {} if (scroll_level) {}
 				}
 
 			/* Get / Let */
@@ -8196,6 +10019,10 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSA_X11_opengl_bind_window(result, &MUCOSA_GX11, window);
 					} break;)
+
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+						muCOSA_Win32_opengl_bind_window(result, &MUCOSA_GWIN32, window);
+					} break;)
 				}
 
 				if (window) {}
@@ -8212,9 +10039,31 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						return muCOSA_X11_opengl_get_function_address(name);
 					} break;)
+
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+						return muCOSA_Win32_opengl_get_function_address(name);
+					} break;)
 				}
 
 				if (name) {}
+			}
+
+			MUDEF void mu_opengl_window_swap_interval(muCOSAResult* result, muWindow window, int interval) {
+				MU_SAFEFUNC(result, MUCOSA_, muCOSA_global_context, return;)
+
+				switch (MUCOSA_GWINSYS) {
+					default: return; break;
+
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
+						muCOSA_X11_opengl_window_swap_interval(result, &MUCOSA_GX11, window, interval);
+					} break;)
+
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+						muCOSA_Win32_opengl_window_swap_interval(result, &MUCOSA_GWIN32, window, interval);
+					} break;)
+				}
+
+				if (window) {} if (interval) {}
 			}
 
 		/* Vulkan */
@@ -8229,6 +10078,10 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						return muCOSA_X11_vulkan_get_surface_instance_extensions(result, count);
 					} break;)
+
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+						return muCOSA_Win32_vulkan_get_surface_instance_extensions(result, count);
+					} break;)
 				}
 
 				if (count) {}
@@ -8242,6 +10095,10 @@ primarily around a traditional desktop OS environment.
 
 					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: {
 						muCOSA_X11_vulkan_create_window_surface(result, &MUCOSA_GX11, window, vk_result, instance, allocator, surface);
+					} break;)
+
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: {
+						muCOSA_Win32_vulkan_create_window_surface(result, &MUCOSA_GWIN32, window, vk_result, instance, allocator, surface);
 					} break;)
 				}
 
