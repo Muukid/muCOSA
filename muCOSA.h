@@ -48,6 +48,16 @@ be empty, while also unlikely.
 @MENTION Termination isn't really threadsafe. It isn't THAT unthreadsafe, like, some pretty
 unlikely events need to occur one after the other, but still.
 @MENTION -limm32.
+@MENTION Some error messages are spit out the frame before the window is closed. This can,
+generally, be avoided by adding an extra check after mu_window_update to also check if it's been
+closed yet.
+@MENTION 'mu_window_create' is the only function that treats dimensions relative to the surface.
+@MENTION Sometimes, key repeating is handled with hold/release patterns, while other times, it's
+repeated hold messages.
+@MENTION A window's position is actually in reference to the rendering surface. Same with other
+properties like dimensions. If you need actual full window numbers, refer to the frame extents.
+@MENTION Cursor position callbacks are only guaranteed to occur when the window is focused and the
+cursor is within the window's surface.
 
 @TODO Audio.
 @TODO Non-text clipboards.
@@ -63,10 +73,8 @@ window styling on windows).
 @TODO Replace all "VK_" macros with defines.
 @TODO Remove redundant callback parts of X11/Win32 inner funcs.
 @TODO Make sure X11 clears prior window struct in window creation func.
-@TODO As I am aware right now, X11 bases window dimensions/position off of the surface and not the
-window itself. Don't do this; make it based off of the actual window, and allow the user to modify
-the surface purely using frame extents.
 @TODO Make time in X11 threadsafe.
+@TODO Fix bug where Win32 window starts slightly off on the x, roughly by 7 pixels.
 
 As of right now, muCOSA assumes 2 things:
 1. A keyboard and mouse are available, being the primary forms of input.
@@ -1636,6 +1644,7 @@ primarily around a traditional desktop OS environment.
 			MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW, // (Win32)
 			MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT, // (Win32)
 			MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT, // (Win32)
+			MUCOSA_FAILED_SET_PIXEL_FORMAT, // (Win32)
 			MUCOSA_FAILED_QUERY_WINDOW_INFO, // (Win32)
 			MUCOSA_FAILED_SET_WINDOW_INFO, // (Win32)
 			MUCOSA_FAILED_GET_IMM_CONTEXT, // (Win32)
@@ -6841,11 +6850,14 @@ primarily around a traditional desktop OS environment.
 	#ifdef MUCOSA_WIN32
 		#define MUCOSA_WIN32_CALL(...) __VA_ARGS__
 
+		#include <windows.h> // For all of the stuff that can't be included directly (CURSE YOU BILL)
+		#include <WinDef.h> // For basic types
 		#include <winuser.h> // For virtually everything window related (requires linkage with user32.lib I think)
 		#include <imm.h> // For IMM usage (requires linkage with imm32.lib)
 		#include <sysinfoapi.h> // For GetSystemTimeAsFileTime
 		#include <synchapi.h> // For Sleep
 		#include <stringapiset.h> // For Win32 string conversion functions
+		#include <winbase.h> // For global memory functions
 
 		/* Misc useful functions */
 
@@ -6891,6 +6903,7 @@ primarily around a traditional desktop OS environment.
 				return wwgl;
 			}
 			void muCOSA_Win32WGL_term(muCOSA_Win32WGL wwgl) {
+				if (wwgl.si.wglSwapIntervalEXT) {}
 				MU_LOCK_DESTROY(wwgl.lock, wwgl.lock_active)
 				MU_LOCK_DESTROY(wwgl.si.lock, wwgl.si.lock_active)
 			}
@@ -7002,6 +7015,26 @@ primarily around a traditional desktop OS environment.
 
 					HDC dc = GetDC(win);
 
+					// Note: this pixel format NEEDS to be chosen to make this function work. In
+					// particular, the call to wglCreateContext fails if we don't. The choice of
+					// which pixel format is arbitrary.
+
+					PIXELFORMATDESCRIPTOR format = MU_ZERO_STRUCT(PIXELFORMATDESCRIPTOR);
+					format.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+					format.nVersion = 1;
+					format.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+					format.iPixelType = PFD_TYPE_RGBA;
+					format.cColorBits = 32;
+					format.cAlphaBits = 8;
+					format.cDepthBits = 24;
+					format.cStencilBits = 8;
+					format.iLayerType = PFD_MAIN_PLANE;
+
+					// Doing no error checking here in case the ATTEMPT of setting one allows
+					// wglCreateContext to pass...
+					int pixel_format = ChoosePixelFormat(dc, &format);
+					SetPixelFormat(dc, pixel_format, &format);
+
 					HGLRC context = wglCreateContext(dc);
 					if (!context) {
 						ReleaseDC(win, dc);
@@ -7028,7 +7061,7 @@ primarily around a traditional desktop OS environment.
 					DestroyWindow(win);
 					UnregisterClassA(wclass.lpszClassName, wclass.hInstance);
 
-					if (p_wgl->wglCreateContextAttribsARB == 0 || p_wgl->wglChoosePixelFormatARB) {
+					if (p_wgl->wglCreateContextAttribsARB == 0 || p_wgl->wglChoosePixelFormatARB == 0) {
 						return MUCOSA_UNSUPPORTED_OPENGL_FEATURE;
 					}
 
@@ -7049,7 +7082,8 @@ primarily around a traditional desktop OS environment.
 						WGL_ALPHA_BITS_ARB,     pf.alpha_bits,
 						WGL_DEPTH_BITS_ARB,     pf.depth_bits,
 						WGL_STENCIL_BITS_ARB,   pf.stencil_bits,
-						WGL_SAMPLES_ARB,        pf.samples
+						WGL_SAMPLES_ARB,        pf.samples,
+						0
 					};
 
 					int pixel_format;
@@ -7062,6 +7096,10 @@ primarily around a traditional desktop OS environment.
 					PIXELFORMATDESCRIPTOR format;
 					if (DescribePixelFormat(dc, pixel_format, sizeof(PIXELFORMATDESCRIPTOR), &format) == 0) {
 						return MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT;
+					}
+
+					if (!SetPixelFormat(dc, pixel_format, &format)) {
+						return MUCOSA_FAILED_SET_PIXEL_FORMAT;
 					}
 
 					int opengl_attributes[] = {
@@ -7157,6 +7195,7 @@ primarily around a traditional desktop OS environment.
 				muCursorStyle cursor_style;
 				HCURSOR cursor;
 				int32_m scroll_level;
+				int32_m cx, cy;
 
 				void (*dimensions_callback)(muWindow window, uint32_m width, uint32_m height);
 				void (*position_callback)(muWindow window, int32_m x, int32_m y);
@@ -7193,6 +7232,7 @@ primarily around a traditional desktop OS environment.
 			}
 
 			void muCOSA_Win32Time_term(muCOSA_Win32Time time) {
+				if (time.orig_time) {}
 				MU_LOCK_DESTROY(time.lock, time.lock_active)
 			}
 
@@ -7260,6 +7300,12 @@ primarily around a traditional desktop OS environment.
 				}
 
 			/* Input handling */
+
+				void muCOSA_innerWin32_possible_input_flushing(muCOSA_Win32Window* p_win) {
+					if (GetFocus() != p_win->hwnd) {
+						p_win->input = MU_ZERO_STRUCT(muCOSA_Win32Input);
+					}
+				}
 
 				/* Keyboard key */
 
@@ -7408,12 +7454,21 @@ primarily around a traditional desktop OS environment.
 						}
 					}
 
-					void muCOSA_innerWin32_update_state(muCOSA_Win32Window* p_win) {
+					void muCOSA_innerWin32_update_state(muCOSA_Win32Context* c, muWindow win, muCOSA_Win32Window* p_win) {
 						for (size_m i = MU_KEYBOARD_STATE_FIRST; i <= MU_KEYBOARD_STATE_LAST; i++) {
+							muState state = MU_OFF;
 							if ((GetKeyState(muCOSA_innerWin32_keyboard_state_get_win32(i)) & 0x0001) != 0) {
-								p_win->input.keyboard_state_states[i] = MU_ON;
-							} else {
-								p_win->input.keyboard_state_states[i] = MU_OFF;
+								state = MU_ON;
+							}
+
+							if (p_win->input.keyboard_state_states[i] != state) {
+								p_win->input.keyboard_state_states[i] = state;
+								if (p_win->keyboard_state_callback != 0) {
+									muCOSAResult result;
+									MU_RELEASE(c->windows, win, muCOSA_Win32Window_)
+									p_win->keyboard_state_callback(win, i, state);
+									MU_HOLD((&result), win, c->windows, 0, MUCOSA_, return;, muCOSA_Win32Window_)
+								}
 							}
 						}
 					}
@@ -7434,6 +7489,25 @@ primarily around a traditional desktop OS environment.
 							case MU_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST: return IDC_SIZENWSE; break;
 							case MU_CURSOR_STYLE_SIZE_ALL: return IDC_SIZEALL; break;
 							case MU_CURSOR_STYLE_NO: return IDC_NO; break;
+						}
+					}
+
+					void muCOSA_innerWin32_window_get_cursor_position(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m* x, int32_m* y);
+					void muCOSA_innerWin32_handle_cursor_position(muCOSA_Win32Context* c, muWindow win, muCOSA_Win32Window* p_win) {
+						muCOSAResult result = MUCOSA_SUCCESS;
+
+						int32_m cx=0, cy=0;
+						muCOSA_innerWin32_window_get_cursor_position(&result, p_win, &cx, &cy);
+
+						if (result == MUCOSA_SUCCESS && (cx != p_win->cx || cy != p_win->cy)) {
+							p_win->cx = cx;
+							p_win->cy = cy;
+
+							if (p_win->cursor_position_callback != 0) {
+								MU_RELEASE(c->windows, win, muCOSA_Win32Window_)
+								p_win->cursor_position_callback(win, p_win->cx, p_win->cy);
+								MU_HOLD((&result), win, c->windows, 0, MUCOSA_, return;, muCOSA_Win32Window_)
+							}
 						}
 					}
 
@@ -7810,17 +7884,19 @@ primarily around a traditional desktop OS environment.
 				void muCOSA_innerWin32_window_get_position(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m* x, int32_m* y) {
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 
-					uint32_m xborder=0, yborder=0;
-					muCOSA_innerWin32_window_get_frame_extents(0, p_win, &xborder, 0, &yborder, 0);
-
 					RECT rect = MU_ZERO_STRUCT(RECT);
 					if (GetWindowRect(p_win->hwnd, &rect) == 0) {
 						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
 						return;
 					}
 
-					MU_SET_RESULT(x, (int32_m)rect.left + (int32_m)xborder)
-					MU_SET_RESULT(y, (int32_m)rect.top + (int32_m)yborder)
+					muCOSAResult res = MUCOSA_SUCCESS;
+					uint32_m l=0, t=0;
+					muCOSA_innerWin32_window_get_frame_extents(&res, p_win, &l, 0, &t, 0);
+					MU_ASSERT(res == MUCOSA_SUCCESS, result, res, return;)
+
+					MU_SET_RESULT(x, (int32_m)rect.left + (int32_m)l)
+					MU_SET_RESULT(y, (int32_m)rect.top + (int32_m)t)
 				}
 
 				void muCOSA_innerWin32_window_set_position(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m x, int32_m y) {
@@ -8075,24 +8151,27 @@ primarily around a traditional desktop OS environment.
 					MU_SET_RESULT(b, (uint32_m)GetSystemMetrics(SM_CXSIZEFRAME))
 				}
 
+				// I LOVE YOU BILL GATES!!!!
 				void muCOSA_innerWin32_window_get_frame_extents(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m* l, uint32_m* r, uint32_m* t, uint32_m* b) {
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 					// (Fallback)
 					muCOSA_innerWin32_window_get_def_frame_extents(l, r, t, b);
 
-					LONG styles = GetWindowLongA(p_win->hwnd, GWL_STYLE);
-					LONG exstyles = GetWindowLongA(p_win->hwnd, GWL_EXSTYLE);
-
-					RECT rect;
-					if (AdjustWindowRectEx(&rect, styles, FALSE, exstyles) == 0) {
+					RECT wrect, crect;
+					if (GetWindowRect(p_win->hwnd, &wrect) == 0) {
 						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
 						return;
 					}
+					if (GetClientRect(p_win->hwnd, &crect) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
+						return;
+					}
+					MapWindowPoints(p_win->hwnd, NULL, (LPPOINT)&crect, 2);
 
-					MU_SET_RESULT(l, (LONG)rect.left)
-					MU_SET_RESULT(r, (LONG)rect.right)
-					MU_SET_RESULT(t, (LONG)rect.top)
-					MU_SET_RESULT(b, (LONG)rect.bottom)
+					MU_SET_RESULT(l, (uint32_m)(crect.left-wrect.left))
+					MU_SET_RESULT(r, (uint32_m)(wrect.right-crect.right))
+					MU_SET_RESULT(t, (uint32_m)(crect.top-wrect.top))
+					MU_SET_RESULT(b, (uint32_m)(wrect.bottom-crect.bottom))
 				}
 
 				muButtonState muCOSA_innerWin32_window_get_keyboard_key_state(muCOSAResult* result, muCOSA_Win32Window* p_win, muKeyboardKey key) {
@@ -8395,7 +8474,10 @@ primarily around a traditional desktop OS environment.
 							DispatchMessage(&msg);
 						}
 
-						muCOSA_innerWin32_update_state(&c->windows.data[window]);
+						muCOSA_innerWin32_update_state(c, window, &c->windows.data[window]);
+						muCOSA_innerWin32_possible_input_flushing(&c->windows.data[window]);
+
+						muCOSA_innerWin32_handle_cursor_position(c, window, &c->windows.data[window]);
 
 						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
 					}
@@ -8883,7 +8965,7 @@ primarily around a traditional desktop OS environment.
 						return;
 					}
 
-					HGLOBAL g_mem = GlobalAlloc(GMEM_MOVEABLE, (SIZE_T)wlen);
+					HGLOBAL g_mem = GlobalAlloc(GMEM_MOVEABLE, (SIZE_T)wlen * sizeof(wchar_t));
 					MU_ASSERT(g_mem != NULL, result, MUCOSA_FAILED_GLOBAL_ALLOCATION, return;)
 
 					LPVOID p_mem = GlobalLock(g_mem);
@@ -9123,6 +9205,7 @@ primarily around a traditional desktop OS environment.
 						case MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW: return "MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW"; break;
 						case MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT: return "MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT"; break;
 						case MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT: return "MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT"; break;
+						case MUCOSA_FAILED_SET_PIXEL_FORMAT: return "MUCOSA_FAILED_SET_PIXEL_FORMAT"; break;
 						case MUCOSA_FAILED_QUERY_WINDOW_INFO: return "MUCOSA_FAILED_QUERY_WINDOW_INFO"; break;
 						case MUCOSA_FAILED_SET_WINDOW_INFO: return "MUCOSA_FAILED_SET_WINDOW_INFO"; break;
 						case MUCOSA_FAILED_GET_IMM_CONTEXT: return "MUCOSA_FAILED_GET_IMM_CONTEXT"; break;
