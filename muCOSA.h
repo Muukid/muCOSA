@@ -58,6 +58,12 @@ repeated hold messages.
 properties like dimensions. If you need actual full window numbers, refer to the frame extents.
 @MENTION Cursor position callbacks are only guaranteed to occur when the window is focused and the
 cursor is within the window's surface.
+@MENTION The focus function is not guaranteed to work; on Win32, it often just alerts.
+@MENTION Properties like frame extents, dimensions, position, and other visual aspects of a window
+will cause undefined behavior when polled for while it is in a state where these properties don't
+exist, such as being minimized.
+@MENTION Text input includes control keys.
+@MENTION Cursor style doesn't apply once mouse is out of the window's dimensions.
 
 @TODO Audio.
 @TODO Non-text clipboards.
@@ -74,7 +80,12 @@ window styling on windows).
 @TODO Remove redundant callback parts of X11/Win32 inner funcs.
 @TODO Make sure X11 clears prior window struct in window creation func.
 @TODO Make time in X11 threadsafe.
-@TODO Fix bug where Win32 window starts slightly off on the x, roughly by 7 pixels.
+@TODO Figure out how to allow the window to do resizing with the cursor showing as resizing...
+maybe add a manual override?
+@TODO Fix Win32 not giving correct frame extents no matter what when it's maximized. I LOVE BILL!!!
+@TODO State overriding (AKA make it auto-return an error if, for example, you're trying to move a
+window while it's maximized).
+@TODO Fix Win32 IME flickering.
 
 As of right now, muCOSA assumes 2 things:
 1. A keyboard and mouse are available, being the primary forms of input.
@@ -7181,6 +7192,8 @@ primarily around a traditional desktop OS environment.
 
 				muCOSA_Win32Input input;
 				void (*text_input_callback)(muWindow window, muByte* input);
+				int32_m text_cursor_x;
+				int32_m text_cursor_y;
 
 				muBool closed;
 				muBool visible;
@@ -7511,6 +7524,38 @@ primarily around a traditional desktop OS environment.
 						}
 					}
 
+					void muCOSA_innerWin32_window_get_dimensions(muCOSAResult* result, muCOSA_Win32Window* p_win, uint32_m* width, uint32_m* height);
+					void muCOSA_innerWin32_window_set_cursor_style(muCOSAResult* result, muCOSA_Win32Window* p_win, muCursorStyle style);
+					// This doesn't work... :L
+					void muCOSA_innerWin32_update_cursor_style(muCOSA_Win32Window* p_win) {
+						muCOSAResult result = MUCOSA_SUCCESS;
+						return;
+
+						int32_m cx=0,cy=0;
+						muCOSA_innerWin32_window_get_cursor_position(&result, p_win, &cx, &cy);
+						if (result != MUCOSA_SUCCESS) {
+							return;
+						}
+						uint32_m ucx=cx, ucy=cy;
+
+						uint32_m ww=0,wh=0;
+						muCOSA_innerWin32_window_get_dimensions(&result, p_win, &ww, &wh);
+						if (result != MUCOSA_SUCCESS) {
+							return;
+						}
+
+						if (p_win->cursor == NULL) {
+							if (ucx < ww && ucy < wh && cx > 0 && cy > 0) {
+								muCOSA_innerWin32_window_set_cursor_style(0, p_win, p_win->cursor_style);
+							}
+						} else {
+							if (ucx >= ww || ucy >= wh || cx <= 0 || cy <= 0) {
+								DestroyCursor(p_win->cursor);
+								p_win->cursor = NULL;
+							}
+						}
+					}
+
 			/* Procedure handling */
 
 				muWindow muCOSA_innerWin32_find_window_by_hwnd(HWND hwnd) {
@@ -7694,7 +7739,7 @@ primarily around a traditional desktop OS environment.
 				// I'm pretty sure it is.
 				LRESULT CALLBACK muCOSA_innerWin32_handle_wmchar(muCOSA_innerWin32_msginfo msg) {
 					if (msg.p_win->text_input_callback == 0) {
-						return 0;
+						return DefWindowProcW(msg.p_win->hwnd, msg.uMsg, msg.wParam, msg.lParam);
 					}
 
 					musResult mus_res = MUS_SUCCESS;
@@ -7709,10 +7754,12 @@ primarily around a traditional desktop OS environment.
 					codepoint_size += 1; // For \0
 
 					muByte buf[6]; mu_memset(buf, 0, sizeof(buf));
+					size_m bufsize = sizeof(buf);
 					muByte* input = 0;
 
 					if (codepoint_size > sizeof(buf)) {
 						input = (muByte*)mu_malloc(codepoint_size);
+						bufsize = codepoint_size;
 						if (input == 0) {
 							return 0;
 						}
@@ -7721,6 +7768,12 @@ primarily around a traditional desktop OS environment.
 					}
 
 					input[codepoint_size-1] = 0;
+
+					mu_character_encoding_set_code_point(&mus_res, MU_UTF8, codepoint, buf, bufsize);
+					if (mus_res != MUS_SUCCESS) {
+						// :L
+						return 0;
+					}
 
 					MU_RELEASE(msg.c->windows, msg.id_window, muCOSA_Win32Window_)
 
@@ -7850,8 +7903,15 @@ primarily around a traditional desktop OS environment.
 					return GetFocus() == p_win->hwnd;
 				}
 
+				muBool muCOSA_innerWin32_window_get_minimized(muCOSAResult* result, muCOSA_Win32Window* p_win);
+				void muCOSA_innerWin32_window_set_minimized(muCOSAResult* result, muCOSA_Win32Window* p_win, muBool minimized);
 				void muCOSA_innerWin32_window_focus(muCOSAResult* result, muCOSA_Win32Window* p_win) {
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
+
+					// Attempt to restore the window if it is minimized.
+					if (muCOSA_innerWin32_window_get_minimized(0, p_win)) {
+						muCOSA_innerWin32_window_set_minimized(0, p_win, MU_FALSE);
+					}
 
 					// https://stackoverflow.com/questions/71437203/proper-way-of-activating-a-window-using-winapi
 					// This can be made more consistent with the automation API, but I don't want
@@ -8074,7 +8134,9 @@ primarily around a traditional desktop OS environment.
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 
 					p_win->cursor_style = style;
-					DestroyCursor(p_win->cursor);
+					if (p_win->cursor != NULL) {
+						DestroyCursor(p_win->cursor);
+					}
 					p_win->cursor = LoadCursor(0, (LPCSTR)muCOSA_innerWin32_cursor_to_win_cursor(style));
 					SetCursor(p_win->cursor);
 				}
@@ -8097,24 +8159,21 @@ primarily around a traditional desktop OS environment.
 				void muCOSA_innerWin32_window_update_text_cursor(muCOSAResult* result, muCOSA_Win32Window* p_win, int32_m x, int32_m y) {
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 
+					if (p_win->text_input_callback == 0) {
+						return;
+					}
+
 					HIMC imm = ImmGetContext(p_win->hwnd);
 
-					// Set candidate position, which should work in most cases
-					CANDIDATEFORM cf = MU_ZERO_STRUCT(CANDIDATEFORM);
-					cf.dwStyle = CFS_CANDIDATEPOS;
-					cf.ptCurrentPos.x = (LONG)x;
-					cf.ptCurrentPos.y = (LONG)y;
-					if (ImmSetCandidateWindow(imm, &cf) == 0) {
-						// ...
-					}
+					COMPOSITIONFORM cf = MU_ZERO_STRUCT(COMPOSITIONFORM);
+					cf.dwStyle = CFS_FORCE_POSITION;
 
-					// For some IMEs who use the caret position (Oh, Bill...)
-					if (SetCaretPos((int)x, (int)y) == 0) {
-						// ...
-					}
+					cf.ptCurrentPos.x = x;
+					cf.ptCurrentPos.y = y;
+					ImmSetCompositionWindow(imm, &cf);
 
 					if (ImmReleaseContext(p_win->hwnd, imm) == 0) {
-						// ...
+						
 					}
 				}
 
@@ -8172,6 +8231,20 @@ primarily around a traditional desktop OS environment.
 					MU_SET_RESULT(r, (uint32_m)(wrect.right-crect.right))
 					MU_SET_RESULT(t, (uint32_m)(crect.top-wrect.top))
 					MU_SET_RESULT(b, (uint32_m)(wrect.bottom-crect.bottom))
+
+					/*LONG styles = GetWindowLongA(p_win->hwnd, GWL_STYLE);
+					LONG exstyles = GetWindowLongA(p_win->hwnd, GWL_EXSTYLE);
+
+					RECT rect;
+					if (AdjustWindowRectEx(&rect, styles, FALSE, exstyles) == 0) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_QUERY_WINDOW_INFO)
+						return;
+					}
+
+					MU_SET_RESULT(l, rect.left)
+					MU_SET_RESULT(r, rect.right)
+					MU_SET_RESULT(t, rect.top)
+					MU_SET_RESULT(b, rect.bottom)*/
 				}
 
 				muButtonState muCOSA_innerWin32_window_get_keyboard_key_state(muCOSAResult* result, muCOSA_Win32Window* p_win, muKeyboardKey key) {
@@ -8395,6 +8468,12 @@ primarily around a traditional desktop OS environment.
 							ShowWindow(c->windows.data[win].hwnd, SW_HIDE);
 						}
 
+						/* Auto-disable IME */
+
+						if (ImmAssociateContextEx(c->windows.data[win].hwnd, NULL, 0) == FALSE) {
+							// ？
+						}
+
 						/* R e t u r n */
 
 						c->windows.data[win].closed = MU_FALSE;
@@ -8478,6 +8557,7 @@ primarily around a traditional desktop OS environment.
 						muCOSA_innerWin32_possible_input_flushing(&c->windows.data[window]);
 
 						muCOSA_innerWin32_handle_cursor_position(c, window, &c->windows.data[window]);
+						muCOSA_innerWin32_update_cursor_style(&c->windows.data[window]);
 
 						MU_RELEASE(c->windows, window, muCOSA_Win32Window_)
 					}
@@ -8904,7 +8984,7 @@ primarily around a traditional desktop OS environment.
 					MU_SET_RESULT(result, MUCOSA_SUCCESS)
 
 					MU_LOCK_LOCK(c->time.lock, c->time.lock_active)
-					c->time.orig_time = time;
+					c->time.orig_time = muCOSA_innerWin32_get_current_time() + time;
 					MU_LOCK_UNLOCK(c->time.lock, c->time.lock_active)
 				}
 
