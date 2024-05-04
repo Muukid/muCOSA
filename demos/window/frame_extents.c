@@ -5,15 +5,13 @@
 DEMO NAME:          frame_extents.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-23
-LAST UPDATED:       2024-04-23
+LAST UPDATED:       2024-05-03
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the frame extents of a window are
 accessed.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -38,6 +36,8 @@ More explicit license information at the end of file.
 
 	// Used to store the result of functions
 	muCOSAResult result = MUCOSA_SUCCESS;
+	// Macro which is used to print if the result is bad, meaning a function went wrong.
+	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -45,13 +45,12 @@ More explicit license information at the end of file.
 	// The graphics API
 	muGraphicsAPI graphics_api = MU_NO_GRAPHICS_API;
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_init returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_init(&result, window_system); scall(muCOSA_init)
 
 	// Print currently running window system
 
@@ -60,7 +59,7 @@ int main() {
 	// Create window
 
 	muWindow window = mu_window_create(&result, graphics_api, 0, (muByte*)"Empty Window", 800, 600, mu_window_default_create_info());
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_create returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_create)
 
 	// Print current graphics API
 
@@ -72,23 +71,20 @@ int main() {
 
 	uint32_m left=0, right=0, top=0, bottom=0;
 	mu_window_get_frame_extents(&result, window, &left, &right, &top, &bottom);
+	scall(mu_window_get_frame_extents)
 	printf("left: %" PRIu32 ", right: %" PRIu32 ", top: %" PRIu32 ", bottom: %" PRIu32 "\n",
 		left, right, top, bottom);
 
 	// Set up a loop that continues as long as the window isn't closed
 
 	while (!mu_window_get_closed(&result, window)) {
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_closed returned %s\n", muCOSA_result_get_name(result));
-
-		// Update window (which refreshes input and such)
-
-		mu_window_update(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_update returned %s\n", muCOSA_result_get_name(result));
+		scall(mu_window_get_closed)
 
 		// Print out frame extents if they've changed
 
 		uint32_m n_left=left, n_right=right, n_top=top, n_bottom=bottom;
 		mu_window_get_frame_extents(&result, window, &n_left, &n_right, &n_top, &n_bottom);
+		scall(mu_window_get_frame_extents)
 
 		if (n_left != left || n_right != right || n_top != top || n_bottom != bottom) {
 			left = n_left; right = n_right; top = n_top; bottom = n_bottom;
@@ -99,7 +95,12 @@ int main() {
 		// Swap buffers (which renders the screen)
 
 		mu_window_swap_buffers(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_swap_buffers returned %s\n", muCOSA_result_get_name(result));
+		scall(mu_window_swap_buffers)
+
+		// Update window (which refreshes input and such)
+
+		mu_window_update(&result, window);
+		scall(mu_window_update)
 	}
 
 /* Termination */
@@ -107,12 +108,11 @@ int main() {
 	// Destroy window (optional)
 
 	window = mu_window_destroy(&result, window);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_destroy returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_destroy)
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_term returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_term(&result); scall(muCOSA_term)
 
 	// Program should print the frame extents on initiation and whenever they change.
 	return 0;

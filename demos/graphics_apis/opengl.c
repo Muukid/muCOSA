@@ -5,14 +5,12 @@
 DEMO NAME:          opengl.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-04-22
+LAST UPDATED:       2024-05-03
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how loading OpenGL in muCOSA works.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -22,7 +20,18 @@ This software is licensed under:
 More explicit license information at the end of file.
 
 ============================================================
+                       COMPILER NOTES
+
+glad does violate extension usage, so it needs to be turned
+off when compiling this demo when relevant.
+
+============================================================
 */
+
+// Include glad for OpenGL loading
+
+#define GLAD_GL_IMPLEMENTATION
+#include <glad.h>
 
 // Include muCOSA
 
@@ -31,17 +40,14 @@ More explicit license information at the end of file.
 #define MUCOSA_IMPLEMENTATION
 #include <muCOSA.h>
 
-// Include glad for OpenGL loading
-
-#define GLAD_GL_IMPLEMENTATION
-#include <glad.h>
-
 #include <stdio.h> // For printf
 
 /* Variables */
 
 	// Used to store the result of functions
 	muCOSAResult result = MUCOSA_SUCCESS;
+	// Macro which is used to print if the result is bad, meaning a function went wrong.
+	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -53,13 +59,13 @@ More explicit license information at the end of file.
 
 	// Function that will be passed to the window creation function that will be called when it's
 	// time for OpenGL to be loaded.
-	muBool load_gl_funcs() {
+	muBool load_gl_funcs(void) {
 		return gladLoadGL((GLADloadfunc)mu_opengl_get_function_address);
 	}
 
 /* Dimensions callback */
 
-	void dimensions_callback(Window window, uint32_m width, uint32_m height) {
+	void dimensions_callback(muWindow window, uint32_m width, uint32_m height) {
 		if (window) {} // (to avoid unused parameter warnings)
 		glViewport(0, 0, width, height);
 	}
@@ -148,13 +154,12 @@ More explicit license information at the end of file.
 		mat[3][2] = 2.f * near_z * far_z * fn;
 	}
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_init returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_init(&result, window_system); scall(muCOSA_init)
 
 	// Print currently running window system
 
@@ -172,7 +177,7 @@ int main() {
 		(muByte*)"OpenGL 3.3 Core", 800, 600,
 		create_info
 	);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_create returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_create)
 
 	// Print current graphics API
 
@@ -184,8 +189,7 @@ int main() {
 
 	// Bind up and configure OpenGL
 
-	mu_opengl_bind_window(&result, window);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_opengl_bind_window returned %s\n", muCOSA_result_get_name(result));
+	mu_opengl_bind_window(&result, window); scall(mu_opengl_bind_window)
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -338,18 +342,17 @@ int main() {
 	// Set up a loop that continues as long as the window isn't closed
 
 	while (!mu_window_get_closed(&result, window)) {
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_closed returned %s\n", muCOSA_result_get_name(result));
+		scall(mu_window_get_closed)
 
-		// Update window (which refreshes input and such)
-
-		mu_window_update(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_update returned %s\n", muCOSA_result_get_name(result));
+		// Fallback for if window has closed now
+		if (mu_window_get_closed(&result, window)) {
+			break;
+		}
 
 		// Call the close window function if the escape key is pressed
 
 		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_ESCAPE)) {
-			mu_window_close(&result, window);
-			if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_close returned %s\n", muCOSA_result_get_name(result));
+			mu_window_close(&result, window); scall(mu_window_close)
 		}
 
 		// Toggle wireframe if 'W' is down
@@ -375,7 +378,7 @@ int main() {
 
 		uint32_m width=800, height=600;
 		mu_window_get_dimensions(&result, window, &width, &height);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_dimensions returned %s\n", muCOSA_result_get_name(result));
+		scall(mu_window_get_dimensions)
 
 		matrix_perspective(45.f * (3.14159265359f / 180.f), (float)width / (float)height, .1f, 100.f, projection);
 
@@ -394,21 +397,22 @@ int main() {
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_swap_buffers returned %s\n", muCOSA_result_get_name(result));
+		mu_window_swap_buffers(&result, window); scall(mu_window_swap_buffers)
+
+		// Update window (which refreshes input and such)
+
+		mu_window_update(&result, window); scall(mu_window_update)
 	}
 
 /* Termination */
 
 	// Destroy window (optional)
 
-	window = mu_window_destroy(&result, window);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_destroy returned %s\n", muCOSA_result_get_name(result));
+	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_term returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_term(&result); scall(muCOSA_term)
 
 	// Program should make a window that displays a 3D cube spinning in OpenGL, and you can hold
 	// down the 'W' key to turn on or off wireframe mode.

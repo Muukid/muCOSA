@@ -5,15 +5,13 @@
 DEMO NAME:          scroll_level.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-23
-LAST UPDATED:       2024-04-23
+LAST UPDATED:       2024-05-04
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the the scroll level is accessed and
 modified.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -38,6 +36,8 @@ More explicit license information at the end of file.
 
 	// Used to store the result of functions
 	muCOSAResult result = MUCOSA_SUCCESS;
+	// Macro which is used to print if the result is bad, meaning a function went wrong.
+	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -45,13 +45,12 @@ More explicit license information at the end of file.
 	// The graphics API
 	muGraphicsAPI graphics_api = MU_NO_GRAPHICS_API;
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_init returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_init(&result, window_system); scall(muCOSA_init)
 
 	// Print currently running window system
 
@@ -60,7 +59,7 @@ int main() {
 	// Create window
 
 	muWindow window = mu_window_create(&result, graphics_api, 0, (muByte*)"Empty Window", 800, 600, mu_window_default_create_info());
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_create returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_create)
 
 	// Print current graphics API
 
@@ -75,23 +74,18 @@ int main() {
 	// Set up a loop that continues as long as the window isn't closed
 
 	while (!mu_window_get_closed(&result, window)) {
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_closed returned %s\n", muCOSA_result_get_name(result));
-
-		// Update window (which refreshes input and such)
-
-		mu_window_update(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_update returned %s\n", muCOSA_result_get_name(result));
+		scall(mu_window_get_closed)
 
 		// If the '0' key is pressed:
 		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_0)) {
 			// Set scroll level to 0
-			mu_window_set_scroll_level(&result, window, 0, MU_FALSE);
-			if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_set_scroll_level returned %s\n", muCOSA_result_get_name(result));
+			mu_window_set_scroll_level(&result, window, 0); scall(mu_window_set_scroll_level)
 		}
 
 		// Print out scroll level if it's changed
 
 		int32_m new_scroll_level = mu_window_get_scroll_level(&result, window);
+		scall(mu_window_get_scroll_level)
 		if (new_scroll_level != scroll_level) {
 			scroll_level = new_scroll_level;
 			printf("%" PRId32 "\n", scroll_level);
@@ -99,21 +93,22 @@ int main() {
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_swap_buffers returned %s\n", muCOSA_result_get_name(result));
+		mu_window_swap_buffers(&result, window); scall(mu_window_swap_buffers)
+
+		// Update window (which refreshes input and such)
+
+		mu_window_update(&result, window); scall(mu_window_update)
 	}
 
 /* Termination */
 
 	// Destroy window (optional)
 
-	window = mu_window_destroy(&result, window);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_destroy returned %s\n", muCOSA_result_get_name(result));
+	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_term returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_term(&result); scall(muCOSA_term)
 
 	// Program should print the scroll level when it's changed and set it to 0 when the '0' key is
 	// pressed.

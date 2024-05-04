@@ -5,15 +5,13 @@
 DEMO NAME:          focus.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-04-21
+LAST UPDATED:       2024-05-03
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows the basics behind using the focused
 attribute of a window.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -32,12 +30,13 @@ More explicit license information at the end of file.
 #include <muCOSA.h>
 
 #include <stdio.h> // For printf
-#include <inttypes.h> // For print type names
 
 /* Variables */
 
 	// Used to store the result of functions
 	muCOSAResult result = MUCOSA_SUCCESS;
+	// Macro which is used to print if the result is bad, meaning a function went wrong.
+	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -45,13 +44,12 @@ More explicit license information at the end of file.
 	// The graphics API
 	muGraphicsAPI graphics_api = MU_NO_GRAPHICS_API;
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_init returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_init(&result, window_system); scall(muCOSA_init)
 
 	// Print currently running window system
 
@@ -60,7 +58,7 @@ int main() {
 	// Create window
 
 	muWindow window = mu_window_create(&result, graphics_api, 0, (muByte*)"Empty Window", 800, 600, mu_window_default_create_info());
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_create returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_create)
 
 	// Print current graphics API
 
@@ -70,8 +68,7 @@ int main() {
 
 	// Set up delta time variables
 
-	double dt_bef = mu_time_get(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_time_get returned %s\n", muCOSA_result_get_name(result));
+	double dt_bef = mu_time_get(&result); scall(mu_time_get)
 	double dt;
 
 	// Set up focus time variable
@@ -81,30 +78,22 @@ int main() {
 	// Set up a loop that continues as long as the window isn't closed
 
 	while (!mu_window_get_closed(&result, window)) {
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_closed returned %s\n", muCOSA_result_get_name(result));
-
-		// Update window (which refreshes input and such)
-
-		mu_window_update(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_update returned %s\n", muCOSA_result_get_name(result));
+		scall(mu_window_get_closed)
 
 		// Update delta time
 
-		dt = mu_time_get(&result) - dt_bef;
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_time_get returned %s\n", muCOSA_result_get_name(result));
+		dt = mu_time_get(&result) - dt_bef; scall(mu_time_get)
 		dt_bef += dt;
 
 		// Focus
 
-		muBool focused = mu_window_get_focused(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_focused returned %s\n", muCOSA_result_get_name(result));
+		muBool focused = mu_window_get_focused(&result, window); scall(mu_window_get_focused)
 
 		if (!focused) {
 			focus_time += dt;
 			// Focus after 2 seconds of being unfocused
 			if (focus_time > 2.f) {
-				mu_window_focus(&result, window, MU_FALSE);
-				if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_focus returned %s\n", muCOSA_result_get_name(result));
+				mu_window_focus(&result, window); scall(mu_window_focus)
 			}
 		} else {
 			focus_time = 0.f;
@@ -112,21 +101,22 @@ int main() {
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_swap_buffers returned %s\n", muCOSA_result_get_name(result));
+		mu_window_swap_buffers(&result, window); scall(mu_window_swap_buffers)
+
+		// Update window (which refreshes input and such)
+
+		mu_window_update(&result, window);
 	}
 
 /* Termination */
 
 	// Destroy window (optional)
 
-	window = mu_window_destroy(&result, window);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_destroy returned %s\n", muCOSA_result_get_name(result));
+	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_term returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_term(&result); scall(muCOSA_term)
 
 	// Program should make a window that focuses itself after 2 seconds of being unfocused.
 	return 0;

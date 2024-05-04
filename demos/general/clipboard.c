@@ -5,14 +5,12 @@
 DEMO NAME:          clipboard.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-26
-LAST UPDATED:       2024-04-26
+LAST UPDATED:       2024-05-02
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how clipboard getting/setting works.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -39,17 +37,18 @@ More explicit license information at the end of file.
 
 	// Used to store the result of functions
 	muCOSAResult result = MUCOSA_SUCCESS;
+	// Macro which is used to print if the result is bad, meaning a function went wrong.
+	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_init returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_init(&result, window_system); scall(muCOSA_init)
 
 	// Print currently running window system
 
@@ -57,12 +56,11 @@ int main() {
 
 	// Print current clipboard
 
-	muByte* retreived_clipboard = mu_clipboard_get(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_clipboard_get returned %s\n", muCOSA_result_get_name(result));
+	muByte* retrieved_clipboard = mu_clipboard_get(&result); scall(mu_clipboard_get)
 
-	if (retreived_clipboard) {
-		printf("This was your clipboard: %s\n", (char*)retreived_clipboard);
-		mu_free(retreived_clipboard);
+	if (retrieved_clipboard) {
+		printf("This was your clipboard: %s\n", (char*)retrieved_clipboard);
+		mu_free(retrieved_clipboard);
 	} else {
 		printf("Nothing was on the clipboard\n");
 	}
@@ -70,21 +68,18 @@ int main() {
 	// Replace clipboard
 
 	const char* replace_clipboard = "Now this is your clipboard. 👍👍";
-	mu_clipboard_set(&result, (muByte*)replace_clipboard, strlen(replace_clipboard)+1);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_clipboard_set returned %s\n", muCOSA_result_get_name(result));
+	mu_clipboard_set(&result, (muByte*)replace_clipboard, strlen(replace_clipboard)+1); scall(mu_clipboard_set)
 
 	// Sleep for 9 seconds; on X11, the clipboard can only be set as long as the program exists, so
 	// we keep it open for a bit.
 
-	mu_sleep(&result, 9.f);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_sleep returned %s\n", muCOSA_result_get_name(result));
+	mu_sleep(&result, 9.f); scall(mu_sleep)
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_term returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_term(&result); scall(muCOSA_term)
 
-	// Program should retreive the clipboard, print it, and then set your clipboard and halt for a
+	// Program should retrieve the clipboard, print it, and then set your clipboard and halt for a
 	// few seconds.
 	return 0;
 }

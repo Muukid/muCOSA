@@ -5,14 +5,12 @@
 DEMO NAME:          callbacks.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-04-21
+LAST UPDATED:       2024-05-03
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how each window callback generally works.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -37,6 +35,8 @@ More explicit license information at the end of file.
 
 	// Used to store the result of functions
 	muCOSAResult result = MUCOSA_SUCCESS;
+	// Macro which is used to print if the result is bad, meaning a function went wrong.
+	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -49,20 +49,20 @@ More explicit license information at the end of file.
 	// Dimensions callback; gets called whenever the window's dimensions are changed, such as when
 	// the user resizes the window.
 	void dimensions_callback(muWindow window, uint32_m width, uint32_m height) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		printf("Dimensions: %" PRIu32 ", %" PRIu32 "\n", width, height);
 	}
 
 	// Position callback; gets called whenever the windows' position is changed, such as when the
 	// user drags the window.
 	void position_callback(muWindow window, int32_m x, int32_m y) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		printf("Position: %" PRId32 ", %" PRId32 "\n", x, y);
 	}
 
 	// Focus callback; gets called whenever the window gets focused and unfocused.
 	void focus_callback(muWindow window, muBool focused) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		if (focused) {
 			printf("focused\n");
 		} else {
@@ -72,7 +72,7 @@ More explicit license information at the end of file.
 
 	// Maximize callback; gets called whenever a window gets maximized.
 	void maximize_callback(muWindow window, muBool maximized) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		if (maximized) {
 			printf("maximized\n");
 		} else {
@@ -82,7 +82,7 @@ More explicit license information at the end of file.
 
 	// Minimize callback; gets called whenever a window gets minimized.
 	void minimize_callback(muWindow window, muBool minimized) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		if (minimized) {
 			printf("minimized\n");
 		} else {
@@ -92,7 +92,7 @@ More explicit license information at the end of file.
 
 	// Keyboard key callback; gets called whenever a keyboard key is pressed/released/held.
 	void keyboard_key_callback(muWindow window, muKeyboardKey key, muButtonState state) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		printf("Keyboard key \"%s\" ", mu_keyboard_key_get_nice_name(key));
 		if (state == MU_BUTTON_STATE_HELD) {
 			printf("hold\n");
@@ -103,7 +103,7 @@ More explicit license information at the end of file.
 
 	// Keyboard state callback; gets called whenever a keyboard state changes (such as caps locks)
 	void keyboard_state_callback(muWindow window, muKeyboardState keyboard_state, muState state) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		printf("Keyboard state \"%s\" ", mu_keyboard_state_get_nice_name(keyboard_state));
 		if (state == MU_ON) {
 			printf("on\n");
@@ -114,13 +114,13 @@ More explicit license information at the end of file.
 
 	// Cursor position callback; gets called whenever the cursor position changes
 	void cursor_position_callback(muWindow window, int32_m x, int32_m y) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		printf("Cursor position: %" PRId32 ", %" PRId32 "\n", x, y);
 	}
 
 	// Mouse button callback; gets called whenever a mouse button gets pressed or released.
 	void mouse_button_callback(muWindow window, muMouseButton mouse_button, muButtonState state) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		printf("Mouse button \"%s\" ", mu_mouse_button_get_nice_name(mouse_button));
 		if (state == MU_BUTTON_STATE_HELD) {
 			printf("held\n");
@@ -131,19 +131,16 @@ More explicit license information at the end of file.
 
 	// Scroll callback; gets called whenever the mouse/touchpad gets scrolled up or down an amount.
 	void scroll_callback(muWindow window, int32_m scroll_level_add) {
-		printf("[Window %zu] ", window);
+		printf("[Window %i] ", (int)window);
 		printf("Scroll: %" PRId32 "\n", scroll_level_add);
 	}
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system);
-
-	if (result != MUCOSA_SUCCESS)
-		printf("WARNING: muCOSA_init returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_init(&result, window_system); scall(muCOSA_init)
 
 	// Print currently running window system
 
@@ -166,9 +163,7 @@ int main() {
 	// Create window
 
 	muWindow window = mu_window_create(&result, graphics_api, 0, (muByte*)"Empty Window", 800, 600, create_info);
-
-	if (result != MUCOSA_SUCCESS)
-		printf("WARNING: mu_window_create returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_create)
 
 	// Print current graphics API
 
@@ -179,40 +174,28 @@ int main() {
 	// Set up a loop that continues as long as the window isn't closed
 
 	while (!mu_window_get_closed(&result, window)) {
-		if (result != MUCOSA_SUCCESS)
-			printf("WARNING: mu_window_get_closed returned %s\n", muCOSA_result_get_name(result));
-
-		// Update window (which refreshes input and such)
-
-		mu_window_update(&result, window);
-		if (result != MUCOSA_SUCCESS)
-			printf("WARNING: mu_window_update returned %s\n", muCOSA_result_get_name(result));
+		scall(mu_window_get_closed)
 
 		// This is where we would do our frame-by-frame logic.
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window);
+		mu_window_swap_buffers(&result, window); scall(mu_window_swap_buffers)
 		
-		if (result != MUCOSA_SUCCESS)
-			printf("WARNING: mu_window_swap_buffers returned %s\n", muCOSA_result_get_name(result));
+		// Update window (which refreshes input and such)
+
+		mu_window_update(&result, window); scall(mu_window_update)
 	}
 
 /* Termination */
 
 	// Destroy window (optional)
 
-	window = mu_window_destroy(&result, window);
-
-	if (result != MUCOSA_SUCCESS)
-		printf("WARNING: mu_window_destroy returned %s\n", muCOSA_result_get_name(result));
+	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result);
-
-	if (result != MUCOSA_SUCCESS)
-		printf("WARNING: muCOSA_term returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_term(&result); scall(muCOSA_term)
 
 	return 0;
 }

@@ -5,14 +5,12 @@
 DEMO NAME:          vulkan.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-27
-LAST UPDATED:       2024-04-29
+LAST UPDATED:       2024-05-03
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows Vulkan working in muCOSA.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -22,6 +20,11 @@ whichever you prefer.
 More explicit license information at the end of file.
 
 ============================================================
+                       COMPILER NOTES
+
+vkbind does violate function declarations without
+prototypes, so it needs to be turned off when compiling this
+demo when relevant.
 
 ============================================================
                         ATTRIBUTIONS
@@ -32,6 +35,7 @@ https://registry.khronos.org/vulkan/specs/1.3/html/vkspec.html
 https://vulkan-tutorial.com/
 https://www.youtube.com/watch?v=e14z9oOsPu0
 https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
+
 ============================================================
 
 @TODO Add more explanatory comments
@@ -67,7 +71,7 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 
 /* Vulkan setup */
 
-	muBool vk_init();
+	muBool vk_init(void);
 
 	/* Initiation stuff */
 
@@ -78,24 +82,24 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 	// will automatically be set to MU_FALSE when that's figured out, but setting this to MU_FALSE
 	// initially will also prevent it from even checking.
 	muBool use_validation_layers = MU_TRUE;
-	muBool vk_create_instance();
-	muBool vk_destroy_instance();
+	muBool vk_create_instance(void);
+	muBool vk_destroy_instance(void);
 
 	// Validation layer, which can print debug messages if available.
 	VkDebugUtilsMessengerEXT debug_messenger = VK_NULL_HANDLE;
-	muBool vk_create_debug_messenger();
-	muBool vk_destroy_debug_messenger();
+	muBool vk_create_debug_messenger(void);
+	muBool vk_destroy_debug_messenger(void);
 
 	// Surface, which is used to render onto the window; operating system dependent, so muCOSA will
 	// do most of the heavy lifting for us.
 	VkSurfaceKHR surface = VK_NULL_HANDLE;
-	muBool vk_create_surface();
-	muBool vk_destroy_surface();
+	muBool vk_create_surface(void);
+	muBool vk_destroy_surface(void);
 
 	// Physical device, which exists as a hardware implementation of the Vulkan API.
 	VkPhysicalDevice physical_device = VK_NULL_HANDLE;
-	muBool vk_create_physical_device();
-	muBool vk_destroy_physical_device();
+	muBool vk_create_physical_device(void);
+	muBool vk_destroy_physical_device(void);
 
 	// Logical device, aka "device", which exists as a logical interface to the physical device, to
 	// which we'll use to hold queues to send instructions to the GPU.
@@ -107,8 +111,8 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 	// Presentation family/queue that will hold the ability to present things to the surface.
 	uint32_t present_family;
 	VkQueue present_queue;
-	muBool vk_create_device();
-	muBool vk_destroy_device();
+	muBool vk_create_device(void);
+	muBool vk_destroy_device(void);
 
 	/* Rendering stuff */
 
@@ -135,8 +139,8 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 	// The index of what swapchain image is being used, as it will loop through the images frame by
 	// frame.
 	uint32_t swapchain_image_index = 0;
-	muBool vk_create_swapchain();
-	muBool vk_destroy_swapchain();
+	muBool vk_create_swapchain(void);
+	muBool vk_destroy_swapchain(void);
 
 	// Command pools, which are used to store commands that a command buffer will eventually
 	// execute.
@@ -160,8 +164,8 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 	// technically speaking, the time when all of the commands sent to a queue have finished and
 	// when exactly the queue is ready to be sent commands again are slightly different.
 	VkFence queue_wait_fence = VK_NULL_HANDLE;
-	muBool vk_create_command_buffer();
-	muBool vk_destroy_command_buffer();
+	muBool vk_create_command_buffer(void);
+	muBool vk_destroy_command_buffer(void);
 
 	// Shader code, which is stored in raw SPIR-V bytecode at the bottom of the file, since there's
 	// no convenient and transportable way to compile GLSL to SPIR-V in this context.
@@ -172,41 +176,41 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 	// Shader modules, which store our shaders in Vulkan
 	VkShaderModule vertex_module = VK_NULL_HANDLE;
 	VkShaderModule fragment_module = VK_NULL_HANDLE;
-	muBool vk_create_shader_modules();
-	muBool vk_destroy_shader_modules();
+	muBool vk_create_shader_modules(void);
+	muBool vk_destroy_shader_modules(void);
 
 	// The render pass, which describes the image resources used during rendering, as well as how
 	// they will be used, which, in our case, is just the actual images we're rendering to.
 	VkRenderPass render_pass = VK_NULL_HANDLE;
-	muBool vk_create_render_pass();
-	muBool vk_destroy_render_pass();
+	muBool vk_create_render_pass(void);
+	muBool vk_destroy_render_pass(void);
 	// The framebuffer essentially wraps the render pass and the attachments together, which, in
 	// our case, is just the swapchain image to be presented. We're holding one framebuffer for
 	// each swapchain image.
 	VkFramebuffer* framebuffers = 0;
-	muBool vk_create_framebuffers();
-	muBool vk_destroy_framebuffers();
+	muBool vk_create_framebuffers(void);
+	muBool vk_destroy_framebuffers(void);
 
 	// Pipeline layout, which is used for passing data to the shaders, which we're not doing.
 	VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 	// Graphics pipeline, which essentially describes a render state and how the vertex data and
 	// shaders will be processed and put to the screen
 	VkPipeline pipeline = VK_NULL_HANDLE;
-	muBool vk_create_pipeline();
-	muBool vk_destroy_pipeline();
+	muBool vk_create_pipeline(void);
+	muBool vk_destroy_pipeline(void);
 
-	muBool vk_term();
+	muBool vk_term(void);
 
 /* Vulkan rendering */
 
 	// This function makes and passes the entire render pass, getting the GPU to work on drawing
 	// the image.
-	muBool vk_render();
+	muBool vk_render(void);
 
 	// This function presents the rendered image onto screen.
-	muBool vk_present();
+	muBool vk_present(void);
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
@@ -230,9 +234,6 @@ int main() {
 /* Main loop */
 
 	while (!mu_window_get_closed(&res, win)) { scall(mu_window_get_closed)
-		// Update window
-		mu_window_update(&res, win); scall(mu_window_update)
-
 		// Send all render calls
 		vk_render();
 
@@ -240,6 +241,9 @@ int main() {
 		vk_present();
 
 		// Note how we don't need to swap buffers now; that's being handled by us.
+
+		// Update window
+		mu_window_update(&res, win); scall(mu_window_update)
 	}
 	scall(mu_window_get_closed)
 
@@ -251,7 +255,7 @@ int main() {
 
 	// Destroy Vulkan if non-X11
 	muWindowSystem window_system = muCOSA_get_current_window_system(&res); scall(muCOSA_get_current_window_system)
-	if (window_system != MU_X11) {
+	if (window_system != MU_WINDOW_SYSTEM_X11) {
 		vk_term();
 	} else {
 		// X11 *does* want the swapchain to be destroyed here, though
@@ -263,7 +267,7 @@ int main() {
 	mu_window_destroy(&res, win); scall(mu_window_destroy)
 
 	// Destroy Vulkan if X11
-	if (window_system == MU_X11) {
+	if (window_system == MU_WINDOW_SYSTEM_X11) {
 		vk_term();
 	}
 
@@ -275,7 +279,7 @@ int main() {
 
 /* Vulkan rendering */
 	
-	muBool vk_render() {
+	muBool vk_render(void) {
 		/* Start getting swapchain image */
 
 		if (vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, queue_wait_semaphore, VK_NULL_HANDLE, &swapchain_image_index) != VK_SUCCESS) {
@@ -377,7 +381,7 @@ int main() {
 		return MU_TRUE;
 	}
 
-	muBool vk_present() {
+	muBool vk_present(void) {
 		/* Present current swapchain, when commands are finished of course */
 
 		VkPresentInfoKHR p_i = MU_ZERO_STRUCT(VkPresentInfoKHR);
@@ -400,7 +404,7 @@ int main() {
 
 	/* Initiation */
 
-		muBool vk_init() {
+		muBool vk_init(void) {
 			if (vkbInit(NULL) != VK_SUCCESS) {
 				printf("[WARNING] Call to vkbInit failed.\n");
 				return MU_FALSE;
@@ -461,7 +465,7 @@ int main() {
 			"VK_LAYER_KHRONOS_validation"
 		};
 
-		muBool vk_are_validation_layers_available() {
+		muBool vk_are_validation_layers_available(void) {
 			if (!use_validation_layers) {
 				return MU_FALSE;
 			}
@@ -512,7 +516,7 @@ int main() {
 			return MU_TRUE;
 		}
 	
-		muBool vk_create_instance() {
+		muBool vk_create_instance(void) {
 			/* Instance */
 
 			VkInstanceCreateInfo cinfo = MU_ZERO_STRUCT(VkInstanceCreateInfo);
@@ -606,7 +610,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_instance() {
+		muBool vk_destroy_instance(void) {
 			if (instance != VK_NULL_HANDLE) {
 				vkDestroyInstance(instance, 0);
 			}
@@ -674,7 +678,7 @@ int main() {
 			return VK_TRUE;
 		}
 
-		muBool vk_create_debug_messenger() {
+		muBool vk_create_debug_messenger(void) {
 			if (!use_validation_layers) {
 				return MU_TRUE;
 			}
@@ -696,7 +700,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_debug_messenger() {
+		muBool vk_destroy_debug_messenger(void) {
 			if (debug_messenger != VK_NULL_HANDLE) {
 				vk_DestroyDebugUtilsMessenger(instance, debug_messenger, 0);
 			}
@@ -705,7 +709,7 @@ int main() {
 
 	/* Surface */
 
-		muBool vk_create_surface() {
+		muBool vk_create_surface(void) {
 			VkResult vkres = VK_SUCCESS;
 			mu_vulkan_create_window_surface(&res, win,
 				(void**)(&vkres),
@@ -722,7 +726,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_surface() {
+		muBool vk_destroy_surface(void) {
 			if (surface != VK_NULL_HANDLE) {
 				vkDestroySurfaceKHR(instance, surface, 0);
 			}
@@ -780,7 +784,7 @@ int main() {
 			return score;
 		}
 
-		muBool vk_create_physical_device() {
+		muBool vk_create_physical_device(void) {
 			uint32_t physical_device_count = 0;
 			if (vkEnumeratePhysicalDevices(instance, &physical_device_count, NULL) != VK_SUCCESS || physical_device_count == 0) {
 				printf("[WARNING] Failed to find any physical devices\n");
@@ -843,14 +847,14 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_physical_device() {
+		muBool vk_destroy_physical_device(void) {
 			// Auto destroyed, we musn't worry
 			return MU_TRUE;
 		}
 
 	/* Device */
 
-		muBool vk_create_device() {
+		muBool vk_create_device(void) {
 			/* Queue families */
 
 			uint32_t queue_family_property_count = 0;
@@ -954,7 +958,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_device() {
+		muBool vk_destroy_device(void) {
 			if (device != VK_NULL_HANDLE) {
 				vkDestroyDevice(device, 0);
 			}
@@ -963,7 +967,7 @@ int main() {
 
 	/* Swapchain */
 
-		muBool vk_create_swapchain() {
+		muBool vk_create_swapchain(void) {
 			VkSwapchainCreateInfoKHR sc_ci = MU_ZERO_STRUCT(VkSwapchainCreateInfoKHR);
 			sc_ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 			sc_ci.surface = surface;
@@ -1155,7 +1159,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_swapchain() {
+		muBool vk_destroy_swapchain(void) {
 			if (swapchain_image_views != 0) {
 				for (uint32_t i = 0; i < swapchain_image_count; i++) {
 					if (swapchain_image_views[i] != VK_NULL_HANDLE) {
@@ -1175,7 +1179,7 @@ int main() {
 
 	/* Command pool */
 
-		muBool vk_create_command_buffer() {
+		muBool vk_create_command_buffer(void) {
 			/* Command pool */
 
 			VkCommandPoolCreateInfo cp_ci = MU_ZERO_STRUCT(VkCommandPoolCreateInfo);
@@ -1230,7 +1234,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_command_buffer() {
+		muBool vk_destroy_command_buffer(void) {
 			if (queue_wait_fence != VK_NULL_HANDLE) {
 				vkDestroyFence(device, queue_wait_fence, 0);
 			}
@@ -1251,7 +1255,7 @@ int main() {
 
 	/* Shader modules */
 
-		muBool vk_create_shader_modules() {
+		muBool vk_create_shader_modules(void) {
 			VkShaderModuleCreateInfo vertex_ci = MU_ZERO_STRUCT(VkShaderModuleCreateInfo);
 			vertex_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 			vertex_ci.codeSize = VERTEX_CODE_BYTES;
@@ -1275,7 +1279,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_shader_modules() {
+		muBool vk_destroy_shader_modules(void) {
 			if (vertex_module != VK_NULL_HANDLE) {
 				vkDestroyShaderModule(device, vertex_module, 0);
 			}
@@ -1288,7 +1292,7 @@ int main() {
 
 	/* Render pass */
 
-		muBool vk_create_render_pass() {
+		muBool vk_create_render_pass(void) {
 			// Color attachment usage; the swapchain usage.
 			VkAttachmentDescription attr = MU_ZERO_STRUCT(VkAttachmentDescription);
 			attr.format = swapchain_format;
@@ -1336,7 +1340,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_render_pass() {
+		muBool vk_destroy_render_pass(void) {
 			if (render_pass != VK_NULL_HANDLE) {
 				vkDestroyRenderPass(device, render_pass, 0);
 			}
@@ -1345,7 +1349,7 @@ int main() {
 
 	/* Framebuffers */
 
-		muBool vk_create_framebuffers() {
+		muBool vk_create_framebuffers(void) {
 			framebuffers = (VkFramebuffer*)malloc(sizeof(VkFramebuffer) * swapchain_image_count);
 			if (framebuffers == 0) {
 				printf("[WARNING] Failed to allocate framebuffers\n");
@@ -1374,7 +1378,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_framebuffers() {
+		muBool vk_destroy_framebuffers(void) {
 			if (framebuffers != 0) {
 				for (uint32_t i = 0; i < swapchain_image_count; i++) {
 					if (framebuffers[i] != VK_NULL_HANDLE) {
@@ -1388,7 +1392,7 @@ int main() {
 
 	/* Pipeline */
 
-		muBool vk_create_pipeline() {
+		muBool vk_create_pipeline(void) {
 			VkGraphicsPipelineCreateInfo pipeline_ci = MU_ZERO_STRUCT(VkGraphicsPipelineCreateInfo);
 			pipeline_ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
@@ -1538,7 +1542,7 @@ int main() {
 			return MU_TRUE;
 		}
 
-		muBool vk_destroy_pipeline() {
+		muBool vk_destroy_pipeline(void) {
 			if (pipeline != VK_NULL_HANDLE) {
 				vkDestroyPipeline(device, pipeline, 0);
 			}
@@ -1550,7 +1554,7 @@ int main() {
 
 	/* Termination */
 
-		muBool vk_term() {
+		muBool vk_term(void) {
 			vkDeviceWaitIdle(device);
 
 			vk_destroy_pipeline();
@@ -1589,7 +1593,7 @@ int main() {
 		vec3(0.0, 0.0, 1.0)
 	);
 
-	void main() {
+	void main(void) {
 		gl_Position = vec4(vVertices[gl_VertexIndex], 0.0, 1.0);
 		fColor = fColors[gl_VertexIndex];
 	}
@@ -1602,7 +1606,7 @@ int main() {
 	layout (location=0) in vec3 fColor;
 	layout (location=0) out vec4 foColor;
 
-	void main() {
+	void main(void) {
 		foColor = vec4(fColor, 1.0);
 	}
 	*/

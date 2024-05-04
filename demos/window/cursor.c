@@ -5,15 +5,13 @@
 DEMO NAME:          cursor.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-22
-LAST UPDATED:       2024-04-22
+LAST UPDATED:       2024-05-03
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the position and style of a cursor can
 be retrieved and modified.
-
-============================================================
 
 ============================================================
                         LICENSE INFO
@@ -38,6 +36,8 @@ More explicit license information at the end of file.
 
 	// Used to store the result of functions
 	muCOSAResult result = MUCOSA_SUCCESS;
+	// Macro which is used to print if the result is bad, meaning a function went wrong.
+	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -76,13 +76,12 @@ More explicit license information at the end of file.
 		printf("Cursor style: %s\n", mu_cursor_style_get_nice_name(style));
 	}
 
-int main() {
+int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_init returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_init(&result, window_system); scall(muCOSA_init)
 
 	// Print currently running window system
 
@@ -91,12 +90,12 @@ int main() {
 	// Create window
 
 	muWindow window = mu_window_create(&result, graphics_api, 0, (muByte*)"Empty Window", 800, 600, mu_window_default_create_info());
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_create returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_create)
 
 	// Set key callback for cursor style modification
 
 	mu_window_set_keyboard_key_callback(&result, window, keyboard_key_callback);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_set_keyboard_key_callback returned %s\n", muCOSA_result_get_name(result));
+	scall(mu_window_set_keyboard_key_callback)
 
 	// Print current graphics API
 
@@ -104,80 +103,56 @@ int main() {
 
 /* Main loop */
 
-	// Set up delta time variables
-
-	double dt_bef = mu_time_get(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_time_get returned %s\n", muCOSA_result_get_name(result));
-	double dt;
-
 	// Set up a loop that continues as long as the window isn't closed
 
 	while (!mu_window_get_closed(&result, window)) {
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_closed returned %s\n", muCOSA_result_get_name(result));
-
-		// Update window (which refreshes input and such)
-
-		mu_window_update(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_update returned %s\n", muCOSA_result_get_name(result));
-
-		// Update delta time
-
-		dt = mu_time_get(&result) - dt_bef;
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_time_get returned %s\n", muCOSA_result_get_name(result));
-		dt_bef += dt;
-
-		// Cursor position modification
+		scall(mu_window_get_closed)
 
 		int32_m cx=0, cy=0;
-		mu_window_get_cursor_position(&result, window, &cx, &cy);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_get_cursor_position returned %s\n", muCOSA_result_get_name(result));
+		mu_window_get_cursor_position(&result, window, &cx, &cy); scall(mu_window_get_cursor_position)
 
-		double cursor_movement_speed = 1.f;
-		if (cursor_movement_speed * dt < 1.f) {
-			cursor_movement_speed = (1.f / dt);
-		}
 		muBool moved = MU_FALSE;
 
 		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_S)) {
-			cy += cursor_movement_speed * dt;
+			cy += 1;
 			moved = MU_TRUE;
 		}
 		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_W)) {
-			cy -= cursor_movement_speed * dt;
+			cy -= 1;
 			moved = MU_TRUE;
 		}
 		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_A)) {
-			cx -= cursor_movement_speed * dt;
+			cx -= 1;
 			moved = MU_TRUE;
 		}
 		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_D)) {
-			cx += cursor_movement_speed * dt;
+			cx += 1;
 			moved = MU_TRUE;
 		}
 
 		if (moved) {
-			mu_window_set_cursor_position(&result, window, cx, cy, MU_FALSE);
-			if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_set_cursor_position returned %s\n", muCOSA_result_get_name(result));
+			mu_window_set_cursor_position(&result, window, cx, cy); scall(mu_window_set_cursor_position)
 			printf("Cursor position: %" PRId32 ", %" PRId32 "\n", cx, cy);
 		}
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window);
-		if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_swap_buffers returned %s\n", muCOSA_result_get_name(result));
+		mu_window_swap_buffers(&result, window); scall(mu_window_swap_buffers)
+
+		// Update window (which refreshes input and such)
+
+		mu_window_update(&result, window); scall(mu_window_update)
 	}
 
 /* Termination */
 
 	// Destroy window (optional)
 
-	window = mu_window_destroy(&result, window);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: mu_window_destroy returned %s\n", muCOSA_result_get_name(result));
+	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result);
-	if (result != MUCOSA_SUCCESS) printf("WARNING: muCOSA_term returned %s\n", muCOSA_result_get_name(result));
+	muCOSA_term(&result); scall(muCOSA_term)
 
 	// Program should make a window whose cursor can move by using the WASD keys, and whose style
 	// can be changed with the left/right arrow keys.
