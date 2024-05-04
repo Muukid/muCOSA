@@ -28,18 +28,17 @@ off when compiling this demo when relevant.
 ============================================================
 */
 
-// Include muCOSA
-
-#define MUCOSA_NAMES // For name functions
-#define MUCOSA_OPENGL // For 'mu_opengl_get_function_address'
-#define MUCOSA_NO_INCLUDE_OPENGL // Don't include OpenGL, we'll include it later with glad
-#define MUCOSA_IMPLEMENTATION
-#include <muCOSA.h>
-
 // Include glad for OpenGL loading
 
 #define GLAD_GL_IMPLEMENTATION
 #include <glad.h>
+
+// Include muCOSA
+
+#define MUCOSA_NAMES // For name functions
+#define MUCOSA_OPENGL // For 'mu_opengl_get_function_address'
+#define MUCOSA_IMPLEMENTATION
+#include <muCOSA.h>
 
 // C standard library
 
