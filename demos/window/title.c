@@ -27,7 +27,7 @@ More explicit license information at the end of file.
 #define MUCOSA_NAMES // For name functions
 #define MUS_NAMES // For muString name functions
 #define MUCOSA_IMPLEMENTATION
-#include <muCOSA.h>
+#include "muCOSA.h"
 
 // Other dependencies
 

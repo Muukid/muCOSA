@@ -49,7 +49,7 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 #define MUCOSA_VULKAN // For Vulkan support
 #define MUCOSA_VULKAN_INCLUDE_PATH <vkbind.h> // For muCOSA to include Vulkan (needed for certain macros)
 #define MUCOSA_IMPLEMENTATION
-#include <muCOSA.h>
+#include "muCOSA.h"
 
 #include <stdio.h> // For printf
 #include <stdlib.h> // For allocation

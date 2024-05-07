@@ -5,7 +5,7 @@
 DEMO NAME:          opengl.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-05-04
+LAST UPDATED:       2024-05-03
 
 ============================================================
                         DEMO PURPOSE
@@ -31,16 +31,14 @@ off when compiling this demo when relevant.
 // Include glad for OpenGL loading
 
 #define GLAD_GL_IMPLEMENTATION
-#include <glad.h>
+#include "glad.h"
 
 // Include muCOSA
 
 #define MUCOSA_NAMES // For name functions
 #define MUCOSA_OPENGL // For 'mu_opengl_get_function_address'
 #define MUCOSA_IMPLEMENTATION
-#include <muCOSA.h>
-
-// C standard library
+#include "muCOSA.h"
 
 #include <stdio.h> // For printf
 
