@@ -6,65 +6,6 @@ No warranty implied; use at your own risk.
 Licensed under MIT License or public domain, whichever you prefer.
 More explicit license information at the end of file.
 
-@MENTION muCOSA works in null-terminated UTF-8 unless stated otherwise. This includes, for example,
-text input, window titles, etc.
-@MENTION For now, muCOSA is targeted at operating systems that work around a mouse/keyboard/display
-interface.
-@MENTION muCOSA is largely untested on multi-display setups.
-@MENTION Key callback repeats on hold. This is inteded, as to allow hold times to be handled by the
-OS.
-@MENTION Setting attributes about windows may invoke 2 identical callbacks. In general, non-
-identical callbacks or duplicate callbacks are not guaranteed to not occur.
-@MENTION Callbacks do NOT only occur on calls to mu_window_update, although they usually do.
-@MENTION Vulkan functions expect Vulkan to be defined at latest by the implementation if
-MUCOSA_VULKAN is defined, and expects types like (for example) VkXlibSurfaceCreateInfoKHR to be
-defined.
-@MENTION Vulkan's API expects certain macros to be defined for window API-specific things to be
-defined that muCOSA needs (for example, X11 needs VK_USE_PLATFORM_XLIB_KHR to be defined). Make
-sure to define these, and make sure to mention in the API that these NEED to be defined.
-@MENTION Calling window functions on a window WITHIN a callback function is extremely dangerous, as
-it can cause feedback loops really easily.
-@MENTION Getting clipboard but no clipboard exists doesn't return an error, instead only returning
-0.
-@MENTION pthread dependency.
-@MENTION POSIX in general.
-@MENTION Uncleared screen contents are undefined, and since there's no way to clear the screen
-without a graphics API*, a window with no graphics API has undefined screen contents.
-@MENTION It is not guaranteed that an initial callback will be triggered.
-@MENTION X11 often calls an intial invalid position callback because X11 sucks.
-@MENTION It is not guaranteed that the mu_window_get/set_cursor_position functions will work when
-outside of the window's boundaries.
-@MENTION Xkb.
-@MENTION MUCOSA_NO_LOCALE_MOD.
-@MENTION Text input focus is not guaranteed to be preserved once window becomes unfocused, but 
-muCOSA does *try* to.
-@MENTION Text input callbacks can possibly input multiple characters, although unlikely. Can also
-be empty, while also unlikely.
-@MENTION Text input callback is guaranteed to have the last byte equal to 0.
-@MENTION mu_window_update_text_cursor is safe to call even when text input isn't focused.
-@MENTION Text input focus is automatically let go on termination.
-@MENTION Things you need to link against usually for doing stuff in muCOSA, like OpenGL.
-@MENTION Link against User32.lib
-@MENTION Termination isn't really threadsafe. It isn't THAT unthreadsafe, like, some pretty
-unlikely events need to occur one after the other, but still.
-@MENTION -limm32.
-@MENTION Some error messages are spit out the frame before the window is closed. This can,
-generally, be avoided by adding an extra check after mu_window_update to also check if it's been
-closed yet.
-@MENTION 'mu_window_create' is the only function that treats dimensions relative to the surface.
-@MENTION Sometimes, key repeating is handled with hold/release patterns, while other times, it's
-repeated hold messages.
-@MENTION A window's position is actually in reference to the rendering surface. Same with other
-properties like dimensions. If you need actual full window numbers, refer to the frame extents.
-@MENTION Cursor position callbacks are only guaranteed to occur when the window is focused and the
-cursor is within the window's surface.
-@MENTION The focus function is not guaranteed to work; on Win32, it often just alerts.
-@MENTION Properties like frame extents, dimensions, position, and other visual aspects of a window
-will cause undefined behavior when polled for while it is in a state where these properties don't
-exist, such as being minimized.
-@MENTION Text input includes control keys.
-@MENTION Cursor style doesn't apply once mouse is out of the window's dimensions.
-
 @TODO Audio.
 @TODO Non-text clipboards.
 @TODO Drag & drop.
