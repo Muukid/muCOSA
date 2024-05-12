@@ -1547,6 +1547,28 @@ primarily around a traditional desktop OS environment.
 			#define MU_ON 1
 			#define MU_OFF 0
 
+		/* OS macros */
+
+			#ifndef MUCOSA_NO_AUTOMATIC_API
+
+				#ifdef MU_UNIX
+					#define MUCOSA_X11
+				#endif
+
+				#ifdef MU_WIN32
+					#define MUCOSA_WIN32
+				#endif
+
+			#endif
+
+			#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
+				#ifdef MUCOSA_WIN32
+					#define VK_USE_PLATFORM_WIN32_KHR
+				#elif defined(MUCOSA_X11)
+					#define VK_USE_PLATFORM_XLIB_KHR
+				#endif
+			#endif
+
 	/* Enums */
 
 		MU_ENUM(muCOSAResult,
@@ -4425,18 +4447,6 @@ primarily around a traditional desktop OS environment.
 
 	/* Macro handling */
 
-		#ifndef MUCOSA_NO_AUTOMATIC_API
-
-			#ifdef MU_UNIX
-				#define MUCOSA_X11
-			#endif
-
-			#ifdef MU_WIN32
-				#define MUCOSA_WIN32
-			#endif
-
-		#endif
-
 		#ifdef MUCOSA_OPENGL
 			#define MUCOSA_OPENGL_CALL(...) __VA_ARGS__
 		#else
@@ -6745,11 +6755,6 @@ primarily around a traditional desktop OS environment.
 				}
 
 			/* Vulkan */
-
-				#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
-					#define VK_USE_PLATFORM_XLIB_KHR
-					#include MUCOSA_VULKAN_INCLUDE_PATH
-				#endif
 
 				const char** muCOSA_X11_vulkan_get_surface_instance_extensions(muCOSAResult* result, size_m* count) {
 					#ifndef MUCOSA_VULKAN
@@ -9133,7 +9138,6 @@ primarily around a traditional desktop OS environment.
 			/* Vulkan */
 
 				#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
-					#define VK_USE_PLATFORM_WIN32_KHR
 					#include MUCOSA_VULKAN_INCLUDE_PATH
 				#endif
 
