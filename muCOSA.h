@@ -1028,9 +1028,9 @@ primarily around a traditional desktop OS environment.
 
 		/* Clipboard */
 
-			MUDEF const char* mu_clipboard_get(void);
-				MUDEF const char* mu_clipboard_get_(muCOSAResult* result);
-				MUDEF const char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
+			MUDEF char* mu_clipboard_get(void);
+				MUDEF char* mu_clipboard_get_(muCOSAResult* result);
+				MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
 			MUDEF void mu_clipboard_set(const char* text, size_m text_size);
 				MUDEF void mu_clipboard_set_(muCOSAResult* result, const char* text, size_m text_size);
 				MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, const char* text, size_m text_size);
@@ -1048,6 +1048,7 @@ primarily around a traditional desktop OS environment.
 				MUDEF void muCOSA_opengl_bind_window(muCOSAContext* context, muCOSAResult* result, muWindow window);
 
 			MUDEF void* mu_opengl_get_function_address(const char* name);
+				MUDEF void* muCOSA_opengl_get_function_address(muCOSAContext* context, const char* name);
 
 			MUDEF void mu_opengl_window_swap_interval(muWindow window, int interval);
 				MUDEF void mu_opengl_window_swap_interval_(muCOSAResult* result, muWindow window, int interval);
@@ -2103,7 +2104,7 @@ primarily around a traditional desktop OS environment.
 						LRESULT CALLBACK muCOSA_innerWin32_handle_mouse_button(muCOSA_Win32_msginfo msg, muMouseButton button, muButtonState state) {
 							msg.win->input.mouse_button_states[button-MU_MOUSE_BUTTON_FIRST] = state;
 
-							if (msg.win->mouse_button_callback != MU_NULL_PTR) {
+							if (msg.win->mouse_button_callback != 0) {
 								msg.win->mouse_button_callback(msg.win, button, state);
 							}
 
@@ -2289,6 +2290,30 @@ primarily around a traditional desktop OS environment.
 							return;
 						}
 
+						/* Set default attributes */
+
+							win->closed = MU_FALSE;
+							win->maximized = create_info.maximized;
+							win->minimized = create_info.minimized;
+							win->dimensions_callback = create_info.dimensions_callback;
+							win->position_callback = create_info.position_callback;
+							win->focus_callback = create_info.focus_callback;
+							win->maximize_callback = create_info.maximize_callback;
+							win->minimize_callback = create_info.minimize_callback;
+							win->keyboard_key_callback = create_info.keyboard_key_callback;
+							win->keyboard_state_callback = create_info.keyboard_state_callback;
+							win->cursor_position_callback = create_info.cursor_position_callback;
+							win->mouse_button_callback = create_info.mouse_button_callback;
+							win->scroll_callback = create_info.scroll_callback;
+							win->min_width = create_info.min_width;
+							win->min_height = create_info.min_height;
+							win->max_width = create_info.max_width;
+							win->max_height = create_info.max_height;
+							win->input = MU_ZERO_STRUCT(muCOSA_Win32_input);
+							win->text_cursor_x = 0;
+							win->text_cursor_y = 0;
+							win->text_input_callback = 0;
+
 						/* Class */
 
 							wchar_t* wname = muCOSA_Win32_utf8_to_wchar(name);
@@ -2426,27 +2451,7 @@ primarily around a traditional desktop OS environment.
 
 						/* Return */
 
-							win->closed = MU_FALSE;
-							win->maximized = create_info.maximized;
-							win->minimized = create_info.minimized;
-							win->dimensions_callback = create_info.dimensions_callback;
-							win->position_callback = create_info.position_callback;
-							win->focus_callback = create_info.focus_callback;
-							win->maximize_callback = create_info.maximize_callback;
-							win->minimize_callback = create_info.minimize_callback;
-							win->keyboard_key_callback = create_info.keyboard_key_callback;
-							win->keyboard_state_callback = create_info.keyboard_state_callback;
-							win->cursor_position_callback = create_info.cursor_position_callback;
-							win->mouse_button_callback = create_info.mouse_button_callback;
-							win->scroll_callback = create_info.scroll_callback;
-							win->min_width = create_info.min_width;
-							win->min_height = create_info.min_height;
-							win->max_width = create_info.max_width;
-							win->max_height = create_info.max_height;
-							win->input = MU_ZERO_STRUCT(muCOSA_Win32_input);
-							win->text_cursor_x = 0;
-							win->text_cursor_y = 0;
-							win->text_input_callback = 0;
+							return; if (res) {}
 					}
 
 					void muCOSA_Win32_window_destroy(muCOSA_Win32_window* win) {
@@ -2837,7 +2842,7 @@ primarily around a traditional desktop OS environment.
 
 			/* Clipboard */
 
-				const char* muCOSA_Win32_clipboard_get(muCOSAResult* result) {
+				char* muCOSA_Win32_clipboard_get(muCOSAResult* result) {
 					if (OpenClipboard(NULL) == 0) {
 						MU_SET_RESULT(result, MUCOSA_FAILED_HOLD_CLIPBOARD)
 						return 0;
@@ -2866,7 +2871,7 @@ primarily around a traditional desktop OS environment.
 						return 0;
 					}
 
-					return (const char*)utf8_data;
+					return (char*)utf8_data;
 				}
 
 				void muCOSA_Win32_clipboard_set(muCOSAResult* result, const char* text, size_m text_size) {
@@ -3179,6 +3184,8 @@ primarily around a traditional desktop OS environment.
 					ci.cursor_position_callback = 0;
 					ci.keyboard_key_callback = 0;
 					ci.keyboard_state_callback = 0;
+					ci.scroll_callback = 0;
+					ci.mouse_button_callback = 0;
 
 					return ci;
 				}
@@ -4039,13 +4046,13 @@ primarily around a traditional desktop OS environment.
 
 		/* Clipboard */
 
-			MUDEF const char* mu_clipboard_get(void) {
+			MUDEF char* mu_clipboard_get(void) {
 				return muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result);
 			}
-			MUDEF const char* mu_clipboard_get_(muCOSAResult* result) {
+			MUDEF char* mu_clipboard_get_(muCOSAResult* result) {
 				return muCOSA_clipboard_get(muCOSA_global_context, result);
 			}
-			MUDEF const char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result) {
+			MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
 				switch (inner->system) {
@@ -4111,7 +4118,17 @@ primarily around a traditional desktop OS environment.
 				return; if (result) { }
 			}
 
-			MUDEF void* mu_opengl_get_function_address(const char* name);
+			MUDEF void* mu_opengl_get_function_address(const char* name) {
+				return muCOSA_opengl_get_function_address(muCOSA_global_context, name);
+			}
+			MUDEF void* muCOSA_opengl_get_function_address(muCOSAContext* context, const char* name) {
+				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
+
+				switch (inner->system) {
+					default: return 0; break;
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_opengl_get_function_address(name); break;)
+				}
+			}
 
 			MUDEF void mu_opengl_window_swap_interval(muWindow window, int interval) {
 				muCOSA_opengl_window_swap_interval(muCOSA_global_context, &muCOSA_global_context->result, window, interval);
