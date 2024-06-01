@@ -5,7 +5,7 @@
 DEMO NAME:          text_input.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-25
-LAST UPDATED:       2024-05-04
+LAST UPDATED:       2024-06-01
 
 ============================================================
                         DEMO PURPOSE
@@ -35,10 +35,8 @@ More explicit license information at the end of file.
 
 /* Variables */
 
-	// Used to store the result of functions
-	muCOSAResult result = MUCOSA_SUCCESS;
-	// Macro which is used to print if the result is bad, meaning a function went wrong.
-	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
+	// Global context
+	muCOSAContext muCOSA;
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -46,18 +44,77 @@ More explicit license information at the end of file.
 	// The graphics API
 	muGraphicsAPI graphics_api = MU_NO_GRAPHICS_API;
 
+/* UTF-8 logic functions */
+
+	// Function for getting the size of a codepoint in UTF-8
+	size_m get_utf8_codepoint_size(muByte byte) {
+		// 00000000 <= n <= 01111111
+		if (/*byte >= 0 && */byte <= 127) {
+			return 1;
+		// 11000000 <= n < 11100000
+		} else if (byte >= 192 && byte < 224) {
+			return 2;
+		// 11100000 <= n < 11110000
+		} else if (byte >= 224 && byte < 240) {
+			return 3;
+		// 11110000 <= n <= 11110111
+		} else if (byte >= 240 && byte <= 247) {
+			return 4;
+		} else {
+			// Value is 10xxxxxx or 11111xxx; invalid.
+			return 0;
+		}
+	}
+
+	// Function for getting the codepoint of a UTF-8 character and get its size
+	size_m get_utf8_codepoint(muByte* data) {
+		size_m size = get_utf8_codepoint_size(data[0]);
+		switch (size) {
+			default: return 0; break;
+			case 1: return data[0]; break;
+
+			case 2: {
+				return
+				// 110xxxxx
+				(size_m)(data[0] & 31) << 6 |
+				// 10xxxxxx
+				(size_m)(data[1] & 63);
+			} break;
+
+			case 3: {
+				return
+				// 1110xxxx
+				(size_m)(data[0] & 15) << 12 |
+				// 10xxxxxx
+				(size_m)(data[1] & 63) << 6 |
+				// 10xxxxxx
+				(size_m)(data[2] & 63);
+			} break;
+
+			case 4: {
+				return
+				// 1110xxxx
+				(size_m)(data[0] & 7) << 18 |
+				// 10xxxxxx
+				(size_m)(data[1] & 63) << 12 |
+				// 10xxxxxx
+				(size_m)(data[2] & 63) << 6 |
+				// 10xxxxxx
+				(size_m)(data[3] & 63);
+			} break;
+		}
+	}
+
 /* Callback */
 
 	// Text input callback to print text input
-	void text_input_callback(muWindow window, muByte* input) {
-		if (window) {} // (to avoid unused parameter warnings)
-
-		size_m input_size = strlen((char*)input);
+	void text_input_callback(muWindow window, const char* input) {
+		size_m input_size = strlen(input);
 
 		// Print input
-		printf("%s ", (char*)input);
+		printf("%s ", input);
 
-		// Print codepoint(s)
+		// Print codepoint
 
 		// (possible null)
 		if (input[0] == 0 || input_size == 0) {
@@ -65,28 +122,13 @@ More explicit license information at the end of file.
 			return;
 		}
 
-		printf("[ ");
+		printf("[%lu]\n", (long unsigned)get_utf8_codepoint((muByte*)input));
 
-		size_m offset = 0;
-		while (input[offset] != 0 && offset < input_size) {
-			muCodePoint code_point = mu_UTF8_get_code_point(0, &input[offset], input_size-offset);
-			printf("%lu ", (long unsigned)code_point);
-
-			size_m code_point_size = mu_UTF8_get_code_point_size(0, code_point);
-			if (code_point_size == 0) {
-				printf("]\n");
-				return;
-			}
-			offset += code_point_size;
-		}
-
-		printf("]\n");
+		return; if (window) {} // (to avoid unused parameter warnings)
 	}
 
 	// Key input to toggle text input
 	void keyboard_key_callback(muWindow window, muKeyboardKey keyboard_key, muButtonState state) {
-		muCOSAResult res = MUCOSA_SUCCESS;
-
 		if (state != MU_BUTTON_STATE_HELD) {
 			return;
 		}
@@ -96,17 +138,16 @@ More explicit license information at the end of file.
 			printf("Taking input...\n");
 			// Get text input focus, putting the text cursor in the middle of the window
 			uint32_m width=0, height=0;
-			mu_window_get_dimensions(0, window, &width, &height); scall(mu_window_get_dimensions)
+			mu_window_get_dimensions(window, &width, &height);
 
-			mu_window_get_text_input_focus(&res, window, (int32_m)width/4, (int32_m)height/4, text_input_callback);
-			scall(mu_window_get_text_input_focus)
+			mu_window_get_text_input_focus(window, (int32_m)width/2, (int32_m)height/2, text_input_callback);
 		}
 
 		// If F2 is pressed:
 		else if (keyboard_key == MU_KEYBOARD_KEY_F2) {
 			printf("Not taking input...\n");
 			// Let go of input text focus
-			mu_window_let_text_input_focus(&res, window); scall(mu_window_let_text_input_focus)
+			mu_window_let_text_input_focus(window);
 		}
 	}
 
@@ -118,16 +159,15 @@ int main(void) {
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system); scall(muCOSA_init)
+	muCOSA_context_create(&muCOSA, window_system, MU_TRUE);
 
 	// Print currently running window system
 
-	printf("Running window system \"%s\"\n", mu_window_system_get_nice_name(muCOSA_get_current_window_system(0)));
+	printf("Running window system \"%s\"\n", mu_window_system_get_nice_name(muCOSA_context_get_window_system(&muCOSA)));
 
 	// Create window
 
-	muWindow window = mu_window_create(&result, graphics_api, 0, (muByte*)"Empty Window", 800, 600, mu_window_default_create_info());
-	scall(mu_window_create)
+	muWindow window = mu_window_create(graphics_api, 0, "Empty Window", 800, 600, mu_window_default_create_info());
 
 	// Print current graphics API
 
@@ -135,51 +175,52 @@ int main(void) {
 
 	// Get text input
 
-	mu_window_get_text_input_focus(&result, window, 800/2, 600/2, text_input_callback);
-	scall(mu_window_get_text_input_focus)
+	mu_window_get_text_input_focus(window, 800/2, 600/2, text_input_callback);
 	printf("Taking input...\n");
 
 	// Set keyboard key callback
 
-	mu_window_set_keyboard_key_callback(&result, window, keyboard_key_callback);
-	scall(mu_window_set_keyboard_key_callback)
+	mu_window_set_keyboard_key_callback(window, keyboard_key_callback);
 
 /* Main loop */
 
 	// Set up a loop that continues as long as the window isn't closed
 
-	while (!mu_window_get_closed(&result, window)) {
-		scall(mu_window_get_closed)
+	while (!mu_window_get_closed(window)) {
 
 		// Update text cursor position
 
 		uint32_m width=0, height=0;
-		mu_window_get_dimensions(0, window, &width, &height);
-		scall(mu_window_get_dimensions)
+		mu_window_get_dimensions(window, &width, &height);
 
-		mu_window_update_text_cursor(&result, window, (int32_m)width/4, (int32_m)height/4);
-		scall(mu_window_update_text_cursor)
+		mu_window_update_text_cursor(window, (int32_m)width/4, (int32_m)height/4);
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window);
-		scall(mu_window_swap_buffers)
+		mu_window_swap_buffers(window);
 
 		// Update window (which refreshes input and such)
 
-		mu_window_update(&result, window);
-		scall(mu_window_update)
+		mu_window_update(window);
 	}
 
 /* Termination */
 
-	// Destroy window (optional)
+	// Destroy window
 
-	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
+	window = mu_window_destroy(window);
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result); scall(muCOSA_term)
+	muCOSA_context_destroy(&muCOSA);
+
+	// Print possible error
+
+	if (muCOSA.result != MUCOSA_SUCCESS) {
+		printf("Something went wrong during that; result: %s\n", muCOSA_result_get_name(muCOSA.result));
+	} else {
+		printf("Successful\n");
+	}
 
 	// Program should make a window that takes in text input, toggleable by F1 (to turn on
 	// (default)) and F2 (to turn off).

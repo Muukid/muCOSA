@@ -5,7 +5,7 @@
 DEMO NAME:          vulkan.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-27
-LAST UPDATED:       2024-05-03
+LAST UPDATED:       2024-06-01
 
 ============================================================
                         DEMO PURPOSE
@@ -58,13 +58,11 @@ https://github.com/mackron/vkbind/tree/master/examples/01_Fundamentals
 
 /* Global variables */
 	
-	// For storing the result of muCOSA functions
-	muCOSAResult res = MUCOSA_SUCCESS;
-	// "safe call"; to automatically print if the function didn't go well
-	#define scall(func) if (res != MUCOSA_SUCCESS) { printf("[WARNING] '" #func "' returned %s\n", muCOSA_result_get_name(res)); }
+	// Global context
+	muCOSAContext muCOSA;
 
 	// Window
-	muWindow win = MU_NONE;
+	muWindow win = 0;
 
 	// Initial window width/height
 	uint32_m win_width = 800, win_height = 600;
@@ -214,26 +212,26 @@ int main(void) {
 /* Initiation */
 
 	// Initiate muCOSA
-	muCOSA_init(&res, MU_WINDOW_SYSTEM_AUTO); scall(muCOSA_init)
+	muCOSA_context_create(&muCOSA, MU_WINDOW_SYSTEM_AUTO, MU_TRUE);
 
 	// Create window to be rendered on
-	win = mu_window_create(&res, 
+	win = mu_window_create( 
 		MU_NO_GRAPHICS_API, 0, 
-		(muByte*)"Vulkan demo",
+		"Vulkan demo",
 		win_width, win_height,
 		mu_window_default_create_info()
-	); scall(mu_window_create)
+	);
 
 /* Vulkan initialization */
 
 	if (!vk_init()) {
-		muCOSA_term(0);
+		muCOSA_context_destroy(&muCOSA);
 		return -1;
 	}
 
 /* Main loop */
 
-	while (!mu_window_get_closed(&res, win)) { scall(mu_window_get_closed)
+	while (!mu_window_get_closed(win)) {
 		// Send all render calls
 		vk_render();
 
@@ -243,9 +241,8 @@ int main(void) {
 		// Note how we don't need to swap buffers now; that's being handled by us.
 
 		// Update window
-		mu_window_update(&res, win); scall(mu_window_update)
+		mu_window_update(win);
 	}
-	scall(mu_window_get_closed)
 
 /* Termination */
 
@@ -254,7 +251,7 @@ int main(void) {
 	// https://github.com/KhronosGroup/Vulkan-LoaderAndValidationLayers/issues/1894
 
 	// Destroy Vulkan if non-X11
-	muWindowSystem window_system = muCOSA_get_current_window_system(&res); scall(muCOSA_get_current_window_system)
+	muWindowSystem window_system = muCOSA_context_get_window_system(&muCOSA);
 	if (window_system != MU_WINDOW_SYSTEM_X11) {
 		vk_term();
 	} else {
@@ -264,7 +261,7 @@ int main(void) {
 	}
 
 	// Destroy window
-	mu_window_destroy(&res, win); scall(mu_window_destroy)
+	mu_window_destroy(win);
 
 	// Destroy Vulkan if X11
 	if (window_system == MU_WINDOW_SYSTEM_X11) {
@@ -272,7 +269,14 @@ int main(void) {
 	}
 
 	// Terminate muCOSA
-	muCOSA_term(&res); scall(muCOSA_term)
+	muCOSA_context_destroy(&muCOSA);
+
+	// Print possible error
+	if (muCOSA.result != MUCOSA_SUCCESS) {
+		printf("Something went wrong during that; result: %s\n", muCOSA_result_get_name(muCOSA.result));
+	} else {
+		printf("Successful\n");
+	}
 
 	return 0;
 }
@@ -523,8 +527,7 @@ int main(void) {
 			cinfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 
 			size_m surface_extension_count = 0;
-			const char** surface_extensions = mu_vulkan_get_surface_instance_extensions(&res, &surface_extension_count);
-			scall(mu_vulkan_get_surface_instance_extensions)
+			const char** surface_extensions = mu_vulkan_get_surface_instance_extensions(&surface_extension_count);
 
 			const char** actual_surface_extensions = surface_extensions;
 			if (vk_are_validation_layers_available()) {
@@ -711,14 +714,14 @@ int main(void) {
 
 		muBool vk_create_surface(void) {
 			VkResult vkres = VK_SUCCESS;
-			mu_vulkan_create_window_surface(&res, win,
+			mu_vulkan_create_window_surface(win,
 				(void**)(&vkres),
 				(void*)(&instance),
 				(void**)(0),
 				(void**)(&surface)
-			); scall(mu_vulkan_create_window_surface)
+			);
 
-			if (res != MUCOSA_SUCCESS || vkres != VK_SUCCESS) {
+			if (muCOSA.result != MUCOSA_SUCCESS || vkres != VK_SUCCESS) {
 				printf("[WARNING] Failed to create window surface\n");
 				return MU_FALSE;
 			}
@@ -1045,7 +1048,7 @@ int main(void) {
 				sc_ci.imageExtent = cap.currentExtent;
 			} else {
 				uint32_t width=0, height=0;
-				mu_window_get_dimensions(&res, win, &width, &height); scall(mu_window_get_dimensions)
+				mu_window_get_dimensions(win, &width, &height);
 
 				sc_ci.imageExtent.width = width;
 				if (sc_ci.imageExtent.width < cap.minImageExtent.width) {
@@ -1787,4 +1790,3 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
-

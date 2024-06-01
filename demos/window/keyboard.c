@@ -5,7 +5,7 @@
 DEMO NAME:          keyboard.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-23
-LAST UPDATED:       2024-05-03
+LAST UPDATED:       2024-06-01
 
 ============================================================
                         DEMO PURPOSE
@@ -33,10 +33,8 @@ More explicit license information at the end of file.
 
 /* Variables */
 
-	// Used to store the result of functions
-	muCOSAResult result = MUCOSA_SUCCESS;
-	// Macro which is used to print if the result is bad, meaning a function went wrong.
-	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
+	// Global context
+	muCOSAContext muCOSA;
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -49,16 +47,15 @@ int main(void) {
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system); scall(muCOSA_init)
+	muCOSA_context_create(&muCOSA, window_system, MU_TRUE);
 
 	// Print currently running window system
 
-	printf("Running window system \"%s\"\n", mu_window_system_get_nice_name(muCOSA_get_current_window_system(0)));
+	printf("Running window system \"%s\"\n", mu_window_system_get_nice_name(muCOSA_context_get_window_system(&muCOSA)));
 
 	// Create window
 
-	muWindow window = mu_window_create(&result, graphics_api, 0, (muByte*)"Empty Window", 800, 600, mu_window_default_create_info());
-	scall(mu_window_create)
+	muWindow window = mu_window_create(graphics_api, 0, "Empty Window", 800, 600, mu_window_default_create_info());
 
 	// Print current graphics API
 
@@ -68,23 +65,21 @@ int main(void) {
 
 	// Set up a loop that continues as long as the window isn't closed
 
-	while (!mu_window_get_closed(&result, window)) {
-		scall(mu_window_get_closed)
+	while (!mu_window_get_closed(window)) {
 
 		// Store the caps lock state
 
-		muState caps_state = mu_window_get_keyboard_state_state(&result, window, MU_KEYBOARD_STATE_CAPS_LOCK);
-		scall(mu_window_get_keyboard_state_state)
+		muState caps_state = mu_window_get_keyboard_state_state(window, MU_KEYBOARD_STATE_CAPS_LOCK);
 
 		// Only do the following code every .2 seconds:
 
-		if (mu_time_get(&result) > .2f) {
+		if (mu_time_get() > .2f) {
 
 			// Loop through each keyboard key from A to Z and print it if its held down, capital if
 			// caps lock is on and not capital if caps lock is off.
 
 			for (muKeyboardKey key = MU_KEYBOARD_KEY_A; key <= MU_KEYBOARD_KEY_Z; key++) {
-				if (mu_window_get_keyboard_key_state(&result, window, key)) {
+				if (mu_window_get_keyboard_key_state(window, key)) {
 					if (caps_state == MU_OFF) {
 						printf("%c\n", (char)((key-MU_KEYBOARD_KEY_A)+'a'));
 					} else {
@@ -95,28 +90,35 @@ int main(void) {
 
 			// Reset time
 
-			mu_time_set(&result, 0.f);
-			scall(mu_time_set)
+			mu_time_set(0.f);
 		}
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window); scall(mu_window_swap_buffers)
+		mu_window_swap_buffers(window);
 
 		// Update window (which refreshes input and such)
 
-		mu_window_update(&result, window); scall(mu_window_update)
+		mu_window_update(window);
 	}
 
 /* Termination */
 
-	// Destroy window (optional)
+	// Destroy window
 
-	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
+	window = mu_window_destroy(window);
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result); scall(muCOSA_term)
+	muCOSA_context_destroy(&muCOSA);
+
+	// Print possible error
+
+	if (muCOSA.result != MUCOSA_SUCCESS) {
+		printf("Something went wrong during that; result: %s\n", muCOSA_result_get_name(muCOSA.result));
+	} else {
+		printf("Successful\n");
+	}
 
 	// Program should print the A-Z characters every .2 seconds if they're held down, and be
 	// capitalized or uncapitalized based on the caps lock state.

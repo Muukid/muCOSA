@@ -5,7 +5,7 @@
 DEMO NAME:          opengl.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-05-03
+LAST UPDATED:       2024-06-01
 
 ============================================================
                         DEMO PURPOSE
@@ -41,13 +41,12 @@ off when compiling this demo when relevant.
 #include "muCOSA.h"
 
 #include <stdio.h> // For printf
+#include <math.h> // For math functions
 
 /* Variables */
 
-	// Used to store the result of functions
-	muCOSAResult result = MUCOSA_SUCCESS;
-	// Macro which is used to print if the result is bad, meaning a function went wrong.
-	#define scall(function_name) if (result != MUCOSA_SUCCESS) {printf("WARNING: '" #function_name "' returned %s\n", muCOSA_result_get_name(result));}
+	// Global context
+	muCOSAContext muCOSA;
 
 	// The window system (like Win32, X11, etc.)
 	muWindowSystem window_system = MU_WINDOW_SYSTEM_AUTO;
@@ -66,8 +65,8 @@ off when compiling this demo when relevant.
 /* Dimensions callback */
 
 	void dimensions_callback(muWindow window, uint32_m width, uint32_m height) {
-		if (window) {} // (to avoid unused parameter warnings)
 		glViewport(0, 0, width, height);
+		return; if (window) {} // (to avoid unused parameter warnings)
 	}
 
 /* Matrix logic */
@@ -159,11 +158,11 @@ int main(void) {
 
 	// Initiate muCOSA
 
-	muCOSA_init(&result, window_system); scall(muCOSA_init)
+	muCOSA_context_create(&muCOSA, window_system, MU_TRUE);
 
 	// Print currently running window system
 
-	printf("Running window system \"%s\"\n", mu_window_system_get_nice_name(muCOSA_get_current_window_system(0)));
+	printf("Running window system \"%s\"\n", mu_window_system_get_nice_name(muCOSA_context_get_window_system(&muCOSA)));
 
 	// Create window
 
@@ -172,12 +171,10 @@ int main(void) {
 	create_info.dimensions_callback = dimensions_callback; // For glViewport
 
 	muWindow window = mu_window_create(
-		&result,
-		graphics_api, load_gl_funcs, // <--- Note our loading function is being passed in here
-		(muByte*)"OpenGL 3.3 Core", 800, 600,
+		graphics_api, load_gl_funcs, // <--- Note that our loading function is being passed in here
+		"OpenGL 3.3 Core", 800, 600,
 		create_info
 	);
-	scall(mu_window_create)
 
 	// Print current graphics API
 
@@ -189,7 +186,7 @@ int main(void) {
 
 	// Bind up and configure OpenGL
 
-	mu_opengl_bind_window(&result, window); scall(mu_opengl_bind_window)
+	mu_opengl_bind_window(window);
 
 	glEnable(GL_DEPTH_TEST);
 
@@ -341,23 +338,21 @@ int main(void) {
 
 	// Set up a loop that continues as long as the window isn't closed
 
-	while (!mu_window_get_closed(&result, window)) {
-		scall(mu_window_get_closed)
-
+	while (!mu_window_get_closed(window)) {
 		// Fallback for if window has closed now
-		if (mu_window_get_closed(&result, window)) {
+		if (mu_window_get_closed(window)) {
 			break;
 		}
 
 		// Call the close window function if the escape key is pressed
 
-		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_ESCAPE)) {
-			mu_window_close(&result, window); scall(mu_window_close)
+		if (mu_window_get_keyboard_key_state(window, MU_KEYBOARD_KEY_ESCAPE)) {
+			mu_window_close(window);
 		}
 
 		// Toggle wireframe if 'W' is down
 
-		if (mu_window_get_keyboard_key_state(&result, window, MU_KEYBOARD_KEY_W)) {
+		if (mu_window_get_keyboard_key_state(window, MU_KEYBOARD_KEY_W)) {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		} else {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -371,14 +366,13 @@ int main(void) {
 		float temp_vec3[3];
 
 		temp_vec3[0] = 1.f; temp_vec3[1] = .5f; temp_vec3[2] = 0.f;
-		matrix_rotate(model, mu_time_get(0), temp_vec3);
+		matrix_rotate(model, mu_time_get(), temp_vec3);
 
 		temp_vec3[0] = 0.f; temp_vec3[1] = 0.f; temp_vec3[2] = -3.f;
 		matrix_translate(view, temp_vec3);
 
 		uint32_m width=800, height=600;
-		mu_window_get_dimensions(&result, window, &width, &height);
-		scall(mu_window_get_dimensions)
+		mu_window_get_dimensions(window, &width, &height);
 
 		matrix_perspective(45.f * (3.14159265359f / 180.f), (float)width / (float)height, .1f, 100.f, projection);
 
@@ -397,22 +391,30 @@ int main(void) {
 
 		// Swap buffers (which renders the screen)
 
-		mu_window_swap_buffers(&result, window); scall(mu_window_swap_buffers)
+		mu_window_swap_buffers(window);
 
 		// Update window (which refreshes input and such)
 
-		mu_window_update(&result, window); scall(mu_window_update)
+		mu_window_update(window);
 	}
 
 /* Termination */
 
-	// Destroy window (optional)
+	// Destroy window
 
-	window = mu_window_destroy(&result, window); scall(mu_window_destroy)
+	window = mu_window_destroy(window);
 
 	// Terminate muCOSA
 	
-	muCOSA_term(&result); scall(muCOSA_term)
+	muCOSA_context_destroy(&muCOSA);
+
+	// Print possible error
+
+	if (muCOSA.result != MUCOSA_SUCCESS) {
+		printf("Something went wrong during that; result: %s\n", muCOSA_result_get_name(muCOSA.result));
+	} else {
+		printf("Successful\n");
+	}
 
 	// Program should make a window that displays a 3D cube spinning in OpenGL, and you can hold
 	// down the 'W' key to turn on or off wireframe mode.
