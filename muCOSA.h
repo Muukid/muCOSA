@@ -3219,6 +3219,8 @@ primarily around a traditional desktop OS environment.
 							return win;
 						} break; )
 					}
+
+					return 0; if (context) {} if (result) {} if (api) {} if (load_functions) {} if (name) {} if (width) {} if (height) {} if (create_info.min_width) {}
 				}
 
 				MUDEF muWindow mu_window_destroy(muWindow window) {
@@ -3240,7 +3242,7 @@ primarily around a traditional desktop OS environment.
 						} break; )
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 			/* Main loop */
@@ -3259,7 +3261,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_closed((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 				MUDEF void mu_window_close(muWindow window) {
 					muCOSA_window_close(muCOSA_global_context, &muCOSA_global_context->result, window);
@@ -3275,7 +3277,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_close((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF void mu_window_update(muWindow window) {
@@ -3292,7 +3294,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_update((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 				MUDEF void mu_window_swap_buffers(muWindow window) {
 					muCOSA_window_swap_buffers(muCOSA_global_context, &muCOSA_global_context->result, window);
@@ -3308,7 +3310,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_swap_buffers((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 			/* Get / Set */
@@ -3327,7 +3329,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_focused((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF void mu_window_focus(muWindow window) {
@@ -3344,7 +3346,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_focus((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF muBool mu_window_get_visible(muWindow window) {
@@ -3361,7 +3363,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_visible((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF void mu_window_set_visible(muWindow window, muBool visible) {
@@ -3378,7 +3380,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_visible((muCOSA_Win32_window*)window, visible); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (visible) {}
 				}
 
 				MUDEF void mu_window_get_position(muWindow window, int32_m* x, int32_m* y) {
@@ -3395,7 +3397,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_get_position(result, (muCOSA_Win32_window*)window, x, y); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_set_position(muWindow window, int32_m x, int32_m y) {
@@ -3412,7 +3414,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_position(result, (muCOSA_Win32_window*)window, x, y); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_get_dimensions(muWindow window, uint32_m* width, uint32_m* height) {
@@ -3429,7 +3431,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_get_dimensions(result, (muCOSA_Win32_window*)window, width, height); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (width) {} if (height) {}
 				}
 
 				MUDEF void mu_window_set_dimensions(muWindow window, uint32_m width, uint32_m height) {
@@ -3446,7 +3448,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_dimensions(result, (muCOSA_Win32_window*)window, width, height); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (width) {} if (height) {}
 				}
 
 				MUDEF muBool mu_window_get_maximized(muWindow window) {
@@ -3463,7 +3465,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_maximized(result, (muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF void mu_window_set_maximized(muWindow window, muBool maximized) {
@@ -3480,7 +3482,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_maximized((muCOSA_Win32_window*)window, maximized); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (maximized) {}
 				}
 
 				MUDEF muBool mu_window_get_minimized(muWindow window) {
@@ -3497,7 +3499,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_minimized((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF void mu_window_set_minimized(muWindow window, muBool minimized) {
@@ -3514,7 +3516,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_minimized(result, (muCOSA_Win32_window*)window, minimized); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (minimized) {}
 				}
 
 				MUDEF void mu_window_get_minimum_dimensions(muWindow window, uint32_m* min_width, uint32_m* min_height) {
@@ -3531,7 +3533,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_get_minimum_dimensions((muCOSA_Win32_window*)window, min_width, min_height); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (min_width) {} if (min_height) {}
 				}
 
 				MUDEF void mu_window_set_minimum_dimensions(muWindow window, uint32_m min_width, uint32_m min_height) {
@@ -3548,7 +3550,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_minimum_dimensions((muCOSA_Win32_window*)window, min_width, min_height); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (min_width) {} if (min_height) {}
 				}
 
 				MUDEF void mu_window_get_maximum_dimensions(muWindow window, uint32_m* max_width, uint32_m* max_height) {
@@ -3565,7 +3567,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_get_maximum_dimensions((muCOSA_Win32_window*)window, max_width, max_height); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (max_width) {} if (max_height) {}
 				}
 
 				MUDEF void mu_window_set_maximum_dimensions(muWindow window, uint32_m max_width, uint32_m max_height) {
@@ -3582,7 +3584,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_maximum_dimensions((muCOSA_Win32_window*)window, max_width, max_height); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (max_width) {} if (max_height) {}
 				}
 
 				MUDEF void mu_window_get_cursor_position(muWindow window, int32_m* x, int32_m* y) {
@@ -3599,7 +3601,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_get_cursor_position(result, (muCOSA_Win32_window*)window, x, y); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_set_cursor_position(muWindow window, int32_m x, int32_m y) {
@@ -3616,7 +3618,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_cursor_position(result, (muCOSA_Win32_window*)window, x, y); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF muCursorStyle mu_window_get_cursor_style(muWindow window) {
@@ -3633,7 +3635,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_cursor_style((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF void mu_window_set_cursor_style(muWindow window, muCursorStyle style) {
@@ -3650,7 +3652,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_cursor_style((muCOSA_Win32_window*)window, style); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (style) {}
 				}
 
 				MUDEF int32_m mu_window_get_scroll_level(muWindow window) {
@@ -3667,7 +3669,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_scroll_level((muCOSA_Win32_window*)window); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {}
 				}
 
 				MUDEF void mu_window_set_scroll_level(muWindow window, int32_m scroll_level) {
@@ -3684,7 +3686,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_scroll_level((muCOSA_Win32_window*)window, scroll_level); break;)
 					}
 
-					if (result) {}
+					if (result) {} if (window) {} if (scroll_level) {}
 				}
 
 			/* Get / Let */
@@ -3702,6 +3704,8 @@ primarily around a traditional desktop OS environment.
 						default: return; break;
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_get_text_input_focus(result, (muCOSA_Win32_window*)window, text_cursor_x, text_cursor_y, callback); break;)
 					}
+
+					if (result) {} if (window) {} if (text_cursor_x) {} if (text_cursor_y) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_update_text_cursor(muWindow window, int32_m x, int32_m y) {
@@ -3718,7 +3722,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_update_text_cursor((muCOSA_Win32_window*)window, x, y); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
 				MUDEF void mu_window_let_text_input_focus(muWindow window) {
@@ -3735,7 +3739,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_let_text_input_focus((muCOSA_Win32_window*)window); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) {} if (window) {}
 				}
 
 			/* Get */
@@ -3754,7 +3758,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_get_frame_extents(result, (muCOSA_Win32_window*)window, left, right, top, bottom); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (left) {} if (right) {} if (top) {} if (bottom) {}
 				}
 
 				MUDEF muButtonState mu_window_get_keyboard_key_state(muWindow window, muKeyboardKey key) {
@@ -3771,7 +3775,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_keyboard_key_state((muCOSA_Win32_window*)window, key); break;)
 					}
 
-					if (result) { }
+					if (result) { } if (window) {} if (key) {}
 				}
 
 				MUDEF muState mu_window_get_keyboard_state_state(muWindow window, muKeyboardState state) {
@@ -3788,7 +3792,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_keyboard_state_state((muCOSA_Win32_window*)window, state); break;)
 					}
 
-					if (result) { }
+					if (result) { } if (window) {} if (state) {}
 				}
 
 				MUDEF muButtonState mu_window_get_mouse_button_state(muWindow window, muMouseButton button) {
@@ -3805,7 +3809,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_window_get_mouse_button_state((muCOSA_Win32_window*)window, button); break;)
 					}
 
-					if (result) { }
+					if (result) { } if (window) {} if (button) {}
 				}
 
 			/* Set */
@@ -3824,7 +3828,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_title(result, (muCOSA_Win32_window*)window, title); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (title) {}
 				}
 
 				MUDEF void mu_window_set_dimensions_callback(muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height)) {
@@ -3841,7 +3845,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_dimensions_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_position_callback(muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
@@ -3858,7 +3862,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_position_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_focus_callback(muWindow window, void (*callback)(muWindow window, muBool focused)) {
@@ -3875,7 +3879,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_focus_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_maximize_callback(muWindow window, void (*callback)(muWindow window, muBool maximized)) {
@@ -3892,7 +3896,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_maximize_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_minimize_callback(muWindow window, void (*callback)(muWindow window, muBool minimized)) {
@@ -3909,7 +3913,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_minimize_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_keyboard_key_callback(muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
@@ -3926,7 +3930,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_keyboard_key_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_keyboard_state_callback(muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state)) {
@@ -3943,7 +3947,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_keyboard_state_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_cursor_position_callback(muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
@@ -3960,7 +3964,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_cursor_position_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_mouse_button_callback(muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state)) {
@@ -3977,7 +3981,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_mouse_button_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 				MUDEF void mu_window_set_scroll_callback(muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add)) {
@@ -3994,7 +3998,7 @@ primarily around a traditional desktop OS environment.
 						MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_window_set_scroll_callback((muCOSA_Win32_window*)window, callback); break;)
 					}
 
-					return; if (result) { }
+					return; if (result) { } if (window) {} if (callback) {}
 				}
 
 		/* Time */
@@ -4006,6 +4010,8 @@ primarily around a traditional desktop OS environment.
 					default: return 0.f; break;
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_time_get((muCOSA_Win32_context*)inner->context, result); break;)
 				}
+
+				if (result) {}
 			}
 			MUDEF double mu_time_get_(muCOSAResult* result) {
 				return muCOSA_time_get(muCOSA_global_context, result);
@@ -4021,6 +4027,8 @@ primarily around a traditional desktop OS environment.
 					default: return; break;
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_time_set((muCOSA_Win32_context*)inner->context, result, time); break;)
 				}
+
+				if (result) {} if (time) {}
 			}
 			MUDEF void mu_time_set_(muCOSAResult* result, double time) {
 				muCOSA_time_set(muCOSA_global_context, result, time);
@@ -4036,6 +4044,8 @@ primarily around a traditional desktop OS environment.
 					default: return; break;
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_sleep((muCOSA_Win32_context*)inner->context, result, time); break;)
 				}
+
+				if (result) {} if (time) {}
 			}
 			MUDEF void mu_sleep_(muCOSAResult* result, double time) {
 				muCOSA_sleep(muCOSA_global_context, result, time);
@@ -4077,7 +4087,7 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_clipboard_set(result, text, text_size); break;)
 				}
 
-				return; if (result) { }
+				return; if (result) { } if (text) {} if (text_size) {}
 			}
 
 		/* OS functions */
@@ -4096,7 +4106,7 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_os_get_window_handle(result, (muCOSA_Win32_window*)window, handle); break;)
 				}
 
-				if (result) { }
+				if (result) { } if (window) {} if (handle) {}
 			}
 
 		/* OpenGL */
@@ -4115,7 +4125,7 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_opengl_bind_window(result, (muCOSA_Win32_window*)window); break;)
 				}
 
-				return; if (result) { }
+				return; if (result) { } if (window) {}
 			}
 
 			MUDEF void* mu_opengl_get_function_address(const char* name) {
@@ -4128,6 +4138,8 @@ primarily around a traditional desktop OS environment.
 					default: return 0; break;
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_opengl_get_function_address(name); break;)
 				}
+
+				if (name) {}
 			}
 
 			MUDEF void mu_opengl_window_swap_interval(muWindow window, int interval) {
@@ -4144,7 +4156,7 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_opengl_window_swap_interval(result, (muCOSA_Win32_window*)window, interval); break;)
 				}
 
-				return; if (result) { }
+				return; if (result) { } if (window) {} if (interval) {}
 			}
 
 		/* Vulkan */
@@ -4164,7 +4176,7 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_vulkan_get_surface_instance_extensions(result, count); break;)
 				}
 
-				if (result) { }
+				if (result) { } if (count) {}
 			}
 
 			// vk_result interpreted as VkResult*, instance as VkInstance*, allocator as const VkAllocationCallbacks*, and surface as VkSurfaceKHR*
@@ -4182,7 +4194,7 @@ primarily around a traditional desktop OS environment.
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_vulkan_create_window_surface(result, (muCOSA_Win32_window*)window, vk_result, instance, allocator, surface); break;)
 				}
 
-				return; if (result) { }
+				return; if (result) { } if (window) {} if (vk_result) {} if (instance) {} if (allocator) {} if (surface) {}
 			}
 
 		/* Names */
