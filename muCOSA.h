@@ -831,6 +831,7 @@ primarily around a traditional desktop OS environment.
 		/* Context */
 
 			typedef struct muCOSAContext muCOSAContext;
+			MUDEF muCOSAContext* muCOSA_global_context;
 
 			// Note: result of these are stored within muCOSAContext->result
 			MUDEF void muCOSA_context_create(muCOSAContext* context, muWindowSystem system, muBool set_context);
@@ -846,229 +847,229 @@ primarily around a traditional desktop OS environment.
 
 				MUDEF muWindowCreateInfo mu_window_default_create_info(void);
 
-				MUDEF muWindow mu_window_create(muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info);
-					MUDEF muWindow mu_window_create_(muCOSAResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info);
-					MUDEF muWindow muCOSA_window_create(muCOSAContext* context, muCOSAResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info);
+				MUDEF muWindow muCOSA_window_create(muCOSAContext* context, muCOSAResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info);
+				#define mu_window_create(...) muCOSA_window_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_create_(result, ...) muCOSA_window_create(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muWindow mu_window_destroy(muWindow window);
-					MUDEF muWindow mu_window_destroy_(muCOSAResult* result, muWindow window);
-					MUDEF muWindow muCOSA_window_destroy(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				MUDEF muWindow muCOSA_window_destroy(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_destroy(...) muCOSA_window_destroy(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_destroy_(result, ...) muCOSA_window_destroy(muCOSA_global_context, result, __VA_ARGS__)
 
 			/* Main loop */
 
-				MUDEF muBool mu_window_get_closed(muWindow window);
-					MUDEF muBool mu_window_get_closed_(muCOSAResult* result, muWindow window);
-					MUDEF muBool muCOSA_window_get_closed(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_close(muWindow window);
-					MUDEF void mu_window_close_(muCOSAResult* result, muWindow window);
-					MUDEF void muCOSA_window_close(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				MUDEF muBool muCOSA_window_get_closed(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_get_closed(...) muCOSA_window_get_closed(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_closed_(result, ...) muCOSA_window_get_closed(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_close(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_close(...) muCOSA_window_close(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_close_(result, ...) muCOSA_window_close_(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_update(muWindow window);
-					MUDEF void mu_window_update_(muCOSAResult* result, muWindow window);
-					MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_swap_buffers(muWindow window);
-					MUDEF void mu_window_swap_buffers_(muCOSAResult* result, muWindow window);
-					MUDEF void muCOSA_window_swap_buffers(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_update(...) muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_update_(result, ...) muCOSA_window_update(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_swap_buffers(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_swap_buffers(...) muCOSA_window_swap_buffers(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_swap_buffers_(result, ...) muCOSA_window_swap_buffers(muCOSA_global_context, result, __VA_ARGS__)
 
 			/* Get / Set */
 
-				MUDEF muBool mu_window_get_focused(muWindow window);
-					MUDEF muBool mu_window_get_focused_(muCOSAResult* result, muWindow window);
-					MUDEF muBool muCOSA_window_get_focused(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_focus(muWindow window);
-					MUDEF void mu_window_focus_(muCOSAResult* result, muWindow window);
-					MUDEF void muCOSA_window_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				MUDEF muBool muCOSA_window_get_focused(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_get_focused(...) muCOSA_window_get_focused(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_focused_(result, ...) muCOSA_window_get_focused(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_focus(...) muCOSA_window_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_focus_(result, ...) muCOSA_window_focus(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muBool mu_window_get_visible(muWindow window);
-					MUDEF muBool mu_window_get_visible_(muCOSAResult* result, muWindow window);
-					MUDEF muBool muCOSA_window_get_visible(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_visible(muWindow window, muBool visible);
-					MUDEF void mu_window_set_visible_(muCOSAResult* result, muWindow window, muBool visible);
-					MUDEF void muCOSA_window_set_visible(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool visible);
+				MUDEF muBool muCOSA_window_get_visible(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_get_visible(...) muCOSA_window_get_visible(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_visible_(result, ...) muCOSA_window_get_visible(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_visible(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool visible);
+				#define mu_window_set_visible(...) muCOSA_window_set_visible(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_visible_(result, ...) muCOSA_window_set_visible(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_get_position(muWindow window, int32_m* x, int32_m* y);
-					MUDEF void mu_window_get_position_(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-					MUDEF void muCOSA_window_get_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-				MUDEF void mu_window_set_position(muWindow window, int32_m x, int32_m y);
-					MUDEF void mu_window_set_position_(muCOSAResult* result, muWindow window, int32_m x, int32_m y);
-					MUDEF void muCOSA_window_set_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+				MUDEF void muCOSA_window_get_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
+				#define mu_window_get_position(...) muCOSA_window_get_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_position_(result, ...) muCOSA_window_get_position(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+				#define mu_window_set_position(...) muCOSA_window_set_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_position_(result, ...) muCOSA_window_set_position(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_get_dimensions(muWindow window, uint32_m* width, uint32_m* height);
-					MUDEF void mu_window_get_dimensions_(muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height);
-					MUDEF void muCOSA_window_get_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height);
-				MUDEF void mu_window_set_dimensions(muWindow window, uint32_m width, uint32_m height);
-					MUDEF void mu_window_set_dimensions_(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height);
-					MUDEF void muCOSA_window_set_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m width, uint32_m height);
+				MUDEF void muCOSA_window_get_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height);
+				#define mu_window_get_dimensions(...) muCOSA_window_get_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_dimensions_(result, ...) muCOSA_window_get_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m width, uint32_m height);
+				#define mu_window_set_dimensions(...) muCOSA_window_set_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_dimensions_(result, ...) muCOSA_window_set_dimensions(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muBool mu_window_get_maximized(muWindow window);
-					MUDEF muBool mu_window_get_maximized_(muCOSAResult* result, muWindow window);
-					MUDEF muBool muCOSA_window_get_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_maximized(muWindow window, muBool maximized);
-					MUDEF void mu_window_set_maximized_(muCOSAResult* result, muWindow window, muBool maximized);
-					MUDEF void muCOSA_window_set_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool maximized);
+				MUDEF muBool muCOSA_window_get_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_get_maximized(...) muCOSA_window_get_maximized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_maximized_(result, ...) muCOSA_window_get_maximized(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool maximized);
+				#define mu_window_set_maximized(...) muCOSA_window_set_maximized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_maximized_(result, ...) muCOSA_window_set_maximized(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muBool mu_window_get_minimized(muWindow window);
-					MUDEF muBool mu_window_get_minimized_(muCOSAResult* result, muWindow window);
-					MUDEF muBool muCOSA_window_get_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_minimized(muWindow window, muBool minimized);
-					MUDEF void mu_window_set_minimized_(muCOSAResult* result, muWindow window, muBool minimized);
-					MUDEF void muCOSA_window_set_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool minimized);
+				MUDEF muBool muCOSA_window_get_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_get_minimized(...) muCOSA_window_get_minimized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_minimized_(result, ...) muCOSA_window_get_minimized(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool minimized);
+				#define mu_window_set_minimized(...) muCOSA_window_set_minimized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_minimized_(result, ...) muCOSA_window_set_minimized(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_get_minimum_dimensions(muWindow window, uint32_m* min_width, uint32_m* min_height);
-					MUDEF void mu_window_get_minimum_dimensions_(muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height);
-					MUDEF void muCOSA_window_get_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height);
-				MUDEF void mu_window_set_minimum_dimensions(muWindow window, uint32_m min_width, uint32_m min_height);
-					MUDEF void mu_window_set_minimum_dimensions_(muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height);
-					MUDEF void muCOSA_window_set_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height);
-				MUDEF void mu_window_get_maximum_dimensions(muWindow window, uint32_m* max_width, uint32_m* max_height);
-					MUDEF void mu_window_get_maximum_dimensions_(muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height);
-					MUDEF void muCOSA_window_get_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height);
-				MUDEF void mu_window_set_maximum_dimensions(muWindow window, uint32_m max_width, uint32_m max_height);
-					MUDEF void mu_window_set_maximum_dimensions_(muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height);
-					MUDEF void muCOSA_window_set_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height);
+				MUDEF void muCOSA_window_get_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height);
+				#define mu_window_get_minimum_dimensions(...) muCOSA_window_get_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_minimum_dimensions_(result, ...) muCOSA_window_get_minimum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height);
+				#define mu_window_set_minimum_dimensions(...) muCOSA_window_set_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_minimum_dimensions_(result, ...) muCOSA_window_set_minimum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_get_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height);
+				#define mu_window_get_maximum_dimensions(...) muCOSA_window_get_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_maximum_dimensions_(result, ...) muCOSA_window_get_maximum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height);
+				#define mu_window_set_maximum_dimensions(...) muCOSA_window_set_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_maximum_dimensions_(result, ...) muCOSA_window_set_maximum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_get_cursor_position(muWindow window, int32_m* x, int32_m* y);
-					MUDEF void mu_window_get_cursor_position_(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-					MUDEF void muCOSA_window_get_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-				MUDEF void mu_window_set_cursor_position(muWindow window, int32_m x, int32_m y);
-					MUDEF void mu_window_set_cursor_position_(muCOSAResult* result, muWindow window, int32_m x, int32_m y);
-					MUDEF void muCOSA_window_set_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+				MUDEF void muCOSA_window_get_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
+				#define mu_window_get_cursor_position(...) muCOSA_window_get_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_cursor_position_(result, ...) muCOSA_window_get_cursor_position(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+				#define mu_window_set_cursor_position(...) muCOSA_window_set_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_cursor_position_(result, ...) muCOSA_window_set_cursor_position(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muCursorStyle mu_window_get_cursor_style(muWindow window);
-					MUDEF muCursorStyle mu_window_get_cursor_style_(muCOSAResult* result, muWindow window);
-					MUDEF muCursorStyle muCOSA_window_get_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_cursor_style(muWindow window, muCursorStyle style);
-					MUDEF void mu_window_set_cursor_style_(muCOSAResult* result, muWindow window, muCursorStyle style);
-					MUDEF void muCOSA_window_set_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window, muCursorStyle style);
+				MUDEF muCursorStyle muCOSA_window_get_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_get_cursor_style(...) muCOSA_window_get_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_cursor_style_(result, ...) muCOSA_window_get_cursor_style(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window, muCursorStyle style);
+				#define mu_window_set_cursor_style(...) muCOSA_window_set_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_cursor_style_(result, ...) muCOSA_window_set_cursor_style(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF int32_m mu_window_get_scroll_level(muWindow window);
-					MUDEF int32_m mu_window_get_scroll_level_(muCOSAResult* result, muWindow window);
-					MUDEF int32_m muCOSA_window_get_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				MUDEF void mu_window_set_scroll_level(muWindow window, int32_m scroll_level);
-					MUDEF void mu_window_set_scroll_level_(muCOSAResult* result, muWindow window, int32_m scroll_level);
-					MUDEF void muCOSA_window_set_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m scroll_level);
+				MUDEF int32_m muCOSA_window_get_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_get_scroll_level(...) muCOSA_window_get_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_scroll_level_(result, ...) muCOSA_window_get_scroll_level(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m scroll_level);
+				#define mu_window_set_scroll_level(...) muCOSA_window_set_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_scroll_level_(result, ...) muCOSA_window_set_scroll_level(muCOSA_global_context, result, __VA_ARGS__)
 
 			/* Get / Let */
 
-				MUDEF void mu_window_get_text_input_focus(muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input));
-					MUDEF void mu_window_get_text_input_focus_(muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input));
-					MUDEF void muCOSA_window_get_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input));
-				MUDEF void mu_window_update_text_cursor(muWindow window, int32_m x, int32_m y);
-					MUDEF void mu_window_update_text_cursor_(muCOSAResult* result, muWindow window, int32_m x, int32_m y);
-					MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
-				MUDEF void mu_window_let_text_input_focus(muWindow window);
-					MUDEF void mu_window_let_text_input_focus_(muCOSAResult* result, muWindow window);
-					MUDEF void muCOSA_window_let_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				MUDEF void muCOSA_window_get_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input));
+				#define mu_window_get_text_input_focus(...) muCOSA_window_get_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_text_input_focus_(result, ...) muCOSA_window_get_text_input_focus(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+				#define mu_window_update_text_cursor(...) muCOSA_window_update_text_cursor(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_update_text_cursor_(result, ...) muCOSA_window_update_text_cursor(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_let_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				#define mu_window_let_text_input_focus(...) muCOSA_window_let_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_let_text_input_focus_(result, ...) muCOSA_window_let_text_input_focus(muCOSA_global_context, result, __VA_ARGS__)
 
 			/* Get */
 
-				MUDEF void mu_window_get_frame_extents(muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
-					MUDEF void mu_window_get_frame_extents_(muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
-					MUDEF void muCOSA_window_get_frame_extents(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
+				MUDEF void muCOSA_window_get_frame_extents(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
+				#define mu_window_get_frame_extents(...) muCOSA_window_get_frame_extents(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_frame_extents_(result, ...) muCOSA_window_get_frame_extents(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muButtonState mu_window_get_keyboard_key_state(muWindow window, muKeyboardKey key);
-					MUDEF muButtonState mu_window_get_keyboard_key_state_(muCOSAResult* result, muWindow window, muKeyboardKey key);
-					MUDEF muButtonState muCOSA_window_get_keyboard_key_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardKey key);
-				MUDEF muState mu_window_get_keyboard_state_state(muWindow window, muKeyboardState state);
-					MUDEF muState mu_window_get_keyboard_state_state_(muCOSAResult* result, muWindow window, muKeyboardState state);
-					MUDEF muState muCOSA_window_get_keyboard_state_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardState state);
+				MUDEF muButtonState muCOSA_window_get_keyboard_key_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardKey key);
+				#define mu_window_get_keyboard_key_state(...) muCOSA_window_get_keyboard_key_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_keyboard_key_state_(result, ...) muCOSA_window_get_keyboard_key_state(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF muState muCOSA_window_get_keyboard_state_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardState state);
+				#define mu_window_get_keyboard_state_state(...) muCOSA_window_get_keyboard_state_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_keyboard_state_state_(result, ...) muCOSA_window_get_keyboard_state_state(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muButtonState mu_window_get_mouse_button_state(muWindow window, muMouseButton button);
-					MUDEF muButtonState mu_window_get_mouse_button_state_(muCOSAResult* result, muWindow window, muMouseButton button);
-					MUDEF muButtonState muCOSA_window_get_mouse_button_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muMouseButton button);
+				MUDEF muButtonState muCOSA_window_get_mouse_button_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muMouseButton button);
+				#define mu_window_get_mouse_button_state(...) muCOSA_window_get_mouse_button_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_get_mouse_button_state_(result, ...) muCOSA_window_get_mouse_button_state(muCOSA_global_context, result, __VA_ARGS__)
 
 			/* Set */
 
-				MUDEF void mu_window_set_title(muWindow window, const char* title);
-					MUDEF void mu_window_set_title_(muCOSAResult* result, muWindow window, const char* title);
-					MUDEF void muCOSA_window_set_title(muCOSAContext* context, muCOSAResult* result, muWindow window, const char* title);
+				MUDEF void muCOSA_window_set_title(muCOSAContext* context, muCOSAResult* result, muWindow window, const char* title);
+				#define mu_window_set_title(...) muCOSA_window_set_title(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_title_(result, ...) muCOSA_window_set_title(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_set_dimensions_callback(muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height));
-					MUDEF void mu_window_set_dimensions_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height));
-					MUDEF void muCOSA_window_set_dimensions_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height));
-				MUDEF void mu_window_set_position_callback(muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y));
-					MUDEF void mu_window_set_position_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y));
-					MUDEF void muCOSA_window_set_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y));
-				MUDEF void mu_window_set_focus_callback(muWindow window, void (*callback)(muWindow window, muBool focused));
-					MUDEF void mu_window_set_focus_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused));
-					MUDEF void muCOSA_window_set_focus_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused));
-				MUDEF void mu_window_set_maximize_callback(muWindow window, void (*callback)(muWindow window, muBool maximized));
-					MUDEF void mu_window_set_maximize_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized));
-					MUDEF void muCOSA_window_set_maximize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized));
-				MUDEF void mu_window_set_minimize_callback(muWindow window, void (*callback)(muWindow window, muBool minimized));
-					MUDEF void mu_window_set_minimize_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized));
-					MUDEF void muCOSA_window_set_minimize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized));
+				MUDEF void muCOSA_window_set_dimensions_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height));
+				#define mu_window_set_dimensions_callback(...) muCOSA_window_set_dimensions_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_dimensions_callback_(result, ...) muCOSA_window_set_dimensions_callback(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y));
+				#define mu_window_set_position_callback(...) muCOSA_window_set_position_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_position_callback_(result, ...) muCOSA_window_set_position_callback(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_focus_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused));
+				#define mu_window_set_focus_callback(...) muCOSA_window_set_focus_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_focus_callback_(result, ...) muCOSA_window_set_focus_callback(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_maximize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized));
+				#define mu_window_set_maximize_callback(...) muCOSA_window_set_maximize_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_maximize_callback_(result, ...) muCOSA_window_set_maximize_callback(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_minimize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized));
+				#define mu_window_set_minimize_callback(...) muCOSA_window_set_minimize_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_minimize_callback_(result, ...) muCOSA_window_set_minimize_callback(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_set_keyboard_key_callback(muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
-					MUDEF void mu_window_set_keyboard_key_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
-					MUDEF void muCOSA_window_set_keyboard_key_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
-				MUDEF void mu_window_set_keyboard_state_callback(muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
-					MUDEF void mu_window_set_keyboard_state_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
-					MUDEF void muCOSA_window_set_keyboard_state_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
+				MUDEF void muCOSA_window_set_keyboard_key_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
+				#define mu_window_set_keyboard_key_callback(...) muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_keyboard_key_callback_(result, ...) muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_keyboard_state_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
+				#define mu_window_set_keyboard_state_callback(...) muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_keyboard_state_callback_(result, ...) muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void mu_window_set_cursor_position_callback(muWindow win, void (*callback)(muWindow window, int32_m x, int32_m y));
-					MUDEF void mu_window_set_cursor_position_callback_(muCOSAResult* result, muWindow win, void (*callback)(muWindow window, int32_m x, int32_m y));
-					MUDEF void muCOSA_window_set_cursor_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow win, void (*callback)(muWindow window, int32_m x, int32_m y));
-				MUDEF void mu_window_set_mouse_button_callback(muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state));
-					MUDEF void mu_window_set_mouse_button_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state));
-					MUDEF void muCOSA_window_set_mouse_button_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state));
-				MUDEF void mu_window_set_scroll_callback(muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add));
-					MUDEF void mu_window_set_scroll_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add));
-					MUDEF void muCOSA_window_set_scroll_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add));
+				MUDEF void muCOSA_window_set_cursor_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow win, void (*callback)(muWindow window, int32_m x, int32_m y));
+				#define mu_window_set_cursor_position_callback(...) muCOSA_window_set_cursor_position_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_cursor_position_callback_(result, ...) muCOSA_window_set_cursor_position_callback(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_mouse_button_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state));
+				#define mu_window_set_mouse_button_callback(...) muCOSA_window_set_mouse_button_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_mouse_button_callback_(result, ...) muCOSA_window_set_mouse_button_callback(muCOSA_global_context, result, __VA_ARGS__)
+				MUDEF void muCOSA_window_set_scroll_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add));
+				#define mu_window_set_scroll_callback(...) muCOSA_window_set_scroll_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_window_set_scroll_callback_(result, ...) muCOSA_window_set_scroll_callback(muCOSA_global_context, result, __VA_ARGS__)
 
 		/* Time */
 
-			MUDEF double mu_time_get(void);
-				MUDEF double mu_time_get_(muCOSAResult* result);
-				MUDEF double muCOSA_time_get(muCOSAContext* context, muCOSAResult* result);
+			MUDEF double muCOSA_time_get(muCOSAContext* context, muCOSAResult* result);
+			#define mu_time_get() muCOSA_time_get(muCOSA_global_context, &muCOSA_global_context->result)
+			#define mu_time_get_(result) muCOSA_time_get(muCOSA_global_context, result)
 
-			MUDEF void mu_time_set(double time);
-				MUDEF void mu_time_set_(muCOSAResult* result, double time);
-				MUDEF void muCOSA_time_set(muCOSAContext* context, muCOSAResult* result, double time);
+			MUDEF void muCOSA_time_set(muCOSAContext* context, muCOSAResult* result, double time);
+			#define mu_time_set(...) muCOSA_time_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_time_set_(result, ...) muCOSA_time_set(muCOSA_global_context, result, __VA_ARGS__)
 
-			MUDEF void mu_sleep(double time);
-				MUDEF void mu_sleep_(muCOSAResult* result, double time);
-				MUDEF void muCOSA_sleep(muCOSAContext* context, muCOSAResult* result, double time);
+			MUDEF void muCOSA_sleep(muCOSAContext* context, muCOSAResult* result, double time);
+			#define mu_sleep(...) muCOSA_sleep(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_sleep_(result, ...) muCOSA_sleep(muCOSA_global_context, result, __VA_ARGS__)
 
 		/* Clipboard */
 
-			MUDEF char* mu_clipboard_get(void);
-				MUDEF char* mu_clipboard_get_(muCOSAResult* result);
-				MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
-			MUDEF void mu_clipboard_set(const char* text, size_m text_size);
-				MUDEF void mu_clipboard_set_(muCOSAResult* result, const char* text, size_m text_size);
-				MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, const char* text, size_m text_size);
+			MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
+			#define mu_clipboard_get(...) muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_clipboard_get_(result, ...) muCOSA_clipboard_get(muCOSA_global_context, result, __VA_ARGS__)
+			MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, const char* text, size_m text_size);
+			#define mu_clipboard_set(...) muCOSA_clipboard_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_clipboard_set_(result, ...) muCOSA_clipboard_set(muCOSA_global_context, result, __VA_ARGS__)
 
 		/* OS functions */
 
-			MUDEF void* mu_os_get_window_handle(muWindow window, muWindowHandle handle);
-				MUDEF void* mu_os_get_window_handle_(muCOSAResult* result, muWindow window, muWindowHandle handle);
-				MUDEF void* muCOSA_os_get_window_handle(muCOSAContext* context, muCOSAResult* result, muWindow window, muWindowHandle handle);
+			MUDEF void* muCOSA_os_get_window_handle(muCOSAContext* context, muCOSAResult* result, muWindow window, muWindowHandle handle);
+			#define mu_os_get_window_handle(...) muCOSA_os_get_window_handle(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_os_get_window_handle_(result, ...) muCOSA_os_get_window_handle(muCOSA_global_context, result, __VA_ARGS__)
 
 		/* OpenGL */
 
-			MUDEF void mu_opengl_bind_window(muWindow window);
-				MUDEF void mu_opengl_bind_window_(muCOSAResult* result, muWindow window);
-				MUDEF void muCOSA_opengl_bind_window(muCOSAContext* context, muCOSAResult* result, muWindow window);
+			MUDEF void muCOSA_opengl_bind_window(muCOSAContext* context, muCOSAResult* result, muWindow window);
+			#define mu_opengl_bind_window(...) muCOSA_opengl_bind_window(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_opengl_bind_window_(result, ...) muCOSA_opengl_bind_window(muCOSA_global_context, result, __VA_ARGS__)
 
-			MUDEF void* mu_opengl_get_function_address(const char* name);
-				MUDEF void* muCOSA_opengl_get_function_address(muCOSAContext* context, const char* name);
+			MUDEF void* muCOSA_opengl_get_function_address(muCOSAContext* context, const char* name);
+			#define mu_opengl_get_function_address(...) muCOSA_opengl_get_function_address(muCOSA_global_context, __VA_ARGS__)
 
-			MUDEF void mu_opengl_window_swap_interval(muWindow window, int interval);
-				MUDEF void mu_opengl_window_swap_interval_(muCOSAResult* result, muWindow window, int interval);
-				MUDEF void muCOSA_opengl_window_swap_interval(muCOSAContext* context, muCOSAResult* result, muWindow window, int interval);
+			MUDEF void muCOSA_opengl_window_swap_interval(muCOSAContext* context, muCOSAResult* result, muWindow window, int interval);
+			#define mu_opengl_window_swap_interval(...) muCOSA_opengl_window_swap_interval(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_opengl_window_swap_interval_(result, ...) muCOSA_opengl_window_swap_interval(muCOSA_global_context, result, __VA_ARGS__)
 
 		/* Vulkan */
 
 			// Note: also not necessarily UTF-8
-			MUDEF const char** mu_vulkan_get_surface_instance_extensions(size_m* count);
-				MUDEF const char** mu_vulkan_get_surface_instance_extensions_(muCOSAResult* result, size_m* count);
-				MUDEF const char** muCOSA_vulkan_get_surface_instance_extensions(muCOSAContext* context, muCOSAResult* result, size_m* count);
+			MUDEF const char** muCOSA_vulkan_get_surface_instance_extensions(muCOSAContext* context, muCOSAResult* result, size_m* count);
+			#define mu_vulkan_get_surface_instance_extensions(...) muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_vulkan_get_surface_instance_extensions_(result, ...) muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, result, __VA_ARGS__)
 
 			// vk_result interpreted as VkResult*, instance as VkInstance*, allocator as const VkAllocationCallbacks*, and surface as VkSurfaceKHR*
-			MUDEF void mu_vulkan_create_window_surface(muWindow window, void* vk_result, void* instance, void* allocator, void* surface);
-				MUDEF void mu_vulkan_create_window_surface_(muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface);
-				MUDEF void muCOSA_vulkan_create_window_surface(muCOSAContext* context, muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface);
+			MUDEF void muCOSA_vulkan_create_window_surface(muCOSAContext* context, muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface);
+			#define mu_vulkan_create_window_surface(...) muCOSA_vulkan_create_window_surface(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_vulkan_create_window_surface_(result, ...) muCOSA_vulkan_create_window_surface(muCOSA_global_context, result, __VA_ARGS__)
 
 		/* Names */
 
@@ -4959,12 +4960,6 @@ primarily around a traditional desktop OS environment.
 					return ci;
 				}
 
-				MUDEF muWindow mu_window_create(muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info) {
-					return muCOSA_window_create(muCOSA_global_context, &muCOSA_global_context->result, api, load_functions, name, width, height, create_info);
-				}
-				MUDEF muWindow mu_window_create_(muCOSAResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info) {
-					return muCOSA_window_create(muCOSA_global_context, result, api, load_functions, name, width, height, create_info);
-				}
 				MUDEF muWindow muCOSA_window_create(muCOSAContext* context, muCOSAResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5009,12 +5004,6 @@ primarily around a traditional desktop OS environment.
 					return 0; if (context) {} if (result) {} if (api) {} if (load_functions) {} if (name) {} if (width) {} if (height) {} if (create_info.min_width) {}
 				}
 
-				MUDEF muWindow mu_window_destroy(muWindow window) {
-					return muCOSA_window_destroy(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF muWindow mu_window_destroy_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_destroy(muCOSA_global_context, result, window);
-				}
 				MUDEF muWindow muCOSA_window_destroy(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5039,12 +5028,6 @@ primarily around a traditional desktop OS environment.
 
 			/* Main loop */
 
-				MUDEF muBool mu_window_get_closed(muWindow window) {
-					return muCOSA_window_get_closed(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF muBool mu_window_get_closed_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_get_closed(muCOSA_global_context, result, window);
-				}
 				MUDEF muBool muCOSA_window_get_closed(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5057,12 +5040,6 @@ primarily around a traditional desktop OS environment.
 					if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_close(muWindow window) {
-					muCOSA_window_close(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF void mu_window_close_(muCOSAResult* result, muWindow window) {
-					muCOSA_window_close(muCOSA_global_context, result, window);
-				}
 				MUDEF void muCOSA_window_close(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5075,12 +5052,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_update(muWindow window) {
-					muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF void mu_window_update_(muCOSAResult* result, muWindow window) {
-					muCOSA_window_update(muCOSA_global_context, result, window);
-				}
 				MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5093,12 +5064,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_swap_buffers(muWindow window) {
-					muCOSA_window_swap_buffers(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF void mu_window_swap_buffers_(muCOSAResult* result, muWindow window) {
-					muCOSA_window_swap_buffers(muCOSA_global_context, result, window);
-				}
 				MUDEF void muCOSA_window_swap_buffers(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5113,12 +5078,6 @@ primarily around a traditional desktop OS environment.
 
 			/* Get / Set */
 
-				MUDEF muBool mu_window_get_focused(muWindow window) {
-					return muCOSA_window_get_focused(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF muBool mu_window_get_focused_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_get_focused(muCOSA_global_context, result, window);
-				}
 				MUDEF muBool muCOSA_window_get_focused(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5131,12 +5090,6 @@ primarily around a traditional desktop OS environment.
 					if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_focus(muWindow window) {
-					muCOSA_window_focus(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF void mu_window_focus_(muCOSAResult* result, muWindow window) {
-					muCOSA_window_focus(muCOSA_global_context, result, window);
-				}
 				MUDEF void muCOSA_window_focus(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5149,12 +5102,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {}
 				}
 
-				MUDEF muBool mu_window_get_visible(muWindow window) {
-					return muCOSA_window_get_visible(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF muBool mu_window_get_visible_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_get_visible(muCOSA_global_context, result, window);
-				}
 				MUDEF muBool muCOSA_window_get_visible(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5167,12 +5114,6 @@ primarily around a traditional desktop OS environment.
 					if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_set_visible(muWindow window, muBool visible) {
-					muCOSA_window_set_visible(muCOSA_global_context, &muCOSA_global_context->result, window, visible);
-				}
-				MUDEF void mu_window_set_visible_(muCOSAResult* result, muWindow window, muBool visible) {
-					muCOSA_window_set_visible(muCOSA_global_context, result, window, visible);
-				}
 				MUDEF void muCOSA_window_set_visible(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool visible) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5185,12 +5126,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (visible) {}
 				}
 
-				MUDEF void mu_window_get_position(muWindow window, int32_m* x, int32_m* y) {
-					muCOSA_window_get_position(muCOSA_global_context, &muCOSA_global_context->result, window, x, y);
-				}
-				MUDEF void mu_window_get_position_(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y) {
-					muCOSA_window_get_position(muCOSA_global_context, result, window, x, y);
-				}
 				MUDEF void muCOSA_window_get_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5203,12 +5138,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
-				MUDEF void mu_window_set_position(muWindow window, int32_m x, int32_m y) {
-					muCOSA_window_set_position(muCOSA_global_context, &muCOSA_global_context->result, window, x, y);
-				}
-				MUDEF void mu_window_set_position_(muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
-					muCOSA_window_set_position(muCOSA_global_context, result, window, x, y);
-				}
 				MUDEF void muCOSA_window_set_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5221,12 +5150,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
-				MUDEF void mu_window_get_dimensions(muWindow window, uint32_m* width, uint32_m* height) {
-					muCOSA_window_get_dimensions(muCOSA_global_context, &muCOSA_global_context->result, window, width, height);
-				}
-				MUDEF void mu_window_get_dimensions_(muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height) {
-					muCOSA_window_get_dimensions(muCOSA_global_context, result, window, width, height);
-				}
 				MUDEF void muCOSA_window_get_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5239,12 +5162,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (width) {} if (height) {}
 				}
 
-				MUDEF void mu_window_set_dimensions(muWindow window, uint32_m width, uint32_m height) {
-					muCOSA_window_set_dimensions(muCOSA_global_context, &muCOSA_global_context->result, window, width, height);
-				}
-				MUDEF void mu_window_set_dimensions_(muCOSAResult* result, muWindow window, uint32_m width, uint32_m height) {
-					muCOSA_window_set_dimensions(muCOSA_global_context, result, window, width, height);
-				}
 				MUDEF void muCOSA_window_set_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m width, uint32_m height) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5257,12 +5174,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (width) {} if (height) {}
 				}
 
-				MUDEF muBool mu_window_get_maximized(muWindow window) {
-					return muCOSA_window_get_maximized(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF muBool mu_window_get_maximized_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_get_maximized(muCOSA_global_context, result, window);
-				}
 				MUDEF muBool muCOSA_window_get_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5275,12 +5186,6 @@ primarily around a traditional desktop OS environment.
 					if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_set_maximized(muWindow window, muBool maximized) {
-					muCOSA_window_set_maximized(muCOSA_global_context, &muCOSA_global_context->result, window, maximized);
-				}
-				MUDEF void mu_window_set_maximized_(muCOSAResult* result, muWindow window, muBool maximized) {
-					muCOSA_window_set_maximized(muCOSA_global_context, result, window, maximized);
-				}
 				MUDEF void muCOSA_window_set_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool maximized) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5293,12 +5198,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (maximized) {}
 				}
 
-				MUDEF muBool mu_window_get_minimized(muWindow window) {
-					return muCOSA_window_get_minimized(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF muBool mu_window_get_minimized_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_get_minimized(muCOSA_global_context, result, window);
-				}
 				MUDEF muBool muCOSA_window_get_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5311,12 +5210,6 @@ primarily around a traditional desktop OS environment.
 					if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_set_minimized(muWindow window, muBool minimized) {
-					muCOSA_window_set_minimized(muCOSA_global_context, &muCOSA_global_context->result, window, minimized);
-				}
-				MUDEF void mu_window_set_minimized_(muCOSAResult* result, muWindow window, muBool minimized) {
-					muCOSA_window_set_minimized(muCOSA_global_context, result, window, minimized);
-				}
 				MUDEF void muCOSA_window_set_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool minimized) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5329,12 +5222,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (minimized) {}
 				}
 
-				MUDEF void mu_window_get_minimum_dimensions(muWindow window, uint32_m* min_width, uint32_m* min_height) {
-					muCOSA_window_get_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, window, min_width, min_height);
-				}
-				MUDEF void mu_window_get_minimum_dimensions_(muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height) {
-					muCOSA_window_get_minimum_dimensions(muCOSA_global_context, result, window, min_width, min_height);
-				}
 				MUDEF void muCOSA_window_get_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5347,12 +5234,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (min_width) {} if (min_height) {}
 				}
 
-				MUDEF void mu_window_set_minimum_dimensions(muWindow window, uint32_m min_width, uint32_m min_height) {
-					muCOSA_window_set_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, window, min_width, min_height);
-				}
-				MUDEF void mu_window_set_minimum_dimensions_(muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height) {
-					muCOSA_window_set_minimum_dimensions(muCOSA_global_context, result, window, min_width, min_height);
-				}
 				MUDEF void muCOSA_window_set_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5365,12 +5246,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (min_width) {} if (min_height) {}
 				}
 
-				MUDEF void mu_window_get_maximum_dimensions(muWindow window, uint32_m* max_width, uint32_m* max_height) {
-					muCOSA_window_get_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, window, max_width, max_height);
-				}
-				MUDEF void mu_window_get_maximum_dimensions_(muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height) {
-					muCOSA_window_get_maximum_dimensions(muCOSA_global_context, result, window, max_width, max_height);
-				}
 				MUDEF void muCOSA_window_get_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5383,12 +5258,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (max_width) {} if (max_height) {}
 				}
 
-				MUDEF void mu_window_set_maximum_dimensions(muWindow window, uint32_m max_width, uint32_m max_height) {
-					muCOSA_window_set_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, window, max_width, max_height);
-				}
-				MUDEF void mu_window_set_maximum_dimensions_(muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height) {
-					muCOSA_window_set_maximum_dimensions(muCOSA_global_context, result, window, max_width, max_height);
-				}
 				MUDEF void muCOSA_window_set_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5401,12 +5270,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (max_width) {} if (max_height) {}
 				}
 
-				MUDEF void mu_window_get_cursor_position(muWindow window, int32_m* x, int32_m* y) {
-					muCOSA_window_get_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, window, x, y);
-				}
-				MUDEF void mu_window_get_cursor_position_(muCOSAResult* result, muWindow window, int32_m* x, int32_m* y) {
-					muCOSA_window_get_cursor_position(muCOSA_global_context, result, window, x, y);
-				}
 				MUDEF void muCOSA_window_get_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5419,12 +5282,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
-				MUDEF void mu_window_set_cursor_position(muWindow window, int32_m x, int32_m y) {
-					muCOSA_window_set_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, window, x, y);
-				}
-				MUDEF void mu_window_set_cursor_position_(muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
-					muCOSA_window_set_cursor_position(muCOSA_global_context, result, window, x, y);
-				}
 				MUDEF void muCOSA_window_set_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5437,12 +5294,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
-				MUDEF muCursorStyle mu_window_get_cursor_style(muWindow window) {
-					return muCOSA_window_get_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF muCursorStyle mu_window_get_cursor_style_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_get_cursor_style(muCOSA_global_context, result, window);
-				}
 				MUDEF muCursorStyle muCOSA_window_get_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5455,12 +5306,6 @@ primarily around a traditional desktop OS environment.
 					if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_set_cursor_style(muWindow window, muCursorStyle style) {
-					muCOSA_window_set_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, window, style);
-				}
-				MUDEF void mu_window_set_cursor_style_(muCOSAResult* result, muWindow window, muCursorStyle style) {
-					muCOSA_window_set_cursor_style(muCOSA_global_context, result, window, style);
-				}
 				MUDEF void muCOSA_window_set_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window, muCursorStyle style) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5473,12 +5318,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (style) {}
 				}
 
-				MUDEF int32_m mu_window_get_scroll_level(muWindow window) {
-					return muCOSA_window_get_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF int32_m mu_window_get_scroll_level_(muCOSAResult* result, muWindow window) {
-					return muCOSA_window_get_scroll_level(muCOSA_global_context, result, window);
-				}
 				MUDEF int32_m muCOSA_window_get_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5491,12 +5330,6 @@ primarily around a traditional desktop OS environment.
 					if (result) {} if (window) {}
 				}
 
-				MUDEF void mu_window_set_scroll_level(muWindow window, int32_m scroll_level) {
-					muCOSA_window_set_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, window, scroll_level);
-				}
-				MUDEF void mu_window_set_scroll_level_(muCOSAResult* result, muWindow window, int32_m scroll_level) {
-					muCOSA_window_set_scroll_level(muCOSA_global_context, result, window, scroll_level);
-				}
 				MUDEF void muCOSA_window_set_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m scroll_level) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5511,12 +5344,6 @@ primarily around a traditional desktop OS environment.
 
 			/* Get / Let */
 
-				MUDEF void mu_window_get_text_input_focus(muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input)) {
-					muCOSA_window_get_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, window, text_cursor_x, text_cursor_y, callback);
-				}
-				MUDEF void mu_window_get_text_input_focus_(muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input)) {
-					muCOSA_window_get_text_input_focus(muCOSA_global_context, result, window, text_cursor_x, text_cursor_y, callback);
-				}
 				MUDEF void muCOSA_window_get_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5529,12 +5356,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (text_cursor_x) {} if (text_cursor_y) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_update_text_cursor(muWindow window, int32_m x, int32_m y) {
-					muCOSA_window_update_text_cursor(muCOSA_global_context, &muCOSA_global_context->result, window, x, y);
-				}
-				MUDEF void mu_window_update_text_cursor_(muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
-					muCOSA_window_update_text_cursor(muCOSA_global_context, result, window, x, y);
-				}
 				MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5547,12 +5368,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) {} if (window) {} if (x) {} if (y) {}
 				}
 
-				MUDEF void mu_window_let_text_input_focus(muWindow window) {
-					muCOSA_window_let_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, window);
-				}
-				MUDEF void mu_window_let_text_input_focus_(muCOSAResult* result, muWindow window) {
-					muCOSA_window_let_text_input_focus(muCOSA_global_context, result, window);
-				}
 				MUDEF void muCOSA_window_let_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5567,12 +5382,6 @@ primarily around a traditional desktop OS environment.
 
 			/* Get */
 
-				MUDEF void mu_window_get_frame_extents(muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom) {
-					muCOSA_window_get_frame_extents(muCOSA_global_context, &muCOSA_global_context->result, window, left, right, top, bottom);
-				}
-				MUDEF void mu_window_get_frame_extents_(muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom) {
-					muCOSA_window_get_frame_extents(muCOSA_global_context, result, window, left, right, top, bottom);
-				}
 				MUDEF void muCOSA_window_get_frame_extents(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5585,12 +5394,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (left) {} if (right) {} if (top) {} if (bottom) {}
 				}
 
-				MUDEF muButtonState mu_window_get_keyboard_key_state(muWindow window, muKeyboardKey key) {
-					return muCOSA_window_get_keyboard_key_state(muCOSA_global_context, &muCOSA_global_context->result, window, key);
-				}
-				MUDEF muButtonState mu_window_get_keyboard_key_state_(muCOSAResult* result, muWindow window, muKeyboardKey key) {
-					return muCOSA_window_get_keyboard_key_state(muCOSA_global_context, result, window, key);
-				}
 				MUDEF muButtonState muCOSA_window_get_keyboard_key_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardKey key) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5603,12 +5406,6 @@ primarily around a traditional desktop OS environment.
 					if (result) { } if (window) {} if (key) {}
 				}
 
-				MUDEF muState mu_window_get_keyboard_state_state(muWindow window, muKeyboardState state) {
-					return muCOSA_window_get_keyboard_state_state(muCOSA_global_context, &muCOSA_global_context->result, window, state);
-				}
-				MUDEF muState mu_window_get_keyboard_state_state_(muCOSAResult* result, muWindow window, muKeyboardState state) {
-					return muCOSA_window_get_keyboard_state_state(muCOSA_global_context, result, window, state);
-				}
 				MUDEF muState muCOSA_window_get_keyboard_state_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardState state) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5621,12 +5418,6 @@ primarily around a traditional desktop OS environment.
 					if (result) { } if (window) {} if (state) {}
 				}
 
-				MUDEF muButtonState mu_window_get_mouse_button_state(muWindow window, muMouseButton button) {
-					return muCOSA_window_get_mouse_button_state(muCOSA_global_context, &muCOSA_global_context->result, window, button);
-				}
-				MUDEF muButtonState mu_window_get_mouse_button_state_(muCOSAResult* result, muWindow window, muMouseButton button) {
-					return muCOSA_window_get_mouse_button_state(muCOSA_global_context, result, window, button);
-				}
 				MUDEF muButtonState muCOSA_window_get_mouse_button_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muMouseButton button) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5641,12 +5432,6 @@ primarily around a traditional desktop OS environment.
 
 			/* Set */
 
-				MUDEF void mu_window_set_title(muWindow window, const char* title) {
-					muCOSA_window_set_title(muCOSA_global_context, &muCOSA_global_context->result, window, title);
-				}
-				MUDEF void mu_window_set_title_(muCOSAResult* result, muWindow window, const char* title) {
-					muCOSA_window_set_title(muCOSA_global_context, result, window, title);
-				}
 				MUDEF void muCOSA_window_set_title(muCOSAContext* context, muCOSAResult* result, muWindow window, const char* title) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5659,12 +5444,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (title) {}
 				}
 
-				MUDEF void mu_window_set_dimensions_callback(muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height)) {
-					muCOSA_window_set_dimensions_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_dimensions_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height)) {
-					muCOSA_window_set_dimensions_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_dimensions_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5677,12 +5456,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_position_callback(muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
-					muCOSA_window_set_position_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_position_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
-					muCOSA_window_set_position_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5695,12 +5468,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_focus_callback(muWindow window, void (*callback)(muWindow window, muBool focused)) {
-					muCOSA_window_set_focus_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_focus_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused)) {
-					muCOSA_window_set_focus_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_focus_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5713,12 +5480,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_maximize_callback(muWindow window, void (*callback)(muWindow window, muBool maximized)) {
-					muCOSA_window_set_maximize_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_maximize_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized)) {
-					muCOSA_window_set_maximize_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_maximize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5731,12 +5492,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_minimize_callback(muWindow window, void (*callback)(muWindow window, muBool minimized)) {
-					muCOSA_window_set_minimize_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_minimize_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized)) {
-					muCOSA_window_set_minimize_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_minimize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5749,12 +5504,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_keyboard_key_callback(muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
-					muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_keyboard_key_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
-					muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_keyboard_key_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5767,12 +5516,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_keyboard_state_callback(muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state)) {
-					muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_keyboard_state_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state)) {
-					muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_keyboard_state_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5785,12 +5528,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_cursor_position_callback(muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
-					muCOSA_window_set_cursor_position_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_cursor_position_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
-					muCOSA_window_set_cursor_position_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_cursor_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5803,12 +5540,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_mouse_button_callback(muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state)) {
-					muCOSA_window_set_mouse_button_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_mouse_button_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state)) {
-					muCOSA_window_set_mouse_button_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_mouse_button_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5821,12 +5552,6 @@ primarily around a traditional desktop OS environment.
 					return; if (result) { } if (window) {} if (callback) {}
 				}
 
-				MUDEF void mu_window_set_scroll_callback(muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add)) {
-					muCOSA_window_set_scroll_callback(muCOSA_global_context, &muCOSA_global_context->result, window, callback);
-				}
-				MUDEF void mu_window_set_scroll_callback_(muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add)) {
-					muCOSA_window_set_scroll_callback(muCOSA_global_context, result, window, callback);
-				}
 				MUDEF void muCOSA_window_set_scroll_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add)) {
 					muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5852,12 +5577,6 @@ primarily around a traditional desktop OS environment.
 
 				if (result) {}
 			}
-			MUDEF double mu_time_get_(muCOSAResult* result) {
-				return muCOSA_time_get(muCOSA_global_context, result);
-			}
-			MUDEF double mu_time_get(void) {
-				return muCOSA_time_get(muCOSA_global_context, &muCOSA_global_context->result);
-			}
 
 			MUDEF void muCOSA_time_set(muCOSAContext* context, muCOSAResult* result, double time) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
@@ -5869,12 +5588,6 @@ primarily around a traditional desktop OS environment.
 				}
 
 				return; if (result) {} if (time) {}
-			}
-			MUDEF void mu_time_set_(muCOSAResult* result, double time) {
-				muCOSA_time_set(muCOSA_global_context, result, time);
-			}
-			MUDEF void mu_time_set(double time) {
-				muCOSA_time_set(muCOSA_global_context, &muCOSA_global_context->result, time);
 			}
 
 			MUDEF void muCOSA_sleep(muCOSAContext* context, muCOSAResult* result, double time) {
@@ -5888,21 +5601,9 @@ primarily around a traditional desktop OS environment.
 
 				return; if (result) {} if (time) {}
 			}
-			MUDEF void mu_sleep_(muCOSAResult* result, double time) {
-				muCOSA_sleep(muCOSA_global_context, result, time);
-			}
-			MUDEF void mu_sleep(double time) {
-				muCOSA_sleep(muCOSA_global_context, &muCOSA_global_context->result, time);
-			}
 
 		/* Clipboard */
 
-			MUDEF char* mu_clipboard_get(void) {
-				return muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result);
-			}
-			MUDEF char* mu_clipboard_get_(muCOSAResult* result) {
-				return muCOSA_clipboard_get(muCOSA_global_context, result);
-			}
 			MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5915,12 +5616,6 @@ primarily around a traditional desktop OS environment.
 				if (result) { }
 			}
 
-			MUDEF void mu_clipboard_set(const char* text, size_m text_size) {
-				muCOSA_clipboard_set(muCOSA_global_context, &muCOSA_global_context->result, text, text_size);
-			}
-			MUDEF void mu_clipboard_set_(muCOSAResult* result, const char* text, size_m text_size) {
-				muCOSA_clipboard_set(muCOSA_global_context, result, text, text_size);
-			}
 			MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, const char* text, size_m text_size) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5935,12 +5630,6 @@ primarily around a traditional desktop OS environment.
 
 		/* OS functions */
 
-			MUDEF void* mu_os_get_window_handle(muWindow window, muWindowHandle handle) {
-				return muCOSA_os_get_window_handle(muCOSA_global_context, &muCOSA_global_context->result, window, handle);
-			}
-			MUDEF void* mu_os_get_window_handle_(muCOSAResult* result, muWindow window, muWindowHandle handle) {
-				return muCOSA_os_get_window_handle(muCOSA_global_context, result, window, handle);
-			}
 			MUDEF void* muCOSA_os_get_window_handle(muCOSAContext* context, muCOSAResult* result, muWindow window, muWindowHandle handle) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5955,12 +5644,6 @@ primarily around a traditional desktop OS environment.
 
 		/* OpenGL */
 
-			MUDEF void mu_opengl_bind_window(muWindow window) {
-				muCOSA_opengl_bind_window(muCOSA_global_context, &muCOSA_global_context->result, window);
-			}
-			MUDEF void mu_opengl_bind_window_(muCOSAResult* result, muWindow window) {
-				muCOSA_opengl_bind_window(muCOSA_global_context, result, window);
-			}
 			MUDEF void muCOSA_opengl_bind_window(muCOSAContext* context, muCOSAResult* result, muWindow window) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5973,9 +5656,6 @@ primarily around a traditional desktop OS environment.
 				return; if (result) { } if (window) {}
 			}
 
-			MUDEF void* mu_opengl_get_function_address(const char* name) {
-				return muCOSA_opengl_get_function_address(muCOSA_global_context, name);
-			}
 			MUDEF void* muCOSA_opengl_get_function_address(muCOSAContext* context, const char* name) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -5988,12 +5668,6 @@ primarily around a traditional desktop OS environment.
 				if (name) {}
 			}
 
-			MUDEF void mu_opengl_window_swap_interval(muWindow window, int interval) {
-				muCOSA_opengl_window_swap_interval(muCOSA_global_context, &muCOSA_global_context->result, window, interval);
-			}
-			MUDEF void mu_opengl_window_swap_interval_(muCOSAResult* result, muWindow window, int interval) {
-				muCOSA_opengl_window_swap_interval(muCOSA_global_context, result, window, interval);
-			}
 			MUDEF void muCOSA_opengl_window_swap_interval(muCOSAContext* context, muCOSAResult* result, muWindow window, int interval) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -6009,12 +5683,6 @@ primarily around a traditional desktop OS environment.
 		/* Vulkan */
 
 			// Note: also not necessarily UTF-8
-			MUDEF const char** mu_vulkan_get_surface_instance_extensions(size_m* count) {
-				return muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, &muCOSA_global_context->result, count);
-			}
-			MUDEF const char** mu_vulkan_get_surface_instance_extensions_(muCOSAResult* result, size_m* count) {
-				return muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, result, count);
-			}
 			MUDEF const char** muCOSA_vulkan_get_surface_instance_extensions(muCOSAContext* context, muCOSAResult* result, size_m* count) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
@@ -6028,12 +5696,6 @@ primarily around a traditional desktop OS environment.
 			}
 
 			// vk_result interpreted as VkResult*, instance as VkInstance*, allocator as const VkAllocationCallbacks*, and surface as VkSurfaceKHR*
-			MUDEF void mu_vulkan_create_window_surface(muWindow window, void* vk_result, void* instance, void* allocator, void* surface) {
-				muCOSA_vulkan_create_window_surface(muCOSA_global_context, &muCOSA_global_context->result, window, vk_result, instance, allocator, surface);
-			}
-			MUDEF void mu_vulkan_create_window_surface_(muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface) {
-				muCOSA_vulkan_create_window_surface(muCOSA_global_context, result, window, vk_result, instance, allocator, surface);
-			}
 			MUDEF void muCOSA_vulkan_create_window_surface(muCOSAContext* context, muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
 
