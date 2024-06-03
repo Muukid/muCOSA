@@ -1034,8 +1034,8 @@ primarily around a traditional desktop OS environment.
 		/* Clipboard */
 
 			MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
-			#define mu_clipboard_get(...) muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_clipboard_get_(result, ...) muCOSA_clipboard_get(muCOSA_global_context, result, __VA_ARGS__)
+			#define mu_clipboard_get() muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result)
+			#define mu_clipboard_get_(result) muCOSA_clipboard_get(muCOSA_global_context, result)
 			MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, const char* text, size_m text_size);
 			#define mu_clipboard_set(...) muCOSA_clipboard_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
 			#define mu_clipboard_set_(result, ...) muCOSA_clipboard_set(muCOSA_global_context, result, __VA_ARGS__)
