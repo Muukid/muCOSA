@@ -31,6 +31,7 @@ window while it's maximized).
 @TODO Add processing for multiple string types when retrieving clipboard in X11 (most likely
 requires a string library...)
 @TODO Test on more Linux distros.
+@TODO Add invisible cursor style.
 
 As of right now, muCOSA assumes 2 things:
 1. A keyboard and mouse are available, being the primary forms of input.
@@ -68,9 +69,237 @@ Not doing all of that, right now tho; muCOSA 1.X.X is meant to be pretty simplis
 primarily around a traditional desktop OS environment.
 */
 
+/* @DOCBEGIN
+
+# muCOSA v1.0.0
+
+muCOSA (COSA standing for cross-operating-system API) is a public domain header-only single-file C library for interacting with operating systems with a cross-platform API. To use it, download the `muCOSA.h` file, add it to your include path, and include it like so:
+
+```c
+#define MUCOSA_IMPLEMENTATION
+#include "muCOSA.h"
+```
+
+More information about the general structure of a mu library is provided at [the mu library information GitHub repository.](https://github.com/Muukid/mu-library-information)
+
+# Demos
+
+Demos that quickly show the gist of the library and how it works are available in the `demos` folder.
+
+# Basic library concepts
+
+This is an overview of how this library works conceptually. More explicit information about the API, such as licensing, functions, and enumerators, can be found further below this section.
+
+## The window
+
+A window (equivalent type `muWindow`) is a reference to a 'window' in the desktop-OS-sense.
+
+The window encapsulates the **surface**, which is the actual space for rendering and excludes other parts of the window such as the title bar and borders. Around the surface are the **frame extents**, which add additional readable and interactable elements.
+
+### The main loop
+
+A window is alive for a certain amount of time before being closed, rather by the user or by the program itself. In order to keep updating during this time, a main loop is established which runs as long as the window's closed state is false. The main loop, generally, looks like this:
+
+```c
+// Initialization / Window creation here...
+
+while (!mu_window_get_closed(window)) {
+	// ... (This is where the frame-by-frame logic would go) ...
+
+	mu_window_swap_buffers(window);
+	mu_window_update(window);
+}
+
+// Termination here...
+```
+
+### Window properties
+
+A window has several properties that describe it in the muCOSA API, those being:
+
+**dimensions**: the width and height of the window's surface in pixels. Dimensions below a width of 120 and a height of 1 are not guaranteed to work.
+
+**position**: the position of the window's surface in pixels relative to the upper-left corner of the display and the upper-left corner of the surface. A position with negative x and y values is not guaranteed to work.
+
+**closed**: whether or not the window has been closed by the user or the program, permanently disabling the window.
+
+**name**: the title shown on the window's title bar and in other menus referencing it.
+
+**visible**: whether or not it can be seen on the display. This attribute usually also applies to its visibility in other common menus, such as the task bar.
+
+**resizable**: whether or not the window can be resized by the user when dragging around its frame extents.
+
+**minimized**: when the window cannot be seen on the display but is visible in other menus such as the task bar.
+
+**maximized**: when the window takes up the majority of the screen, leaving only the title bar and other menus usually always visible such as the task bar.
+
+**focused**: when the window is the selected window by the user, appearing above all other windows and being primarily interactable with.
+
+**cursor style**: the style of the cursor when the cursor is focused and within the surface.
+
+**cursor position**: the position of the cursor relative to the upper-left corner of the surface.
+
+**scroll level**: how much the user has scrolled up and down on a scrollable device (such as a mouse or trackpad).
+
+**callbacks**: collection of user-defined functions that can be setup to be automatically called when an event occurs regarding the window, usually when an attribute is modified, such as the dimensions or position of a window. Note that it's generally unsafe to call functions on a window from within a callback, as it's very easy to cause a feedback loop where callbacks keep triggering other callbacks, causing a crash.
+
+### Text input
+
+A window is able to take in text input, and has separate functionality for that purpose, allowing the focus for text input to be retrieved and let go. Having it like this allows for multiple things to be automatically handled by the operating system and not the user:
+
+1. States; states like caps lock and shift are automatically handled.
+
+2. Non-ASCII input; OS's usually have some way of inputting non-ASCII characters, and the text input in muCOSA automatically takes it in so the user doesn't need to handle it themselves.
+
+3. Holding down keys; the keyboard key callback's behavior in regards to what happens when a user holds down a key is generally undefined (usually just sends repetitive hold/release messages or just hold), but in text input, the exact key is sent at the exact rate designated by the OS.
+
+Text input is sent via an array of bytes in UTF-8 representing the text input. It's guaranteed to represent just one codepoint and have an ending null termating byte.
+
+Note that text input does also include control codepoints.
+
+Note that text input focus is not guaranteed to be preserved when the user unfocuses and refocuses the window.
+
+Note that text input is automatically let go of on termination.
+
+## Graphics APIs
+
+muCOSA has direct support for OpenGL and Vulkan.
+
+### OpenGL
+
+OpenGL support is enabled by defining `MU_OPENGL` before the implementation of muCOSA is defined. From there, OpenGL versions 1.0 to 4.6 Core/Compatibility can be used, although a function to load OpenGL must be provided by the user.
+
+A common inclusion of OpenGL v3.3 Core with glad would look like this:
+
+```c
+#define GLAD_GL_IMPLEMENTATION
+#include "glad.h"
+
+#define MUCOSA_OPENGL
+#define MUCOSA_IMPLEMENTATION
+#include "muCOSA.h"
+
+void* load_gl_func(const char* name) {
+	// Point glad to the function 'mu_opengl_get_function_address'
+	// provided by muCOSA, so that glad can find each function for
+	// us.
+	return mu_opengl_get_function_address(name);
+}
+
+muBool load_gl_funcs(void) {
+	return gladLoadGL((GLADloadfunc)load_gl_func);
+}
+
+int main(void) {
+	// ...
+
+	muWindow window = mu_window_create(
+		MU_OPENGL_3_3_CORE, load_gl_funcs,
+		// ...
+	);
+
+	// ...
+}
+```
+
+This automatically handles the loading of OpenGL with glad and handles the OS-dependent creation of an OpenGL context associatable with a window.
+
+### Vulkan
+
+Vulkan support is enabled by defining `MU_VULKAN` before the implementation of muCOSA is defined, as well as `MUCOSA_VULKAN_INCLUDE_PATH` for the path to include Vulkan. This is needed so that muCOSA can handle OS-specific macros that need to be defined before Vulkan is included.
+
+A common inclusion of Vulkan with vkbind would look like this:
+
+```c
+#define VKBIND_IMPLEMENTATION
+#define MUCOSA_VULKAN_INCLUDE_PATH "vkbind.h"
+
+#define MUCOSA_VULKAN
+#define MUCOSA_IMPLEMENTATION
+#include "muCOSA.h"
+
+// ...
+
+VkResult vkres = VK_SUCCESS;
+VkInstance instance;
+VkSurfaceKHR surface;
+
+// ...
+
+int main(void) {
+	// ...
+
+	muWindow window = mu_window_create(
+		MU_NO_GRAPHICS_API, 0,
+		// ...
+	);
+
+	// ...
+
+	vk_init();
+
+	// ...
+
+	size_m surface_extension_count = 0;
+	const char** surface_extensions = mu_vulkan_get_surface_instance_extensions(&surface_extension_count);
+
+	// ...
+
+	mu_vulkan_create_window_surface(window, &vkres, &instance, 0, &surface);
+
+	// ...
+}
+```
+
+This allows the user to associate the window with no graphics API, initiate Vulkan themselves, and then query information about and ultimately retrieve a handle to the window's surface, which can then be rendered to by the user as they please.
+
+## Time
+
+The 'time' in muCOSA is a reference to a timer, in seconds, that automatically starts when the relevant muCOSA context is created. The time of this timer can be retrieved and set to a different value (to which, if a different value is set, when the time is retrieved, it will return that time that was set plus the additional time that has passed since).
+
+# System dependencies
+
+muCOSA is supported for Win32 and X11.
+
+## Linker flags
+
+### Global linker flags
+
+Some linker flags must be specified regardless of macro settings. These include:
+
+the math library (`-lm` in most command-line C compilers).
+
+### Win32
+
+In order to compile for Win32, you need to link with the following files under the given circumstances:
+
+`user32.dll` and `imm32.dll` in any given circumstance.
+
+`gdi32.dll` and `opengl32.dll` if `MU_OPENGL` is defined before the implementation of muCOSA is given.
+
+### X11
+
+In order to compile for X11, you need to link with the following libraries under the given circumstances:
+
+`libX11` and `libpthread` in any given circumstance. Note that the XKB extension is needed for X11.
+
+`libGL` if `MU_OPENGL` is defined before the implementation of muCOSA is given.
+
+# Licensing
+
+muCOSA is licensed under public domain or MIT, whichever you prefer. More information is provided in the accompanying file `license.md` and at the bottom of `muCOSA.h`.
+
+However, note that the demos that use OpenGL use glad which is built from the Khronos specification, so its Apache 2.0 license applies within that context. See [further clarification in this issue comment](https://github.com/KhronosGroup/OpenGL-Registry/issues/376#issuecomment-596187053).
+
+@DOCEND */
+
 #ifndef MUCOSA_H
 	#define MUCOSA_H
-
+	
+	// @DOCLINE # Other library dependencies
+	// @DOCLINE muCOSA has a dependency on:
+	
+	// @DOCLINE [muUtility v1.1.0](https://github.com/Muukid/muUtility/releases/tag/v1.1.0).
 	// @IGNORE
 	/* muUtility v1.1.0 header */
 	
@@ -431,27 +660,53 @@ primarily around a traditional desktop OS environment.
 		#endif /* MUU_H */
 	// @ATTENTION
 
+	// @DOCLINE Note that mu libraries store their dependencies within their files, so you don't need to import these dependencies yourself.
+	// @DOCLINE Note that the libraries listed may also have other dependencies that they also include that aren't listed here.
+
+	/* @DOCBEGIN
+
+	## Demo library dependencies
+
+	The demos have an `include` folder for other files needed to compile the demos, which is usually for other library dependencies. These library dependencies are:
+
+	[glad](https://github.com/Dav1dde/glad); specifically generated with [this generator on these settings](http://glad.sh/#api=gl%3Acore%3D3.3&extensions=&generator=c&options=HEADER_ONLY%2CLOADER).
+
+	[vkbind](https://github.com/mackron/vkbind).
+
+	The files for these libraries are all self-contained in the `include` folder found in the `demos` folder.
+
+	@DOCEND */
+
 	#ifdef __cplusplus
 	extern "C" { // }
 	#endif
 
-	/* Objects */
+	// @DOCLINE # Macros
 
-		#define muWindow void*
+		// @DOCLINE ## `muWindow`
 
-	/* Macros */
+			// @DOCLINE The macro `muWindow` is a void pointer that muCOSA uses to allocate and keep track of a window's data, defined below: @NLNT
+			#define muWindow void*
 
-		/* States */
+		// @DOCLINE ## States
 
+			// @DOCLINE Two macros are defined to represent the state of something. These are:
+
+			// @DOCLINE `muButtonState`: the state of a button (`MU_BUTTON_STATE_RELEASED` (0) meaning the button is not being held, and `MU_BUTTON_STATE_HELD` (1) meaning the button is being held), represented with the type `muBool`.
 			#define muButtonState muBool
 			#define MU_BUTTON_STATE_RELEASED 0
 			#define MU_BUTTON_STATE_HELD 1
 
+			// @DOCLINE `muState`: the state of something (`MU_ON` (1) meaning *on* and `MU_OFF` (0) meaning *off*), represented with the type `muBool`.
 			#define muState muBool
 			#define MU_ON 1
 			#define MU_OFF 0
 
-		/* OS macros */
+		// @DOCLINE ## Window system definitions
+
+			// @DOCLINE The window systems defined by muCOSA are automatically handled based on what system is running; Unix systems automatically define `MUCOSA_X11` and Win32 systems automatically define `MUCOSA_WIN32`. This automatic choice can be disabled via defining `MUCOSA_NO_AUTOMATIC_API`, and then the user has to manually define these themselves.
+
+			// @DOCLINE This behaviour is handled in the header of muCOSA.
 
 			#ifndef MUCOSA_NO_AUTOMATIC_API
 
@@ -465,655 +720,1329 @@ primarily around a traditional desktop OS environment.
 
 			#endif
 
-			#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
-				#ifdef MUCOSA_WIN32
-					#define VK_USE_PLATFORM_WIN32_KHR
-				#elif defined(MUCOSA_X11)
-					#define VK_USE_PLATFORM_XLIB_KHR
-				#endif
-			#endif
+		// @DOCLINE ## Locale modification
 
-	/* Enums */
+			// @DOCLINE On X11, in order for text input to fully work, it is recommended to set the locale to "". This is automatically performed unless `MUCOSA_NO_LOCALE_MOD` is defined before the implementation of muCOSA is defined.
+
+		// @DOCLINE ## Version macro
+
+			// @DOCLINE muCOSA defines three macros to define the version of muCOSA: `MUCOSA_VERSION_MAJOR`, `MUCOSA_VERSION_MINOR`, and `MUCOSA_VERSION_PATCH`, following the format of `vMAJOR.MINOR.PATCH`.
+
+			#define MUCOSA_VERSION_MAJOR 1
+			#define MUCOSA_VERSION_MINOR 0
+			#define MUCOSA_VERSION_PATCH 0
+
+		#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
+			#ifdef MUCOSA_WIN32
+				#define VK_USE_PLATFORM_WIN32_KHR
+			#elif defined(MUCOSA_X11)
+				#define VK_USE_PLATFORM_XLIB_KHR
+			#endif
+		#endif
+
+	// @DOCLINE # Enums
 
 		MU_ENUM(muCOSAResult,
+			/* @DOCBEGIN
+			## Result enumerator
+			
+			muCOSA uses the `muCOSAResult` enumerator to represent how a function went. It has the following possible values:
+
+			@DOCEND */
+
+			// @DOCLINE `@NLFT`: the task succeeded.
 			MUCOSA_SUCCESS,
 
-			MUCOSA_ALREADY_INITIALIZED,
-			MUCOSA_ALREADY_TERMINATED,
+			// @DOCLINE `@NLFT`: the functionality being requested to be activated is already active.
 			MUCOSA_ALREADY_ACTIVE,
-			MUCOSA_ALREADY_INACTIVE,
 
-			MUCOSA_NOT_YET_INITIALIZED,
-
+			// @DOCLINE `@NLFT`: memory necessary to perform the task failed to allocate.
 			MUCOSA_ALLOCATION_FAILED,
 
+			// @DOCLINE `@NLFT`: a window system enumerator value given is an invalid value or is not supported on this system.
 			MUCOSA_UNKNOWN_WINDOW_SYSTEM,
+			// @DOCLINE `@NLFT`: a graphics API enumerator value given is an invalid value.
 			MUCOSA_UNKNOWN_GRAPHICS_API,
-			MUCOSA_UNKNOWN_KEYBOARD_KEY,
-			MUCOSA_UNKNOWN_KEYBOARD_STATE,
-			MUCOSA_UNKNOWN_MOUSE_BUTTON,
+			// @DOCLINE `@NLFT`: a window handle API enumerator value given is an invalid value or is not supported on this system.
 			MUCOSA_UNKNOWN_WINDOW_HANDLE,
 
-			MUCOSA_UNSUPPORTED_WINDOW_SYSTEM,
-			MUCOSA_UNSUPPORTED_FEATURE, // Could mean that it rather can't be (or hasn't been) implemented, or that
-			// the specific thing you're trying to do won't work on this device/OS for some reason (for example, on X11,
-			// an Atom needed for that task can't be found).
-			MUCOSA_UNSUPPORTED_OPENGL_FEATURE, // Something relating to OpenGL isn't supported or couldn't be found.
-			MUCOSA_UNSUPPORTED_GRAPHICS_API, // Graphics API function was called when that API
-			// wasn't explicity defined.
+			// @DOCLINE `@NLFT`: an OpenGL feature necessary to perform the task is not available.
+			MUCOSA_UNSUPPORTED_OPENGL_FEATURE,
+			// @DOCLINE `@NLFT`: the graphics API being requested has not been defined (for example, if you're trying to use OpenGL, `MUCOSA_OPENGL` must be defined before the inclusion of the header file).
+			MUCOSA_UNSUPPORTED_GRAPHICS_API,
 
+			// @DOCLINE `@NLFT`: a Display object could not be opened. This is X11 exclusive.
 			MUCOSA_FAILED_CONNECTION_TO_SERVER,
+			// @DOCLINE `@NLFT`: the call to create the window failed.
 			MUCOSA_FAILED_CREATE_WINDOW,
+			// @DOCLINE `@NLFT`: the function given to the window creation function returned a bad value.
 			MUCOSA_FAILED_LOAD_FUNCTIONS,
-			MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER, // Not fatal
+			// @DOCLINE `@NLFT`: the OpenGL context could not be created.
 			MUCOSA_FAILED_CREATE_OPENGL_CONTEXT,
+			// @DOCLINE `@NLFT`: the created OpenGL context could not be loaded or made the current OpenGL context.
 			MUCOSA_FAILED_LOAD_OPENGL_CONTEXT,
-			MUCOSA_FAILED_USE_PIXEL_FORMAT, // Not fatal
-			MUCOSA_FAILED_JOIN_THREAD,
+			// @DOCLINE `@NLFT`: a thread necessary to perform the task could not be created.
 			MUCOSA_FAILED_CREATE_THREAD,
+			// @DOCLINE `@NLFT`: an input method for text input could not be created. This is X11 exclusive.
 			MUCOSA_FAILED_CREATE_INPUT_METHOD, // (X11)
+			// @DOCLINE `@NLFT`: the input styles for text input could not be retrieved. This is X11 exclusive.
 			MUCOSA_FAILED_GET_INPUT_STYLES, // (X11)
+			// @DOCLINE `@NLFT`: a compatible input style for muCOSA's API for text input could not be created. This is X11 exclusive.
 			MUCOSA_FAILED_FIND_COMPATIBLE_INPUT_STYLE, // (X11)
+			// @DOCLINE `@NLFT`: the input context for text input could not be created. This is X11 exclusive.
 			MUCOSA_FAILED_CREATE_INPUT_CONTEXT, // (X11)
+			// @DOCLINE `@NLFT`: the window class necessary to create a window could not be registered. This is Win32 exclusive.
 			MUCOSA_FAILED_REGISTER_WINDOW_CLASS, // (Win32)
+			// @DOCLINE `@NLFT`: a string conversion from UTF-8 to wide-character necessary to perform the task could not be performed. This is Win32 exclusive.
 			MUCOSA_FAILED_CONVERT_UTF8_TO_WCHAR, // (Win32)
+			// @DOCLINE `@NLFT`: a string conversion from wide-character to UTF-8 necessary to perform the task could not be performed. This is Win32 exclusive.
 			MUCOSA_FAILED_CONVERT_WCHAR_TO_UTF8, // (Win32)
+			// @DOCLINE `@NLFT`: the temporary WGL window class necessary to create a valid WGL context could not be registered. This is Win32 exclusive.
 			MUCOSA_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS, // (Win32)
+			// @DOCLINE `@NLFT`: the temporary WGL window necessary to create a valid WGL context could not be created. This is Win32 exclusive.
 			MUCOSA_FAILED_CREATE_DUMMY_WGL_WINDOW, // (Win32)
+			// @DOCLINE `@NLFT`: a compatible pixel format for OpenGL could not be found. This is Win32 exclusive.
 			MUCOSA_FAILED_FIND_COMPATIBLE_PIXEL_FORMAT, // (Win32)
+			// @DOCLINE `@NLFT`: the pixel format for OpenGL could not be described. This is Win32 exclusive.
 			MUCOSA_FAILED_DESCRIBE_PIXEL_FORMAT, // (Win32)
+			// @DOCLINE `@NLFT`: the pixel format for OpenGL could not be set. This is Win32 exclusive.
 			MUCOSA_FAILED_SET_PIXEL_FORMAT, // (Win32)
+			// @DOCLINE `@NLFT`: the requested information about the window could not be retrieved at the current moment. This is Win32 exclusive.
 			MUCOSA_FAILED_QUERY_WINDOW_INFO, // (Win32)
+			// @DOCLINE `@NLFT`: the requested information about the window could be set at the current moment. This is Win32 exclusive.
 			MUCOSA_FAILED_SET_WINDOW_INFO, // (Win32)
+			// @DOCLINE `@NLFT`: the IME context could not be associated with the given window. This is Win32 exclusive.
 			MUCOSA_FAILED_ASSOCIATE_IME_CONTEXT, // (Win32)
-			MUCOSA_FAILED_LET_IMM_CONTEXT, // (Win32)
+			// @DOCLINE `@NLFT`: global memory necessary to perform the task could not be allocated. This is Win32 exclusive.
 			MUCOSA_FAILED_GLOBAL_ALLOCATION, // (Win32)
+			// @DOCLINE `@NLFT`: global memory necessary to perform the task could not be locked. This is Win32 exclusive.
 			MUCOSA_FAILED_GLOBAL_LOCK, // (Win32)
+			// @DOCLINE `@NLFT`: the clipboard could not be held successfully. This is Win32 exclusive.
 			MUCOSA_FAILED_HOLD_CLIPBOARD, // (Win32)
+			// @DOCLINE `@NLFT`: the clipboard could not be set successfully. This is Win32 exclusive.
 			MUCOSA_FAILED_SET_CLIPBOARD, // (Win32)
 
+			// @DOCLINE `@NLFT`: the min/max booleans specified in the window create info struct are invalid or don't make sense.
 			MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS,
+			// @DOCLINE `@NLFT`: the min/max dimensions specified are invalid or don't make sense.
 			MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS,
-			MUCOSA_INVALID_ID,
+			// @DOCLINE `@NLFT`: the sample count given is invalid; it must be a positive power of two with a maximum value of 16.
 			MUCOSA_INVALID_SAMPLE_COUNT,
-			MUCOSA_INVALID_DIMENSIONS, // Often caused by width/height being outside of min/max width/height
-			MUCOSA_INVALID_POINTER, // Like if you pass in a null pointer when a real pointer is
-			// expected.
-			MUCOSA_INVALID_WINDOW_STATE, // For example, when you try to focus a window that is
-			// invisible or minimized in X11 (but only sometimes, IT'S COMPLICATED).
-			MUCOSA_INVALID_TIME, // Like if you try passing a negative value to sleep for example.
+			// @DOCLINE `@NLFT`: the state of the window is invalid to perform the given task.
+			MUCOSA_INVALID_WINDOW_STATE,
 
-			MUCOSA_NONEXISTENT_DEVICE, // For example, you requested the position of the cursor,
-			// but there is no cursor. For whatever reason, lmao.
+			// @DOCLINE `@NLFT`: a device necessary to perform the task is not available.
+			MUCOSA_NONEXISTENT_DEVICE,
 
-			MUCOSA_OVERSIZED_CLIPBOARD, // Clipboard was too big to copy. As of right now, on X11,
-			// this is triggered by INCR not being implemented, which is my bad and should be done
-			// at some point.
-
-			MUCOSA_WINDOW_NON_RESIZABLE,
+			// @DOCLINE `@NLFT`: the clipboard was too large to perform the task necessary. This can occur on X11 with reasonable clipboard sizes due to INCR not being implemented at this moment.
+			MUCOSA_OVERSIZED_CLIPBOARD,
 		)
+		// @DOCLINE Unless specified otherwise above, if the result of a function does not equal `MUCOSA_SUCCESS`, whatever the function was supposed to do failed, and it will be as if the function was never called (meaning the function call had no permanent effect).
 
 		MU_ENUM(muWindowSystem,
+			/* @DOCBEGIN
+			## Window system
+			
+			The enum `muWindowSystem` defines a window system. It has these possible values:
+
+			@DOCEND */
+			// @DOCLINE `@NLFT`: an unknown window system.
 			MU_WINDOW_SYSTEM_UNKNOWN,
 
+			// @DOCLINE `@NLFT`: choose the window system automatically.
 			MU_WINDOW_SYSTEM_AUTO,
+			// @DOCLINE `@NLFT`: the [X11 window system](https://en.wikipedia.org/wiki/X_Window_System).
 			MU_WINDOW_SYSTEM_X11,
+			// @DOCLINE `@NLFT`: the [Win32 Windows API](https://en.wikipedia.org/wiki/Windows_API#Major_versions).
 			MU_WINDOW_SYSTEM_WIN32,
 		)
 
 		MU_ENUM(muWindowHandle,
+			// @DOCLINE ## Window handle
+			// @DOCLINE The enum `muWindowHandle` defines a window handle. It has these possible values:
+
+			// @DOCLINE `@NLFT`: Win32's [HWND](https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types#HWND).
 			MU_WINDOWS_HWND,
+			// @DOCLINE `@NLFT`: a pointer to X11's [Display](https://tronche.com/gui/x/xlib/display/opening.html#Display).
 			MU_X11_DISPLAY,
+			// @DOCLINE `@NLFT`: X11's [Window](https://tronche.com/gui/x/xlib/window/).
 			MU_X11_WINDOW,
+			// @DOCLINE `@NLFT`: X11's [parent Window](https://tronche.com/gui/x/xlib/window-information/XQueryTree.html).
 			MU_X11_PARENT_WINDOW,
 		)
 
 		MU_ENUM(muGraphicsAPI,
+			// @DOCLINE ## Graphics API
+			// @DOCLINE The enum `muGraphicsAPI` defines a graphics API. It has these possible values:
+
+			// @DOCLINE `@NLFT`: no graphics API.
 			MU_NO_GRAPHICS_API,
 
+			// @DOCLINE `@NLFT`: [OpenGL v1.0](https://registry.khronos.org/OpenGL/specs/gl/glspec10.pdf).
 			MU_OPENGL_1_0,
+			// @DOCLINE `@NLFT`: [OpenGL v1.1](https://registry.khronos.org/OpenGL/specs/gl/glspec11.pdf).
 			MU_OPENGL_1_1,
+			// @DOCLINE `@NLFT`: [OpenGL v1.2](https://registry.khronos.org/OpenGL/specs/gl/glspec121.pdf).
 			MU_OPENGL_1_2,
+			// @DOCLINE `@NLFT`: [OpenGL v1.2.1](https://registry.khronos.org/OpenGL/specs/gl/glspec121.pdf).
 			MU_OPENGL_1_2_1,
+			// @DOCLINE `@NLFT`: [OpenGL v1.3](https://registry.khronos.org/OpenGL/specs/gl/glspec13.pdf).
 			MU_OPENGL_1_3,
+			// @DOCLINE `@NLFT`: [OpenGL v1.4](https://registry.khronos.org/OpenGL/specs/gl/glspec14.pdf).
 			MU_OPENGL_1_4,
+			// @DOCLINE `@NLFT`: [OpenGL v1.5](https://registry.khronos.org/OpenGL/specs/gl/glspec15.pdf).
 			MU_OPENGL_1_5,
+			// @DOCLINE `@NLFT`: [OpenGL v2.0](https://registry.khronos.org/OpenGL/specs/gl/glspec20.pdf).
 			MU_OPENGL_2_0,
+			// @DOCLINE `@NLFT`: [OpenGL v2.1](https://registry.khronos.org/OpenGL/specs/gl/glspec21.pdf).
 			MU_OPENGL_2_1,
+			// @DOCLINE `@NLFT`: [OpenGL v3.0](https://registry.khronos.org/OpenGL/specs/gl/glspec30.pdf).
 			MU_OPENGL_3_0,
+			// @DOCLINE `@NLFT`: [OpenGL v3.1](https://registry.khronos.org/OpenGL/specs/gl/glspec31.pdf).
 			MU_OPENGL_3_1,
+			// @DOCLINE `@NLFT`: [OpenGL v3.2 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec32.core.pdf).
 			MU_OPENGL_3_2_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v3.2 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec32.compatibility.pdf).
 			MU_OPENGL_3_2_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v3.3 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec33.core.pdf).
 			MU_OPENGL_3_3_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v3.3 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec33.compatibility.pdf).
 			MU_OPENGL_3_3_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v4.0 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec40.core.pdf).
 			MU_OPENGL_4_0_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v4.0 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec40.compatibility.pdf).
 			MU_OPENGL_4_0_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v4.1 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec41.core.pdf).
 			MU_OPENGL_4_1_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v4.1 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec41.compatibility.pdf).
 			MU_OPENGL_4_1_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v4.2 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec42.core.pdf).
 			MU_OPENGL_4_2_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v4.2 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec42.compatibility.pdf).
 			MU_OPENGL_4_2_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v4.3 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec43.core.pdf).
 			MU_OPENGL_4_3_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v4.3 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec43.compatibility.pdf).
 			MU_OPENGL_4_3_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v4.4 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec44.core.pdf).
 			MU_OPENGL_4_4_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v4.4 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec44.compatibility.pdf).
 			MU_OPENGL_4_4_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v4.5 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec45.core.pdf).
 			MU_OPENGL_4_5_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v4.5 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec45.compatibility.pdf).
 			MU_OPENGL_4_5_COMPATIBILITY,
+			// @DOCLINE `@NLFT`: [OpenGL v4.6 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf).
 			MU_OPENGL_4_6_CORE,
+			// @DOCLINE `@NLFT`: [OpenGL v4.6 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec46.compatibility.pdf).
 			MU_OPENGL_4_6_COMPATIBILITY
 		)
+		// @DOCLINE The macros `MUCOSA_OPENGL_FIRST` and `MUCOSA_OPENGL_LAST` are also used to define the first and last valid graphics APIs (those being `MU_OPENGL_1_0` and `MU_OPENGL_4_6_COMPATIBILITY` respectively).
 		#define MUCOSA_OPENGL_FIRST MU_OPENGL_1_0
 		#define MUCOSA_OPENGL_LAST MU_OPENGL_4_6_COMPATIBILITY
-
+	
 		MU_ENUM(muCursorStyle,
+			// @DOCLINE ## Cursor style
+			// @DOCLINE The enum `muCursorStyle` defines what a cursor looks like. It has these possible values:
+
+			// @DOCLINE `@NLFT`: unknown cursor style.
 			MU_CURSOR_STYLE_UNKNOWN=0,
 
-			// Taken from LÖVE
-			// https://love2d.org/wiki/CursorType
-			// @TODO Add invisible
+			// @DOCLINE `@NLFT`: undefined cursor style.
 			MU_CURSOR_STYLE_DEFAULT,
+			// @DOCLINE `@NLFT`: the normal arrow-looking cursor style (equivalent to `IDC_ARROW` in Win32).
 			MU_CURSOR_STYLE_ARROW,
+			// @DOCLINE `@NLFT`: the text-select cursor style (equivalent to `IDC_IBEAM` in Win32).
 			MU_CURSOR_STYLE_IBEAM,
+			// @DOCLINE `@NLFT`: the waiting/busy/loading cursor style (equivalent to `IDC_WAIT` in Win32).
 			MU_CURSOR_STYLE_WAIT,
+			// @DOCLINE `@NLFT`: the waiting/busy/loading cursor style but with the arrow cursor as well (equivalent to `IDC_APPSTARTING` in Win32).
 			MU_CURSOR_STYLE_WAIT_ARROW,
+			// @DOCLINE `@NLFT`: the crosshair cursor style (equivalent to `IDC_CROSS` in Win32).
 			MU_CURSOR_STYLE_CROSSHAIR,
+			// @DOCLINE `@NLFT`: the finger-pointing/link-select cursor style (equivalent to `IDC_HAND` in Win32).
 			MU_CURSOR_STYLE_HAND,
+			// @DOCLINE `@NLFT`: the resize cursor style, pointing left to right (equivalent to `IDC_SIZEWE` in Win32).
 			MU_CURSOR_STYLE_SIZE_EAST_WEST,
+			// @DOCLINE `@NLFT`: the resize cursor style, pointing up to down (equivalent to `IDC_SIZENS` in Win32).
 			MU_CURSOR_STYLE_SIZE_NORTH_SOUTH,
+			// @DOCLINE `@NLFT`: the resize cursor style, pointing top-right to bottom-left (equivalent to `IDC_SIZENESW` in Win32).
 			MU_CURSOR_STYLE_SIZE_NORTH_EAST_SOUTH_WEST,
+			// @DOCLINE `@NLFT`: the resize cursor style, pointing top-left to bottom-right (equivalent to `IDC_SIZENWSE` in Win32).
 			MU_CURSOR_STYLE_SIZE_NORTH_WEST_SOUTH_EAST,
+			// @DOCLINE `@NLFT`: the move/resize-all cursor style, pointing in all directions (equivalent to `IDC_SIZEALL` in Win32).
 			MU_CURSOR_STYLE_SIZE_ALL,
+			// @DOCLINE `@NLFT`: the disallowing/error/not-allowed cursor style (equivalent to `IDC_NO` in Win32).
 			MU_CURSOR_STYLE_NO
 		)
 
 		MU_ENUM(muKeyboardKey,
+			// @DOCLINE ## Keyboard key
+			// @DOCLINE The enum `muKeyboardKey` defines a keyboard key. It has these possible values:
+
+			// @DOCLINE `@NLFT`: unknown key.
 			MU_KEYBOARD_KEY_UNKNOWN,
 
-			// Note: this list is by no means complete;
-			// missing many basic ASCII characters like:
-			// ~ \ [] ; . /
-			// Plan to add more later.
-
+			// @DOCLINE `@NLFT`: the [backspace key](https://en.wikipedia.org/wiki/Backspace).
 			MU_KEYBOARD_KEY_BACKSPACE,
+			// @DOCLINE `@NLFT`: the [tab key](https://en.wikipedia.org/wiki/Tab_key).
 			MU_KEYBOARD_KEY_TAB,
+			// @DOCLINE `@NLFT`: the [clear key](https://en.wikipedia.org/wiki/Clear_key).
 			MU_KEYBOARD_KEY_CLEAR,
+			// @DOCLINE `@NLFT`: the [return key](https://en.wikipedia.org/wiki/Return_key).
 			MU_KEYBOARD_KEY_RETURN,
+			// @DOCLINE `@NLFT`: the [pause key](https://en.wikipedia.org/wiki/Pause_key).
 			MU_KEYBOARD_KEY_PAUSE,
+			// @DOCLINE `@NLFT`: the [escape key](https://en.wikipedia.org/wiki/Escape_key).
 			MU_KEYBOARD_KEY_ESCAPE,
+			// @DOCLINE `@NLFT`: the [modechange key](https://en.wikipedia.org/wiki/Language_input_keys).
 			MU_KEYBOARD_KEY_MODECHANGE,
+			// @DOCLINE `@NLFT`: the [space key](https://en.wikipedia.org/wiki/Space_bar).
 			MU_KEYBOARD_KEY_SPACE,
+			// @DOCLINE `@NLFT`: the [page up key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
 			MU_KEYBOARD_KEY_PRIOR,
+			// @DOCLINE `@NLFT`: the [page down key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
 			MU_KEYBOARD_KEY_NEXT,
+			// @DOCLINE `@NLFT`: the [end key](https://en.wikipedia.org/wiki/End_key).
 			MU_KEYBOARD_KEY_END,
+			// @DOCLINE `@NLFT`: the [home key](https://en.wikipedia.org/wiki/Home_key).
 			MU_KEYBOARD_KEY_HOME,
+			// @DOCLINE `@NLFT`: the [left key](https://en.wikipedia.org/wiki/Arrow_keys).
 			MU_KEYBOARD_KEY_LEFT,
+			// @DOCLINE `@NLFT`: the [up key](https://en.wikipedia.org/wiki/Arrow_keys).
 			MU_KEYBOARD_KEY_UP,
+			// @DOCLINE `@NLFT`: the [right key](https://en.wikipedia.org/wiki/Arrow_keys).
 			MU_KEYBOARD_KEY_RIGHT,
+			// @DOCLINE `@NLFT`: the [down key](https://en.wikipedia.org/wiki/Arrow_keys).
 			MU_KEYBOARD_KEY_DOWN,
+			// @DOCLINE `@NLFT`: the [select key](https://stackoverflow.com/questions/23995537/what-is-the-select-key).
 			MU_KEYBOARD_KEY_SELECT,
+			// @DOCLINE `@NLFT`: the [print key](https://en.wikipedia.org/wiki/Print_Screen).
 			MU_KEYBOARD_KEY_PRINT,
+			// @DOCLINE `@NLFT`: the execute key.
 			MU_KEYBOARD_KEY_EXECUTE,
+			// @DOCLINE `@NLFT`: the [insert key](https://en.wikipedia.org/wiki/Insert_key).
 			MU_KEYBOARD_KEY_INSERT,
+			// @DOCLINE `@NLFT`: the [delete key](https://en.wikipedia.org/wiki/Delete_key).
 			MU_KEYBOARD_KEY_DELETE,
+			// @DOCLINE `@NLFT`: the [help key](https://en.wikipedia.org/wiki/Help_key).
 			MU_KEYBOARD_KEY_HELP,
+			// @DOCLINE `@NLFT`: the [0 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_0,
+			// @DOCLINE `@NLFT`: the [1 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_1,
+			// @DOCLINE `@NLFT`: the [2 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_2,
+			// @DOCLINE `@NLFT`: the [3 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_3,
+			// @DOCLINE `@NLFT`: the [4 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_4,
+			// @DOCLINE `@NLFT`: the [5 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_5,
+			// @DOCLINE `@NLFT`: the [6 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_6,
+			// @DOCLINE `@NLFT`: the [7 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_7,
+			// @DOCLINE `@NLFT`: the [8 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_8,
+			// @DOCLINE `@NLFT`: the [9 key](https://en.wikipedia.org/wiki/Numerical_digit).
 			MU_KEYBOARD_KEY_9,
+			// @DOCLINE `@NLFT`: the [A key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_A,
+			// @DOCLINE `@NLFT`: the [B key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_B,
+			// @DOCLINE `@NLFT`: the [C key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_C,
+			// @DOCLINE `@NLFT`: the [D key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_D,
+			// @DOCLINE `@NLFT`: the [E key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_E,
+			// @DOCLINE `@NLFT`: the [F key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_F,
+			// @DOCLINE `@NLFT`: the [G key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_G,
+			// @DOCLINE `@NLFT`: the [H key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_H,
+			// @DOCLINE `@NLFT`: the [I key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_I,
+			// @DOCLINE `@NLFT`: the [J key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_J,
+			// @DOCLINE `@NLFT`: the [K key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_K,
+			// @DOCLINE `@NLFT`: the [L key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_L,
+			// @DOCLINE `@NLFT`: the [M key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_M,
+			// @DOCLINE `@NLFT`: the [N key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_N,
+			// @DOCLINE `@NLFT`: the [O key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_O,
+			// @DOCLINE `@NLFT`: the [P key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_P,
+			// @DOCLINE `@NLFT`: the [Q key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_Q,
+			// @DOCLINE `@NLFT`: the [R key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_R,
+			// @DOCLINE `@NLFT`: the [S key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_S,
+			// @DOCLINE `@NLFT`: the [T key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_T,
+			// @DOCLINE `@NLFT`: the [U key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_U,
+			// @DOCLINE `@NLFT`: the [V key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_V,
+			// @DOCLINE `@NLFT`: the [W key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_W,
+			// @DOCLINE `@NLFT`: the [X key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_X,
+			// @DOCLINE `@NLFT`: the [Y key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_Y,
+			// @DOCLINE `@NLFT`: the [Z key](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys).
 			MU_KEYBOARD_KEY_Z,
+			// @DOCLINE `@NLFT`: the left [Windows](https://en.wikipedia.org/wiki/Windows_key)/[super](https://en.wikipedia.org/wiki/Super_key_(keyboard_button))/[command](https://en.wikipedia.org/wiki/Command_key) key.
 			MU_KEYBOARD_KEY_LEFT_WINDOWS,
+			// @DOCLINE `@NLFT`: the right [Windows](https://en.wikipedia.org/wiki/Windows_key)/[super](https://en.wikipedia.org/wiki/Super_key_(keyboard_button))/[command](https://en.wikipedia.org/wiki/Command_key) key.
 			MU_KEYBOARD_KEY_RIGHT_WINDOWS,
+			// @DOCLINE `@NLFT`: the [0 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_0,
+			// @DOCLINE `@NLFT`: the [1 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_1,
+			// @DOCLINE `@NLFT`: the [2 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_2,
+			// @DOCLINE `@NLFT`: the [3 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_3,
+			// @DOCLINE `@NLFT`: the [4 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_4,
+			// @DOCLINE `@NLFT`: the [5 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_5,
+			// @DOCLINE `@NLFT`: the [6 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_6,
+			// @DOCLINE `@NLFT`: the [7 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_7,
+			// @DOCLINE `@NLFT`: the [8 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_8,
+			// @DOCLINE `@NLFT`: the [9 numpad key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_NUMPAD_9,
+			// @DOCLINE `@NLFT`: the [multiply key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_MULTIPLY,
+			// @DOCLINE `@NLFT`: the [add key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_ADD,
+			// @DOCLINE `@NLFT`: the [separator key](https://stackoverflow.com/questions/67916923/what-physical-key-maps-to-keycode-108-vk-separator).
 			MU_KEYBOARD_KEY_SEPARATOR,
+			// @DOCLINE `@NLFT`: the [subtract key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_SUBTRACT,
+			// @DOCLINE `@NLFT`: the [decimal key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_DECIMAL,
+			// @DOCLINE `@NLFT`: the [divide key](https://en.wikipedia.org/wiki/Numeric_keypad).
 			MU_KEYBOARD_KEY_DIVIDE,
+			// @DOCLINE `@NLFT`: the [F1 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F1,
+			// @DOCLINE `@NLFT`: the [F2 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F2,
+			// @DOCLINE `@NLFT`: the [F3 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F3,
+			// @DOCLINE `@NLFT`: the [F4 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F4,
+			// @DOCLINE `@NLFT`: the [F5 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F5,
+			// @DOCLINE `@NLFT`: the [F6 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F6,
+			// @DOCLINE `@NLFT`: the [F7 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F7,
+			// @DOCLINE `@NLFT`: the [F8 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F8,
+			// @DOCLINE `@NLFT`: the [F9 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F9,
+			// @DOCLINE `@NLFT`: the [F10 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F10,
+			// @DOCLINE `@NLFT`: the [F11 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F11,
+			// @DOCLINE `@NLFT`: the [F12 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F12,
+			// @DOCLINE `@NLFT`: the [F13 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F13,
+			// @DOCLINE `@NLFT`: the [F14 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F14,
+			// @DOCLINE `@NLFT`: the [F15 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F15,
+			// @DOCLINE `@NLFT`: the [F16 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F16,
+			// @DOCLINE `@NLFT`: the [F17 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F17,
+			// @DOCLINE `@NLFT`: the [F18 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F18,
+			// @DOCLINE `@NLFT`: the [F19 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F19,
+			// @DOCLINE `@NLFT`: the [F20 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F20,
+			// @DOCLINE `@NLFT`: the [F21 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F21,
+			// @DOCLINE `@NLFT`: the [F22 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F22,
+			// @DOCLINE `@NLFT`: the [F23 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F23,
+			// @DOCLINE `@NLFT`: the [F24 key](https://en.wikipedia.org/wiki/Function_key).
 			MU_KEYBOARD_KEY_F24,
+			// @DOCLINE `@NLFT`: the [Num Lock key](https://en.wikipedia.org/wiki/Num_Lock).
 			MU_KEYBOARD_KEY_NUMLOCK,
+			// @DOCLINE `@NLFT`: the [Scroll Lock key](https://en.wikipedia.org/wiki/Scroll_Lock).
 			MU_KEYBOARD_KEY_SCROLL,
+			// @DOCLINE `@NLFT`: the [left shift key](https://en.wikipedia.org/wiki/Shift_key).
 			MU_KEYBOARD_KEY_LEFT_SHIFT,
+			// @DOCLINE `@NLFT`: the [right shift key](https://en.wikipedia.org/wiki/Shift_key).
 			MU_KEYBOARD_KEY_RIGHT_SHIFT,
+			// @DOCLINE `@NLFT`: the [left control key](https://en.wikipedia.org/wiki/Control_key).
 			MU_KEYBOARD_KEY_LEFT_CONTROL,
+			// @DOCLINE `@NLFT`: the [right control key](https://en.wikipedia.org/wiki/Control_key).
 			MU_KEYBOARD_KEY_RIGHT_CONTROL,
+			// @DOCLINE `@NLFT`: the [left menu key](https://en.wikipedia.org/wiki/Menu_key).
 			MU_KEYBOARD_KEY_LEFT_MENU,
+			// @DOCLINE `@NLFT`: the [right menu key](https://en.wikipedia.org/wiki/Menu_key).
 			MU_KEYBOARD_KEY_RIGHT_MENU,
+			// @DOCLINE `@NLFT`: the [ATTN key](https://www.ibm.com/support/pages/apar/II04992).
 			MU_KEYBOARD_KEY_ATTN,
+			// @DOCLINE `@NLFT`: the [CRSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
 			MU_KEYBOARD_KEY_CRSEL,
+			// @DOCLINE `@NLFT`: the [EXSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
 			MU_KEYBOARD_KEY_EXSEL,
+			// @DOCLINE `@NLFT`: the [EREOF key](https://www.ibm.com/docs/en/wsfz-and-o/1.1?topic=descriptions-ereof-erase-end-field-key-statement).
 			MU_KEYBOARD_KEY_EREOF,
+			// @DOCLINE `@NLFT`: the play key.
 			MU_KEYBOARD_KEY_PLAY,
+			// @DOCLINE `@NLFT`: the [PA1 key](https://www.ibm.com/docs/en/zos-basic-skills?topic=ispf-keyboard-keys-functions).
 			MU_KEYBOARD_KEY_PA1,
 		)
+		// @DOCLINE The macros `MU_KEYBOARD_KEY_FIRST` and `MU_KEYBOARD_KEY_LAST` are also used to define the first and last valid keyboard keys (those being `MU_KEYBOARD_KEY_BACKSPACE` and `MU_KEYBOARD_KEY_PA1` respectively).
 		#define MU_KEYBOARD_KEY_FIRST MU_KEYBOARD_KEY_BACKSPACE
 		#define MU_KEYBOARD_KEY_LAST MU_KEYBOARD_KEY_PA1
+		// @DOCLINE Note that this list is by no means exhaustive, and is even missing some basic keys like the semicolon key (in which case, the only realistic way of getting input would be to use text input, which is not a very good idea considering that it causes virtual keyboards to appear); I plan to add more keys later.
 
 		MU_ENUM(muKeyboardState,
+			// @DOCLINE ## Keyboard state
+			// @DOCLINE The enum `muKeyboardState` defines a keyboard state. It has these possible values:
+
+			// @DOCLINE `@NLFT`: unknown keyboard state.
 			MU_KEYBOARD_STATE_UNKNOWN,
 
+			// @DOCLINE `@NLFT`: [caps lock state](https://en.wikipedia.org/wiki/Caps_Lock).
 			MU_KEYBOARD_STATE_CAPS_LOCK,
+			// @DOCLINE `@NLFT`: [scroll lock state](https://en.wikipedia.org/wiki/Scroll_Lock).
 			MU_KEYBOARD_STATE_SCROLL_LOCK,
+			// @DOCLINE `@NLFT`: [num lock state](https://en.wikipedia.org/wiki/Num_Lock).
 			MU_KEYBOARD_STATE_NUM_LOCK,
 		)
+		// @DOCLINE The macros `MU_KEYBOARD_STATE_FIRST` and `MU_KEYBOARD_STATE_LAST` are also used to define the first and last valid keyboard states (those being `MU_KEYBOARD_STATE_CAPS_LOCK` and `MU_KEYBOARD_STATE_NUM_LOCK` respectively).
 		#define MU_KEYBOARD_STATE_FIRST MU_KEYBOARD_STATE_CAPS_LOCK
 		#define MU_KEYBOARD_STATE_LAST MU_KEYBOARD_STATE_NUM_LOCK
 
 		MU_ENUM(muMouseButton,
+			// @DOCLINE ## Mouse button
+			// @DOCLINE The enum `muMouseButton` defines a [mouse button](https://en.wikipedia.org/wiki/Mouse_button). It has these possible values:
+
+			// @DOCLINE `@NLFT`: unknown mouse button.
 			MU_MOUSE_BUTTON_UNKNOWN,
 
+			// @DOCLINE `@NLFT`: left mouse button.
 			MU_MOUSE_BUTTON_LEFT,
+			// @DOCLINE `@NLFT`: right mouse button.
 			MU_MOUSE_BUTTON_RIGHT,
+			// @DOCLINE `@NLFT`: middle mouse button.
 			MU_MOUSE_BUTTON_MIDDLE,
 		)
+		// @DOCLINE The macros `MU_MOUSE_BUTTON_FIRST` and `MU_MOUSE_BUTTON_LAST` are also used to define the first and last valid mouse buttons (those being `MU_MOUSE_BUTTON_LEFT` and `MU_MOUSE_BUTTON_MIDDLE` respectively).
 		#define MU_MOUSE_BUTTON_FIRST MU_MOUSE_BUTTON_LEFT
 		#define MU_MOUSE_BUTTON_LAST MU_MOUSE_BUTTON_MIDDLE
 
-	/* Structs */
+	// @DOCLINE # Structs
 
-		struct muCOSAContext {
-			muCOSAResult result;
+		// @DOCLINE ## Context
 
-			void* inner;
-		};
+			// @DOCLINE The struct `muCOSAContext` is used to reference a muCOSA context. It has one member, `result` (of type `muCOSAResult`), that represents the result of the latest non-explicit result-checking function call.
+			struct muCOSAContext {
+				muCOSAResult result;
 
-		struct muPixelFormat {
-			uint16_m red_bits;
-			uint16_m green_bits;
-			uint16_m blue_bits;
-			uint16_m alpha_bits;
-
-			uint16_m depth_bits;
-			uint16_m stencil_bits;
-
-			uint8_m samples; // Max: 16, must be a power of 2
-		};
-		typedef struct muPixelFormat muPixelFormat;
-
-		struct muWindowCreateInfo {
-			muPixelFormat pixel_format;
-
-			muBool visible;
-			muBool resizable;
-
-			muBool minimized;
-			muBool maximized;
-
-			int32_m x;
-			int32_m y;
-
-			uint32_m min_width;
-			uint32_m min_height;
-			uint32_m max_width;
-			uint32_m max_height;
-
-			muCursorStyle cursor_style; // <-- Not permanant, only existing as the style first used upon the window's creation
-
-			void (*dimensions_callback)(muWindow window, uint32_m width, uint32_m height);
-			void (*position_callback)(muWindow window, int32_m x, int32_m y);
-			void (*focus_callback)(muWindow window, muBool focused);
-			void (*maximize_callback)(muWindow window, muBool maximized);
-			void (*minimize_callback)(muWindow window, muBool minimized);
-
-			void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
-			void (*keyboard_state_callback)(muWindow window, muKeyboardState keyboard_state, muState state);
-
-			void (*cursor_position_callback)(muWindow window, int32_m x, int32_m y);
-			void (*mouse_button_callback)(muWindow window, muMouseButton mouse_button, muButtonState state);
-			void (*scroll_callback)(muWindow window, int32_m scroll_level_add);
-		};
-		typedef struct muWindowCreateInfo muWindowCreateInfo;
-
-	/* Functions */
-
-		/* Context */
-
+				void* inner;
+			};
 			typedef struct muCOSAContext muCOSAContext;
+
+		// @DOCLINE ## Pixel format
+
+			// @DOCLINE The struct `muPixelFormat` is used to reference a pixel format. It has the following members:
+
+			struct muPixelFormat {
+				// @DOCLINE `red_bits`: the amount of bits used for the red channel, expressed with the type `uint16_m`. Its default value is 8.
+				uint16_m red_bits;
+				// @DOCLINE `green_bits`: the amount of bits used for the green channel, expressed with the type `uint16_m`. Its default value is 8.
+				uint16_m green_bits;
+				// @DOCLINE `blue_bits`: the amount of bits used for the blue channel, expressed with the type `uint16_m`. Its default value is 8.
+				uint16_m blue_bits;
+				// @DOCLINE `alpha_bits`: the amount of bits used for the alpha channel, expressed with the type `uint16_m`. Its default value is 0.
+				uint16_m alpha_bits;
+
+				// @DOCLINE `depth_bits`: the amount of bits used for the depth channel, expressed with the type `uint16_m`. Its default value is 0.
+				uint16_m depth_bits;
+				// @DOCLINE `stencil_bits`: the amount of bits used for the stencil channel, expressed with the type `uint16_m`. Its default value is 0.
+				uint16_m stencil_bits;
+
+				// @DOCLINE `samples`: the amount of samples used for sampling, expressed with the type `uint8_m`. Its default value is 1. This value must be a power of 2, and its max value is 16.
+				uint8_m samples;
+			};
+			typedef struct muPixelFormat muPixelFormat;
+
+		// @DOCLINE ## Window create info
+
+			// @DOCLINE The struct `muWindowCreateInfo` is used to reference advanced attributes about a window. It has the following members:
+
+			struct muWindowCreateInfo {
+				// @DOCLINE `pixel_format`: the pixel format of the window surface (applies only if the graphics API of the window is not `MU_NO_GRAPHICS_API`), expressed with the type `muPixelFormat`.
+				muPixelFormat pixel_format;
+
+				// @DOCLINE `visible`: a `muBool` representing the window's visibility.
+				muBool visible;
+				// @DOCLINE `resizable`: a `muBool` representing whether or not the window can be resized.
+				muBool resizable;
+
+				// @DOCLINE `minimized`: a `muBool` representing the window's minimized state.
+				muBool minimized;
+				// @DOCLINE `maximized`: a `muBool` representing the window's maximized state.
+				muBool maximized;
+
+				// @DOCLINE `x`: the window's x position, expressed with the type `int32_m`.
+				int32_m x;
+				// @DOCLINE `y`: the window's y position, expressed with the type `int32_m`.
+				int32_m y;
+
+				// @DOCLINE `min_width`: the minimum width of the window, expressed with the type `uint32_m`.
+				uint32_m min_width;
+				// @DOCLINE `min_height`: the minimum height of the window, expressed with the type `uint32_m`.
+				uint32_m min_height;
+				// @DOCLINE `max_width`: the maximum width of the window, expressed with the type `uint32_m`.
+				uint32_m max_width;
+				// @DOCLINE `max_height`: the maximum height of the window, expressed with the type `uint32_m`.
+				uint32_m max_height;
+
+				// @DOCLINE `cursor_style`: the cursor style of the window, expressed with the type `muCursorStyle`. This style is not permanant, only existing as the style first used upon the window's creation.
+				muCursorStyle cursor_style;
+
+				// @DOCLINE `dimensions_callback`: the callback used for changes in the window's dimensions, defined below: @NLNT
+				void (*dimensions_callback)(muWindow window, uint32_m width, uint32_m height);
+				// @DOCLINE `position_callback`: the callback used for changes in the window's position, defined below: @NLNT
+				void (*position_callback)(muWindow window, int32_m x, int32_m y);
+				// @DOCLINE `focus_callback`: the callback used for changes in the window's focused state, defined below: @NLNT
+				void (*focus_callback)(muWindow window, muBool focused);
+				// @DOCLINE `maximize_callback`: the callback used for changes in the window's maximized state, defined below: @NLNT
+				void (*maximize_callback)(muWindow window, muBool maximized);
+				// @DOCLINE `minimize_callback`: the callback used for changes in the window's minimized state, defined below: @NLNT
+				void (*minimize_callback)(muWindow window, muBool minimized);
+
+				// @DOCLINE `keyboard_key_callback`: the callback used for changes in the window's keyboard key states, defined below: @NLNT
+				void (*keyboard_key_callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state);
+				// @DOCLINE `keyboard_state_callback`: the callback used for changes in the window's keyboard state states, defined below: @NLNT
+				void (*keyboard_state_callback)(muWindow window, muKeyboardState keyboard_state, muState state);
+
+				// @DOCLINE `cursor_position_callback`: the callback used for changes in the window's cursor position, defined below: @NLNT
+				void (*cursor_position_callback)(muWindow window, int32_m x, int32_m y);
+				// @DOCLINE `mouse_button_callback`: the callback used for changes in the window's mouse button states, defined below: @NLNT
+				void (*mouse_button_callback)(muWindow window, muMouseButton mouse_button, muButtonState state);
+				// @DOCLINE `scroll_callback`: the callback used for changes in the window's scroll level, defined below: @NLNT
+				void (*scroll_callback)(muWindow window, int32_m scroll_level_add);
+			};
+			typedef struct muWindowCreateInfo muWindowCreateInfo;
+
+	// @DOCLINE # Functions
+
+		// @DOCLINE ## Context functions
+
 			MUDEF muCOSAContext* muCOSA_global_context;
 
-			// Note: result of these are stored within muCOSAContext->result
-			MUDEF void muCOSA_context_create(muCOSAContext* context, muWindowSystem system, muBool set_context);
-			MUDEF void muCOSA_context_destroy(muCOSAContext* context);
+			// @DOCLINE ### Creation and destruction
 
-			MUDEF void muCOSA_context_set(muCOSAContext* context);
+				// @DOCLINE #### Creation
 
-			MUDEF muWindowSystem muCOSA_context_get_window_system(muCOSAContext* context);
+					// @DOCLINE The function `muCOSA_context_create` creates a context, defined below: @NLNT
+					MUDEF void muCOSA_context_create(muCOSAContext* context, muWindowSystem system, muBool set_context);
+					// @DOCLINE Note that the result of this function is stored within `context->result`.
+					// @DOCLINE Note that, upon success, this function automatically calls `muCOSA_context_create` on the created context unless `set_context` is equal to `MU_FALSE`.
 
-		/* Window */
+				// @DOCLINE #### Destruction
 
-			/* Creation / Destruction */
+					// @DOCLINE The function `muCOSA_context_destroy` destroys a context, defined below: @NLNT
+					MUDEF void muCOSA_context_destroy(muCOSAContext* context);
+					// @DOCLINE Note that this function cannot fail.
 
-				MUDEF muWindowCreateInfo mu_window_default_create_info(void);
+			// @DOCLINE ### Context setting
 
-				MUDEF muWindow muCOSA_window_create(muCOSAContext* context, muCOSAResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info);
-				#define mu_window_create(...) muCOSA_window_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_create_(result, ...) muCOSA_window_create(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE The function `muCOSA_context_set` sets the global context to the given context, defined below: @NLNT
+				MUDEF void muCOSA_context_set(muCOSAContext* context);
+				// @DOCLINE Note that this function can be automatically called on a created context with the function `muCOSA_context_create`.
+				// @DOCLINE Note that the global context can also be accessed manually via the global variable `muCOSA_global_context`, although this is not recommended.
 
-				MUDEF muWindow muCOSA_window_destroy(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_destroy(...) muCOSA_window_destroy(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_destroy_(result, ...) muCOSA_window_destroy(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE ### Context window information
 
-			/* Main loop */
+				// @DOCLINE The function `muCOSA_context_get_window_system` retrieves the window system of a given context, defined below: @NLNT
+				MUDEF muWindowSystem muCOSA_context_get_window_system(muCOSAContext* context);
 
-				MUDEF muBool muCOSA_window_get_closed(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_get_closed(...) muCOSA_window_get_closed(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_closed_(result, ...) muCOSA_window_get_closed(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_close(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_close(...) muCOSA_window_close(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_close_(result, ...) muCOSA_window_close_(muCOSA_global_context, result, __VA_ARGS__)
+		// @DOCLINE ## Window functions
 
-				MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_update(...) muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_update_(result, ...) muCOSA_window_update(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_swap_buffers(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_swap_buffers(...) muCOSA_window_swap_buffers(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_swap_buffers_(result, ...) muCOSA_window_swap_buffers(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE ### Creation and destruction
 
-			/* Get / Set */
+				// @DOCLINE #### Default window create info values
 
-				MUDEF muBool muCOSA_window_get_focused(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_get_focused(...) muCOSA_window_get_focused(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_focused_(result, ...) muCOSA_window_get_focused(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_focus(...) muCOSA_window_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_focus_(result, ...) muCOSA_window_focus(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The default values for the `muWindowCreateInfo` struct passed into `mu_window_create` can be retrieved with the function `mu_window_default_create_info`, defined below: @NLNT
+					MUDEF muWindowCreateInfo mu_window_default_create_info(void);
+					// @DOCLINE The values filled in by this function can be found in the "Structs" section.
 
-				MUDEF muBool muCOSA_window_get_visible(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_get_visible(...) muCOSA_window_get_visible(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_visible_(result, ...) muCOSA_window_get_visible(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_visible(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool visible);
-				#define mu_window_set_visible(...) muCOSA_window_set_visible(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_visible_(result, ...) muCOSA_window_set_visible(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Creation
 
-				MUDEF void muCOSA_window_get_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-				#define mu_window_get_position(...) muCOSA_window_get_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_position_(result, ...) muCOSA_window_get_position(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
-				#define mu_window_set_position(...) muCOSA_window_set_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_position_(result, ...) muCOSA_window_set_position(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_create` creates a window, defined below: @NLNT
+					MUDEF muWindow muCOSA_window_create(muCOSAContext* context, muCOSAResult* result, muGraphicsAPI api, muBool (*load_functions)(void), const char* name, uint16_m width, uint16_m height, muWindowCreateInfo create_info);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_create(...) muCOSA_window_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_create_(result, ...) muCOSA_window_create(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void muCOSA_window_get_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height);
-				#define mu_window_get_dimensions(...) muCOSA_window_get_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_dimensions_(result, ...) muCOSA_window_get_dimensions(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m width, uint32_m height);
-				#define mu_window_set_dimensions(...) muCOSA_window_set_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_dimensions_(result, ...) muCOSA_window_set_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Destruction
 
-				MUDEF muBool muCOSA_window_get_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_get_maximized(...) muCOSA_window_get_maximized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_maximized_(result, ...) muCOSA_window_get_maximized(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool maximized);
-				#define mu_window_set_maximized(...) muCOSA_window_set_maximized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_maximized_(result, ...) muCOSA_window_set_maximized(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_destroy` destroys a window, defined below: @NLNT
+					MUDEF muWindow muCOSA_window_destroy(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_destroy(...) muCOSA_window_destroy(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_destroy_(result, ...) muCOSA_window_destroy(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muBool muCOSA_window_get_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_get_minimized(...) muCOSA_window_get_minimized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_minimized_(result, ...) muCOSA_window_get_minimized(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool minimized);
-				#define mu_window_set_minimized(...) muCOSA_window_set_minimized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_minimized_(result, ...) muCOSA_window_set_minimized(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE ### Main loop functions
 
-				MUDEF void muCOSA_window_get_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height);
-				#define mu_window_get_minimum_dimensions(...) muCOSA_window_get_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_minimum_dimensions_(result, ...) muCOSA_window_get_minimum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height);
-				#define mu_window_set_minimum_dimensions(...) muCOSA_window_set_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_minimum_dimensions_(result, ...) muCOSA_window_set_minimum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_get_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height);
-				#define mu_window_get_maximum_dimensions(...) muCOSA_window_get_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_maximum_dimensions_(result, ...) muCOSA_window_get_maximum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height);
-				#define mu_window_set_maximum_dimensions(...) muCOSA_window_set_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_maximum_dimensions_(result, ...) muCOSA_window_set_maximum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Get closed state
 
-				MUDEF void muCOSA_window_get_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
-				#define mu_window_get_cursor_position(...) muCOSA_window_get_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_cursor_position_(result, ...) muCOSA_window_get_cursor_position(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
-				#define mu_window_set_cursor_position(...) muCOSA_window_set_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_cursor_position_(result, ...) muCOSA_window_set_cursor_position(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_get_closed` returns the closed state of the window, defined below: @NLNT
+					MUDEF muBool muCOSA_window_get_closed(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_closed(...) muCOSA_window_get_closed(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_closed_(result, ...) muCOSA_window_get_closed(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muCursorStyle muCOSA_window_get_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_get_cursor_style(...) muCOSA_window_get_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_cursor_style_(result, ...) muCOSA_window_get_cursor_style(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window, muCursorStyle style);
-				#define mu_window_set_cursor_style(...) muCOSA_window_set_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_cursor_style_(result, ...) muCOSA_window_set_cursor_style(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Close window
 
-				MUDEF int32_m muCOSA_window_get_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_get_scroll_level(...) muCOSA_window_get_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_scroll_level_(result, ...) muCOSA_window_get_scroll_level(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m scroll_level);
-				#define mu_window_set_scroll_level(...) muCOSA_window_set_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_scroll_level_(result, ...) muCOSA_window_set_scroll_level(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_close` closes a given window, defined below: @NLNT
+					MUDEF void muCOSA_window_close(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_close(...) muCOSA_window_close(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_close_(result, ...) muCOSA_window_close_(muCOSA_global_context, result, __VA_ARGS__)
 
-			/* Get / Let */
+				// @DOCLINE #### Update
 
-				MUDEF void muCOSA_window_get_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input));
-				#define mu_window_get_text_input_focus(...) muCOSA_window_get_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_text_input_focus_(result, ...) muCOSA_window_get_text_input_focus(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
-				#define mu_window_update_text_cursor(...) muCOSA_window_update_text_cursor(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_update_text_cursor_(result, ...) muCOSA_window_update_text_cursor(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_let_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
-				#define mu_window_let_text_input_focus(...) muCOSA_window_let_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_let_text_input_focus_(result, ...) muCOSA_window_let_text_input_focus(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_update` updates/refreshes a window and triggers all relevant callbacks, defined below: @NLNT
+					MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_update(...) muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_update_(result, ...) muCOSA_window_update(muCOSA_global_context, result, __VA_ARGS__)
 
-			/* Get */
+				// @DOCLINE #### Swap buffers
 
-				MUDEF void muCOSA_window_get_frame_extents(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
-				#define mu_window_get_frame_extents(...) muCOSA_window_get_frame_extents(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_frame_extents_(result, ...) muCOSA_window_get_frame_extents(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_swap_buffers` swaps the image buffers of a given window if the window is associated with a graphics API, defined below: @NLNT
+					MUDEF void muCOSA_window_swap_buffers(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_swap_buffers(...) muCOSA_window_swap_buffers(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_swap_buffers_(result, ...) muCOSA_window_swap_buffers(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF muButtonState muCOSA_window_get_keyboard_key_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardKey key);
-				#define mu_window_get_keyboard_key_state(...) muCOSA_window_get_keyboard_key_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_keyboard_key_state_(result, ...) muCOSA_window_get_keyboard_key_state(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF muState muCOSA_window_get_keyboard_state_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardState state);
-				#define mu_window_get_keyboard_state_state(...) muCOSA_window_get_keyboard_state_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_keyboard_state_state_(result, ...) muCOSA_window_get_keyboard_state_state(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE ### Get/Set window states/properties
 
-				MUDEF muButtonState muCOSA_window_get_mouse_button_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muMouseButton button);
-				#define mu_window_get_mouse_button_state(...) muCOSA_window_get_mouse_button_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_get_mouse_button_state_(result, ...) muCOSA_window_get_mouse_button_state(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Get focused state
 
-			/* Set */
+					// @DOCLINE The function `muCOSA_window_get_focused` gets the focused state of a window, defined below: @NLNT
+					MUDEF muBool muCOSA_window_get_focused(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_focused(...) muCOSA_window_get_focused(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_focused_(result, ...) muCOSA_window_get_focused(muCOSA_global_context, result, __VA_ARGS__)
 
-				MUDEF void muCOSA_window_set_title(muCOSAContext* context, muCOSAResult* result, muWindow window, const char* title);
-				#define mu_window_set_title(...) muCOSA_window_set_title(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_title_(result, ...) muCOSA_window_set_title(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Focus window
 
-				MUDEF void muCOSA_window_set_dimensions_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height));
-				#define mu_window_set_dimensions_callback(...) muCOSA_window_set_dimensions_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_dimensions_callback_(result, ...) muCOSA_window_set_dimensions_callback(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y));
-				#define mu_window_set_position_callback(...) muCOSA_window_set_position_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_position_callback_(result, ...) muCOSA_window_set_position_callback(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_focus_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused));
-				#define mu_window_set_focus_callback(...) muCOSA_window_set_focus_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_focus_callback_(result, ...) muCOSA_window_set_focus_callback(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_maximize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized));
-				#define mu_window_set_maximize_callback(...) muCOSA_window_set_maximize_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_maximize_callback_(result, ...) muCOSA_window_set_maximize_callback(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_minimize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized));
-				#define mu_window_set_minimize_callback(...) muCOSA_window_set_minimize_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_minimize_callback_(result, ...) muCOSA_window_set_minimize_callback(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_focus` focuses a given window, defined below: @NLNT
+					MUDEF void muCOSA_window_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_focus(...) muCOSA_window_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_focus_(result, ...) muCOSA_window_focus(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE Note that due to the nature of how most window systems are built, muCOSA_window_focus is not guaranteed to work at all times, but should at least alert the user to focus on the window.
 
-				MUDEF void muCOSA_window_set_keyboard_key_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
-				#define mu_window_set_keyboard_key_callback(...) muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_keyboard_key_callback_(result, ...) muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_keyboard_state_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
-				#define mu_window_set_keyboard_state_callback(...) muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_keyboard_state_callback_(result, ...) muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Get visibility state
 
-				MUDEF void muCOSA_window_set_cursor_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow win, void (*callback)(muWindow window, int32_m x, int32_m y));
-				#define mu_window_set_cursor_position_callback(...) muCOSA_window_set_cursor_position_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_cursor_position_callback_(result, ...) muCOSA_window_set_cursor_position_callback(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_mouse_button_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state));
-				#define mu_window_set_mouse_button_callback(...) muCOSA_window_set_mouse_button_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_mouse_button_callback_(result, ...) muCOSA_window_set_mouse_button_callback(muCOSA_global_context, result, __VA_ARGS__)
-				MUDEF void muCOSA_window_set_scroll_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add));
-				#define mu_window_set_scroll_callback(...) muCOSA_window_set_scroll_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-				#define mu_window_set_scroll_callback_(result, ...) muCOSA_window_set_scroll_callback(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_get_visible` gets the visible state of a window, defined below: @NLNT
+					MUDEF muBool muCOSA_window_get_visible(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_visible(...) muCOSA_window_get_visible(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_visible_(result, ...) muCOSA_window_get_visible(muCOSA_global_context, result, __VA_ARGS__)
 
-		/* Time */
+				// @DOCLINE #### Set visibility state
 
-			MUDEF double muCOSA_time_get(muCOSAContext* context, muCOSAResult* result);
-			#define mu_time_get() muCOSA_time_get(muCOSA_global_context, &muCOSA_global_context->result)
-			#define mu_time_get_(result) muCOSA_time_get(muCOSA_global_context, result)
+					// @DOCLINE The function `muCOSA_window_set_visible` sets the visible state of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_visible(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool visible);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_visible(...) muCOSA_window_set_visible(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_visible_(result, ...) muCOSA_window_set_visible(muCOSA_global_context, result, __VA_ARGS__)
 
-			MUDEF void muCOSA_time_set(muCOSAContext* context, muCOSAResult* result, double time);
-			#define mu_time_set(...) muCOSA_time_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_time_set_(result, ...) muCOSA_time_set(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Get position
 
-			MUDEF void muCOSA_sleep(muCOSAContext* context, muCOSAResult* result, double time);
-			#define mu_sleep(...) muCOSA_sleep(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_sleep_(result, ...) muCOSA_sleep(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_get_position` gets the position of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_get_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_position(...) muCOSA_window_get_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_position_(result, ...) muCOSA_window_get_position(muCOSA_global_context, result, __VA_ARGS__)
 
-		/* Clipboard */
+				// @DOCLINE #### Set position
 
-			MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
-			#define mu_clipboard_get() muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result)
-			#define mu_clipboard_get_(result) muCOSA_clipboard_get(muCOSA_global_context, result)
-			MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, const char* text, size_m text_size);
-			#define mu_clipboard_set(...) muCOSA_clipboard_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_clipboard_set_(result, ...) muCOSA_clipboard_set(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_set_position` sets the position of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_position(...) muCOSA_window_set_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_position_(result, ...) muCOSA_window_set_position(muCOSA_global_context, result, __VA_ARGS__)
 
-		/* OS functions */
+				// @DOCLINE #### Get dimensions
 
-			MUDEF void* muCOSA_os_get_window_handle(muCOSAContext* context, muCOSAResult* result, muWindow window, muWindowHandle handle);
-			#define mu_os_get_window_handle(...) muCOSA_os_get_window_handle(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_os_get_window_handle_(result, ...) muCOSA_os_get_window_handle(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_get_dimensions` gets the dimensions of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_get_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* width, uint32_m* height);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_dimensions(...) muCOSA_window_get_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_dimensions_(result, ...) muCOSA_window_get_dimensions(muCOSA_global_context, result, __VA_ARGS__)
 
-		/* OpenGL */
+				// @DOCLINE #### Set dimensions
 
-			MUDEF void muCOSA_opengl_bind_window(muCOSAContext* context, muCOSAResult* result, muWindow window);
-			#define mu_opengl_bind_window(...) muCOSA_opengl_bind_window(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_opengl_bind_window_(result, ...) muCOSA_opengl_bind_window(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_set_dimensions` sets the dimensions of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m width, uint32_m height);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_dimensions(...) muCOSA_window_set_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_dimensions_(result, ...) muCOSA_window_set_dimensions(muCOSA_global_context, result, __VA_ARGS__)
 
-			MUDEF void* muCOSA_opengl_get_function_address(muCOSAContext* context, const char* name);
-			#define mu_opengl_get_function_address(...) muCOSA_opengl_get_function_address(muCOSA_global_context, __VA_ARGS__)
+				// @DOCLINE #### Get maximized state
 
-			MUDEF void muCOSA_opengl_window_swap_interval(muCOSAContext* context, muCOSAResult* result, muWindow window, int interval);
-			#define mu_opengl_window_swap_interval(...) muCOSA_opengl_window_swap_interval(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_opengl_window_swap_interval_(result, ...) muCOSA_opengl_window_swap_interval(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_get_maximized` gets the maximized state of a window, defined below: @NLNT
+					MUDEF muBool muCOSA_window_get_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_maximized(...) muCOSA_window_get_maximized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_maximized_(result, ...) muCOSA_window_get_maximized(muCOSA_global_context, result, __VA_ARGS__)
 
-		/* Vulkan */
+				// @DOCLINE #### Set maximized state
 
-			// Note: also not necessarily UTF-8
-			MUDEF const char** muCOSA_vulkan_get_surface_instance_extensions(muCOSAContext* context, muCOSAResult* result, size_m* count);
-			#define mu_vulkan_get_surface_instance_extensions(...) muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_vulkan_get_surface_instance_extensions_(result, ...) muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE The function `muCOSA_window_set_maximized` sets the maximized state of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_maximized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool maximized);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_maximized(...) muCOSA_window_set_maximized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_maximized_(result, ...) muCOSA_window_set_maximized(muCOSA_global_context, result, __VA_ARGS__)
 
-			// vk_result interpreted as VkResult*, instance as VkInstance*, allocator as const VkAllocationCallbacks*, and surface as VkSurfaceKHR*
-			MUDEF void muCOSA_vulkan_create_window_surface(muCOSAContext* context, muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface);
-			#define mu_vulkan_create_window_surface(...) muCOSA_vulkan_create_window_surface(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-			#define mu_vulkan_create_window_surface_(result, ...) muCOSA_vulkan_create_window_surface(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE #### Get minimized state
 
-		/* Names */
+					// @DOCLINE The function `muCOSA_window_get_minimized` gets the minimized state of a window, defined below: @NLNT
+					MUDEF muBool muCOSA_window_get_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_minimized(...) muCOSA_window_get_minimized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_minimized_(result, ...) muCOSA_window_get_minimized(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Set minimized state
+
+					// @DOCLINE The function `muCOSA_window_set_minimized` sets the minimized state of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_minimized(muCOSAContext* context, muCOSAResult* result, muWindow window, muBool minimized);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_minimized(...) muCOSA_window_set_minimized(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_minimized_(result, ...) muCOSA_window_set_minimized(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get minimum dimensions
+
+					// @DOCLINE The function `muCOSA_window_get_minimum_dimensions` gets the minimum dimensions of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_get_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* min_width, uint32_m* min_height);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_minimum_dimensions(...) muCOSA_window_get_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_minimum_dimensions_(result, ...) muCOSA_window_get_minimum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Set minimum dimensions
+
+					// @DOCLINE The function `muCOSA_window_set_minimum_dimensions` sets the minimum dimensions of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_minimum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m min_width, uint32_m min_height);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_minimum_dimensions(...) muCOSA_window_set_minimum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_minimum_dimensions_(result, ...) muCOSA_window_set_minimum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get maximum dimensions
+
+					// @DOCLINE The function `muCOSA_window_get_maximum_dimensions` gets the maximum dimensions of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_get_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* max_width, uint32_m* max_height);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_maximum_dimensions(...) muCOSA_window_get_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_maximum_dimensions_(result, ...) muCOSA_window_get_maximum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Set maximum dimensions
+
+					// @DOCLINE The function `muCOSA_window_set_maximum_dimensions` sets the maximum dimensions of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_maximum_dimensions(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m max_width, uint32_m max_height);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_maximum_dimensions(...) muCOSA_window_set_maximum_dimensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_maximum_dimensions_(result, ...) muCOSA_window_set_maximum_dimensions(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get cursor position
+
+					// @DOCLINE The function `muCOSA_window_get_cursor_position` gets the position of the cursor relative to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_get_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m* x, int32_m* y);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_cursor_position(...) muCOSA_window_get_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_cursor_position_(result, ...) muCOSA_window_get_cursor_position(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Set cursor position
+
+					// @DOCLINE The function `muCOSA_window_set_cursor_position` sets the position of the cursor relative to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_cursor_position(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_cursor_position(...) muCOSA_window_set_cursor_position(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_cursor_position_(result, ...) muCOSA_window_set_cursor_position(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get cursor style
+
+					// @DOCLINE The function `muCOSA_window_get_cursor_style` gets the cursor style of a window, defined below: @NLNT
+					MUDEF muCursorStyle muCOSA_window_get_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_cursor_style(...) muCOSA_window_get_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_cursor_style_(result, ...) muCOSA_window_get_cursor_style(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Set cursor style
+
+					// @DOCLINE The function `muCOSA_window_set_cursor_style` sets the cursor style of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_cursor_style(muCOSAContext* context, muCOSAResult* result, muWindow window, muCursorStyle style);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_cursor_style(...) muCOSA_window_set_cursor_style(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_cursor_style_(result, ...) muCOSA_window_set_cursor_style(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get scroll level
+
+					// @DOCLINE The function `muCOSA_window_get_scroll_level` gets the scroll level of a window, defined below: @NLNT
+					MUDEF int32_m muCOSA_window_get_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_scroll_level(...) muCOSA_window_get_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_scroll_level_(result, ...) muCOSA_window_get_scroll_level(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Set scroll level
+
+					// @DOCLINE The function `muCOSA_window_set_scroll_level` sets the scroll level of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_scroll_level(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m scroll_level);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_scroll_level(...) muCOSA_window_set_scroll_level(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_scroll_level_(result, ...) muCOSA_window_set_scroll_level(muCOSA_global_context, result, __VA_ARGS__)
+
+			// @DOCLINE ### Text input functions
+
+				// @DOCLINE #### Get text input focus
+
+					// @DOCLINE The function `muCOSA_window_get_text_input_focus` focuses text input on a window, defined below: @NLNT
+					MUDEF void muCOSA_window_get_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m text_cursor_x, int32_m text_cursor_y, void (*callback)(muWindow window, const char* input));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_text_input_focus(...) muCOSA_window_get_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_text_input_focus_(result, ...) muCOSA_window_get_text_input_focus(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Update text cursor
+
+					// @DOCLINE The function `muCOSA_window_update_text_cursor` updates the text cursor for text input to a position relative to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow window, int32_m x, int32_m y);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_update_text_cursor(...) muCOSA_window_update_text_cursor(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_update_text_cursor_(result, ...) muCOSA_window_update_text_cursor(muCOSA_global_context, result, __VA_ARGS__)
+					// @DOCLINE Note that this function is safe to call even when text input is not focused on the window.
+
+				// @DOCLINE #### Let go of text input focus
+
+					// @DOCLINE The function `muCOSA_window_let_text_input_focus` lets go of the text input focus that a window has, defined below: @NLNT
+					MUDEF void muCOSA_window_let_text_input_focus(muCOSAContext* context, muCOSAResult* result, muWindow window);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_let_text_input_focus(...) muCOSA_window_let_text_input_focus(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_let_text_input_focus_(result, ...) muCOSA_window_let_text_input_focus(muCOSA_global_context, result, __VA_ARGS__)
+
+			// @DOCLINE ### Get window states/properties
+
+				// @DOCLINE #### Get frame extents
+
+					// @DOCLINE The function `muCOSA_window_get_frame_extents` gets the frame extents of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_get_frame_extents(muCOSAContext* context, muCOSAResult* result, muWindow window, uint32_m* left, uint32_m* right, uint32_m* top, uint32_m* bottom);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_frame_extents(...) muCOSA_window_get_frame_extents(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_frame_extents_(result, ...) muCOSA_window_get_frame_extents(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get keyboard key state
+
+					// @DOCLINE The function `muCOSA_window_get_keyboard_key_state` gets the state of a keyboard key in regards to a given window, defined below: @NLNT
+					MUDEF muButtonState muCOSA_window_get_keyboard_key_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardKey key);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_keyboard_key_state(...) muCOSA_window_get_keyboard_key_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_keyboard_key_state_(result, ...) muCOSA_window_get_keyboard_key_state(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get keyboard state state
+
+					// @DOCLINE The function `muCOSA_window_get_keyboard_state_state` gets the state of a keyboard state in regards to a given window, defined below: @NLNT
+					MUDEF muState muCOSA_window_get_keyboard_state_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muKeyboardState state);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_keyboard_state_state(...) muCOSA_window_get_keyboard_state_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_keyboard_state_state_(result, ...) muCOSA_window_get_keyboard_state_state(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Get mouse button state
+
+					// @DOCLINE The function `muCOSA_window_get_mouse_button_state` gets the state of a mouse button in regards to a given window, defined below: @NLNT
+					MUDEF muButtonState muCOSA_window_get_mouse_button_state(muCOSAContext* context, muCOSAResult* result, muWindow window, muMouseButton button);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_mouse_button_state(...) muCOSA_window_get_mouse_button_state(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_get_mouse_button_state_(result, ...) muCOSA_window_get_mouse_button_state(muCOSA_global_context, result, __VA_ARGS__)
+
+			// @DOCLINE ### Set window state/properties
+
+				// @DOCLINE #### Set title
+
+					// @DOCLINE The function `muCOSA_window_set_title` sets the title of a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_title(muCOSAContext* context, muCOSAResult* result, muWindow window, const char* title);
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_title(...) muCOSA_window_set_title(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_title_(result, ...) muCOSA_window_set_title(muCOSA_global_context, result, __VA_ARGS__)
+
+			// @DOCLINE ### Set callback functions
+
+				// @DOCLINE Note that these functions override any previous function associated with a particular callback event; there is no given way to stack callback functions.
+				// @DOCLINE Note that for all of these functions, setting the callback to 0 is safe, and will simply disable the callback.
+
+				// @DOCLINE #### Dimensions callback
+
+					// @DOCLINE The function `muCOSA_window_set_dimensions_callback` sets the callback for the event of a window's dimensions changing, defined below: @NLNT
+					MUDEF void muCOSA_window_set_dimensions_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, uint32_m width, uint32_m height));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_dimensions_callback(...) muCOSA_window_set_dimensions_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_dimensions_callback_(result, ...) muCOSA_window_set_dimensions_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Position callback
+
+					// @DOCLINE The function `muCOSA_window_set_position_callback` sets the callback for the event of a window's position changing, defined below: @NLNT
+					MUDEF void muCOSA_window_set_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m x, int32_m y));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_position_callback(...) muCOSA_window_set_position_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_position_callback_(result, ...) muCOSA_window_set_position_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Focus callback
+
+					// @DOCLINE The function `muCOSA_window_set_focus_callback` sets the callback for the event of a window's focused state changing, defined below: @NLNT
+					MUDEF void muCOSA_window_set_focus_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool focused));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_focus_callback(...) muCOSA_window_set_focus_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_focus_callback_(result, ...) muCOSA_window_set_focus_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Maximize callback
+
+					// @DOCLINE The function `muCOSA_window_set_maximize_callback` sets the callback for the event of a window's maximized state changing, defined below: @NLNT
+					MUDEF void muCOSA_window_set_maximize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool maximized));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_maximize_callback(...) muCOSA_window_set_maximize_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_maximize_callback_(result, ...) muCOSA_window_set_maximize_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Minimize callback
+
+					// @DOCLINE The function `muCOSA_window_set_minimize_callback` sets the callback for the event of a window's minimized state changing, defined below: @NLNT
+					MUDEF void muCOSA_window_set_minimize_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muBool minimized));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_minimize_callback(...) muCOSA_window_set_minimize_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_minimize_callback_(result, ...) muCOSA_window_set_minimize_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Keyboard key callback
+
+					// @DOCLINE The function `muCOSA_window_set_keyboard_key_callback` sets the callback for the event of a keyboard key state changing in regards to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_keyboard_key_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardKey keyboard_key, muButtonState state));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_keyboard_key_callback(...) muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_keyboard_key_callback_(result, ...) muCOSA_window_set_keyboard_key_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Keyboard state callback
+
+					// @DOCLINE The function `muCOSA_window_set_keyboard_state_callback` sets the callback for the event of a keyboard state state changing in regards to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_keyboard_state_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muKeyboardState keyboard_state, muState state));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_keyboard_state_callback(...) muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_keyboard_state_callback_(result, ...) muCOSA_window_set_keyboard_state_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Cursor position callback
+
+					// @DOCLINE The function `muCOSA_window_set_cursor_position_callback` sets the callback for the event of the cursor position changing in regards to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_cursor_position_callback(muCOSAContext* context, muCOSAResult* result, muWindow win, void (*callback)(muWindow window, int32_m x, int32_m y));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_cursor_position_callback(...) muCOSA_window_set_cursor_position_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_cursor_position_callback_(result, ...) muCOSA_window_set_cursor_position_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Mouse button callback
+
+					// @DOCLINE The function `muCOSA_window_set_mouse_button_callback` sets the callback for the event of a mouse button state changing in regards to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_mouse_button_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, muMouseButton mouse_button, muButtonState state));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_mouse_button_callback(...) muCOSA_window_set_mouse_button_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_mouse_button_callback_(result, ...) muCOSA_window_set_mouse_button_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+				// @DOCLINE #### Scroll callback
+
+					// @DOCLINE The function `muCOSA_window_set_scroll_callback` sets the callback for the event of scrolling in regards to a window, defined below: @NLNT
+					MUDEF void muCOSA_window_set_scroll_callback(muCOSAContext* context, muCOSAResult* result, muWindow window, void (*callback)(muWindow window, int32_m scroll_level_add));
+					// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_scroll_callback(...) muCOSA_window_set_scroll_callback(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+					// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+					#define mu_window_set_scroll_callback_(result, ...) muCOSA_window_set_scroll_callback(muCOSA_global_context, result, __VA_ARGS__)
+
+		// @DOCLINE ## Time functions
+
+			// @DOCLINE ### Get time
+
+				// @DOCLINE The function `muCOSA_time_get` returns the time since the given muCOSA context has been created, defined below: @NLNT
+				MUDEF double muCOSA_time_get(muCOSAContext* context, muCOSAResult* result);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_time_get() muCOSA_time_get(muCOSA_global_context, &muCOSA_global_context->result)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_time_get_(result) muCOSA_time_get(muCOSA_global_context, result)
+				// @DOCLINE Note that the time can be manually changed via `muCOSA_time_set`, which would change the values returned by this function respectively.
+
+			// @DOCLINE ### Set time
+
+				// @DOCLINE The function `muCOSA_time_set` sets the time used by the given muCOSA context to refer to how long it has been since the context has been created, defined below: @NLNT
+				MUDEF void muCOSA_time_set(muCOSAContext* context, muCOSAResult* result, double time);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_time_set(...) muCOSA_time_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_time_set_(result, ...) muCOSA_time_set(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE Note that this interferes with the values returned by `muCOSA_time_get`.
+
+			// @DOCLINE ### Sleep
+
+				// @DOCLINE The function `muCOSA_sleep` blocks for a given amount of time (in seconds), defined below: @NLNT
+				MUDEF void muCOSA_sleep(muCOSAContext* context, muCOSAResult* result, double time);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_sleep(...) muCOSA_sleep(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_sleep_(result, ...) muCOSA_sleep(muCOSA_global_context, result, __VA_ARGS__)
+
+		// @DOCLINE ## Clipboard functions
+
+			// @DOCLINE ### Get clipboard
+
+				// @DOCLINE The function `muCOSA_clipboard_get` retrieves the current global clipboard, defined below: @NLNT
+				MUDEF char* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_clipboard_get() muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_clipboard_get_(result) muCOSA_clipboard_get(muCOSA_global_context, result)
+				// @DOCLINE Note that this function can return 0 and still have gone successfully in the event of there being no global clipboard at the time of the function being called.
+
+			// @DOCLINE ### Set clipboard
+
+				// @DOCLINE The function `muCOSA_clipboard_set` sets the global clipboard, defined below: @NLNT
+				MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, const char* text, size_m text_size);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_clipboard_set(...) muCOSA_clipboard_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_clipboard_set_(result, ...) muCOSA_clipboard_set(muCOSA_global_context, result, __VA_ARGS__)
+
+		// @DOCLINE ## OS functions
+
+			// @DOCLINE ### Get window handle
+
+				// @DOCLINE The function `muCOSA_os_get_window_handle` retrieves a pointer to an OS-specfic handle in regards to a window: @NLNT
+				MUDEF void* muCOSA_os_get_window_handle(muCOSAContext* context, muCOSAResult* result, muWindow window, muWindowHandle handle);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_os_get_window_handle(...) muCOSA_os_get_window_handle(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_os_get_window_handle_(result, ...) muCOSA_os_get_window_handle(muCOSA_global_context, result, __VA_ARGS__)
+				/* @DOCBEGIN
+				Note that this function returns a *pointer* to the requested type; retrieving the `HWND` associated with a window in Win32 could look like this:
+
+				```c
+				void* v_ptr = muCOSA_os_get_window_handle(...);
+				HWND hwnd = *((HWND*)v_ptr);
+				```
+				
+				This also means that if the type of the requested handle itself is a pointer, the function returns a pointer *to* the pointer; retrieving the `Display` associated with a window in X11 could look like this:
+
+				```c
+				void* v_ptr = muCOSA_os_get_window_handle(...);
+				Display* dpy = *((Display**)v_ptr);
+				```
+				@DOCEND */
+
+
+		// @DOCLINE ## OpenGL functions
+
+			// @DOCLINE ### Bind window's OpenGL context
+
+				// @DOCLINE The function `muCOSA_opengl_bind_window` binds the OpenGL context associated with a given window, defined below: @NLNT
+				MUDEF void muCOSA_opengl_bind_window(muCOSAContext* context, muCOSAResult* result, muWindow window);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_opengl_bind_window(...) muCOSA_opengl_bind_window(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_opengl_bind_window_(result, ...) muCOSA_opengl_bind_window(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE Note that this function must be called with a window that was created with an OpenGL graphics API as its graphics API.
+
+			// @DOCLINE ### Get OpenGL function address
+
+				// @DOCLINE The function `muCOSA_opengl_get_function_address` returns the address of a given OpenGL function if it could be found, defined below: @NLNT
+				MUDEF void* muCOSA_opengl_get_function_address(muCOSAContext* context, const char* name);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_opengl_get_function_address(...) muCOSA_opengl_get_function_address(muCOSA_global_context, __VA_ARGS__)
+				// @DOCLINE Note that there is no result-checking equivalent of this function.
+
+			// @DOCLINE ### Set OpenGL swap interval
+
+				// @DOCLINE The function `muCOSA_opengl_window_swap_interval` sets the swap interval of an OpenGL context associated with a given window, defined below: @NLNT
+				MUDEF void muCOSA_opengl_window_swap_interval(muCOSAContext* context, muCOSAResult* result, muWindow window, int interval);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_opengl_window_swap_interval(...) muCOSA_opengl_window_swap_interval(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_opengl_window_swap_interval_(result, ...) muCOSA_opengl_window_swap_interval(muCOSA_global_context, result, __VA_ARGS__)
+
+		// @DOCLINE ## Vulkan functions
+
+			// @DOCLINE ### Get Vulkan surface extensions
+
+				// @DOCLINE The function `muCOSA_vulkan_get_surface_instance_extensions` returns a list of Vulkan etensions necessary to create a window surface for the window system associated with the given muCOSA context, defined below: @NLNT
+				MUDEF const char** muCOSA_vulkan_get_surface_instance_extensions(muCOSAContext* context, muCOSAResult* result, size_m* count);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_vulkan_get_surface_instance_extensions(...) muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_vulkan_get_surface_instance_extensions_(result, ...) muCOSA_vulkan_get_surface_instance_extensions(muCOSA_global_context, result, __VA_ARGS__)
+
+			// @DOCLINE ### Create Vulkan window surface
+
+				// @DOCLINE The function `muCOSA_vulkan_create_window_surface` creates a Vulkan surface for a given window, defined below: @NLNT
+				MUDEF void muCOSA_vulkan_create_window_surface(muCOSAContext* context, muCOSAResult* result, muWindow window, void* vk_result, void* instance, void* allocator, void* surface);
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_vulkan_create_window_surface(...) muCOSA_vulkan_create_window_surface(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_vulkan_create_window_surface_(result, ...) muCOSA_vulkan_create_window_surface(muCOSA_global_context, result, __VA_ARGS__)
+				// @DOCLINE Note that the parameters of this function are `void*` to allow the function to at least be defined even if Vulkan is not supported; their interpreted types are:
+				// @DOCLINE `vk_result` as `VkResult*`.
+				// @DOCLINE `instance` as `VkInstance*`.
+				// @DOCLINE `allocator` as `const VkAllocationCallbacks**`.
+				// @DOCLINE `surface` as `VkSurfaceKHR*`.
+				// @DOCLINE Note that with this function, `result` represents if anything went wrong on the muCOSA end of things (such as Vulkan support not being defined), and `vk_result` represents if a Vulkan function went wrong.
+
+		// @DOCLINE ## Name functions
+
+			// @DOCLINE There are several functions used to convert enumerator values into `const char*` representations of them, which are ***only defined if `MUCOSA_NAMES` is defined***. These are:
 
 			#ifdef MUCOSA_NAMES
+				// @DOCLINE converting `muCOSAResult` to `const char*`: @NLNT
 				MUDEF const char* muCOSA_result_get_name(muCOSAResult result);
 
+				// @DOCLINE converting `muWindowSystem` to `const char*`: @NLNT
 				MUDEF const char* mu_window_system_get_name(muWindowSystem system);
+				// @DOCLINE @NLNT
 				MUDEF const char* mu_window_system_get_nice_name(muWindowSystem system);
 
+				// @DOCLINE converting `muWindowHandle` to `const char*`: @NLNT
 				MUDEF const char* mu_window_handle_get_name(muWindowHandle handle);
+				// @DOCLINE @NLNT
 				MUDEF const char* mu_window_handle_get_nice_name(muWindowHandle handle);
 
+				// @DOCLINE converting `muGraphicsAPI` to `const char*`: @NLNT
 				MUDEF const char* mu_graphics_api_get_name(muGraphicsAPI api);
+				// @DOCLINE @NLNT
 				MUDEF const char* mu_graphics_api_get_nice_name(muGraphicsAPI api);
 
+				// @DOCLINE converting `muCursorStyle` to `const char*`: @NLNT
 				MUDEF const char* mu_cursor_style_get_name(muCursorStyle style);
+				// @DOCLINE @NLNT
 				MUDEF const char* mu_cursor_style_get_nice_name(muCursorStyle style);
 
+				// @DOCLINE converting `muKeyboardKey` to `const char*`: @NLNT
 				MUDEF const char* mu_keyboard_key_get_name(muKeyboardKey key);
+				// @DOCLINE @NLNT
 				MUDEF const char* mu_keyboard_key_get_nice_name(muKeyboardKey key);
 
+				// @DOCLINE converting `muKeyboardState` to `const char*`: @NLNT
 				MUDEF const char* mu_keyboard_state_get_name(muKeyboardState state);
+				// @DOCLINE @NLNT
 				MUDEF const char* mu_keyboard_state_get_nice_name(muKeyboardState state);
 
+				// @DOCLINE converting `muMouseButton` to `const char*`: @NLNT
 				MUDEF const char* mu_mouse_button_get_name(muMouseButton button);
+				// @DOCLINE @NLNT
 				MUDEF const char* mu_mouse_button_get_nice_name(muMouseButton button);
 			#endif
 
-	/* C standard library dependencies */
+			/* @DOCBEGIN
+			Note that the `nice_name` functions return nicer-looking `const char*` representations of the enum values. For example:
+
+			```c
+			mu_graphics_api_get_nice_name(MU_OPENGL_3_3_COMPATIBILITY)
+			```
+			returns
+			```c
+			"OpenGL 3.3 Compatibility"
+			```
+			and
+			```c
+			mu_graphics_api_get_name(MU_OPENGL_3_3_COMPATIBILITY)
+			```
+			returns
+			```c
+			"MU_OPENGL_3_3_COMPATIBILITY"
+			```
+			@DOCEND */
+
+	// @DOCLINE # C standard library dependencies
+
+		// @DOCLINE muCOSA has several C standard library dependencies not provided by its other library dependencies, all of which are overridable by defining them before the inclusion of its header. This is a list of all of those dependencies.
 
 		#if !defined(mu_malloc) || \
 			!defined(mu_free) || \
 			!defined(mu_realloc)
 
+			// @DOCLINE ## `stdlib.h` dependencies
 			#include <stdlib.h>
 
+			// @DOCLINE `mu_malloc`: equivalent to `malloc`.
 			#ifndef mu_malloc
 				#define mu_malloc malloc
 			#endif
 
+			// @DOCLINE `mu_free`: equivalent to `free`.
 			#ifndef mu_free
 				#define mu_free free
 			#endif
 
+			// @DOCLINE `mu_realloc`: equivalent to `realloc`.
 			#ifndef mu_realloc
 				#define mu_realloc realloc
 			#endif
@@ -1125,20 +2054,25 @@ primarily around a traditional desktop OS environment.
 			!defined(mu_strlen) || \
 			!defined(mu_strcmp)
 
+			// @DOCLINE ## `string.h` dependencies
 			#include <string.h>
 
+			// @DOCLINE `mu_memcpy`: equivalent to `memcpy`.
 			#ifndef mu_memcpy
 				#define mu_memcpy memcpy
 			#endif
 
+			// @DOCLINE `mu_memset`: equivalent to `memset`.
 			#ifndef mu_memset
 				#define mu_memset memset
 			#endif
 
+			// @DOCLINE `mu_strlen`: equivalent to `strlen`.
 			#ifndef mu_strlen
 				#define mu_strlen strlen
 			#endif
 
+			// @DOCLINE `mu_strcmp`: equivalent to `strcmp`.
 			#ifndef mu_strcmp
 				#define mu_strcmp strcmp
 			#endif
@@ -1148,12 +2082,15 @@ primarily around a traditional desktop OS environment.
 		#if !defined(mu_fflush) || \
 			!defined(mu_stdout)
 
+			// @DOCLINE ## `stdio.h` dependencies
 			#include <stdio.h>
 
+			// @DOCLINE `mu_fflush`: equivalent to `fflush`.
 			#ifndef mu_fflush
 				#define mu_fflush fflush
 			#endif
 
+			// @DOCLINE `mu_stdout`: equivalent to `stdout`.
 			#ifndef mu_stdout
 				#define mu_stdout stdout
 			#endif
@@ -1163,12 +2100,15 @@ primarily around a traditional desktop OS environment.
 		#if !defined(mu_setlocale) || \
 			!defined(MU_LC_CTYPE)
 
+			// @DOCLINE ## `locale.h` dependencies
 			#include <locale.h>
 
+			// @DOCLINE `mu_setlocale`: equivalent to `setlocale`.
 			#ifndef mu_setlocale
 				#define mu_setlocale setlocale
 			#endif
 
+			// @DOCLINE `MU_LC_CTYPE`: equivalent to `LC_CTYPE`.
 			#ifndef MU_LC_CTYPE
 				#define MU_LC_CTYPE LC_CTYPE
 			#endif
@@ -5715,30 +6655,18 @@ primarily around a traditional desktop OS environment.
 					switch (result) {
 						default: return "MUCOSA_UNKNOWN"; break;
 						case MUCOSA_SUCCESS: return "MUCOSA_SUCCESS"; break;
-						case MUCOSA_ALREADY_INITIALIZED: return "MUCOSA_ALREADY_INITIALIZED"; break;
-						case MUCOSA_ALREADY_TERMINATED: return "MUCOSA_ALREADY_TERMINATED"; break;
 						case MUCOSA_ALREADY_ACTIVE: return "MUCOSA_ALREADY_ACTIVE"; break;
-						case MUCOSA_ALREADY_INACTIVE: return "MUCOSA_ALREADY_INACTIVE"; break;
-						case MUCOSA_NOT_YET_INITIALIZED: return "MUCOSA_NOT_YET_INITIALIZED"; break;
 						case MUCOSA_ALLOCATION_FAILED: return "MUCOSA_ALLOCATION_FAILED"; break;
 						case MUCOSA_UNKNOWN_WINDOW_SYSTEM: return "MUCOSA_UNKNOWN_WINDOW_SYSTEM"; break;
 						case MUCOSA_UNKNOWN_GRAPHICS_API: return "MUCOSA_UNKNOWN_GRAPHICS_API"; break;
-						case MUCOSA_UNKNOWN_KEYBOARD_KEY: return "MUCOSA_UNKNOWN_KEYBOARD_KEY"; break;
-						case MUCOSA_UNKNOWN_KEYBOARD_STATE: return "MUCOSA_UNKNOWN_KEYBOARD_STATE"; break;
-						case MUCOSA_UNKNOWN_MOUSE_BUTTON: return "MUCOSA_UNKNOWN_MOUSE_BUTTON"; break;
 						case MUCOSA_UNKNOWN_WINDOW_HANDLE: return "MUCOSA_UNKNOWN_WINDOW_HANDLE"; break;
-						case MUCOSA_UNSUPPORTED_WINDOW_SYSTEM: return "MUCOSA_UNSUPPORTED_WINDOW_SYSTEM"; break;
-						case MUCOSA_UNSUPPORTED_FEATURE: return "MUCOSA_UNSUPPORTED_FEATURE"; break;
 						case MUCOSA_UNSUPPORTED_OPENGL_FEATURE: return "MUCOSA_UNSUPPORTED_OPENGL_FEATURE"; break;
 						case MUCOSA_UNSUPPORTED_GRAPHICS_API: return "MUCOSA_UNSUPPORTED_GRAPHICS_API"; break;
 						case MUCOSA_FAILED_CONNECTION_TO_SERVER: return "MUCOSA_FAILED_CONNECTION_TO_SERVER"; break;
 						case MUCOSA_FAILED_CREATE_WINDOW: return "MUCOSA_FAILED_CREATE_WINDOW"; break;
 						case MUCOSA_FAILED_LOAD_FUNCTIONS: return "MUCOSA_FAILED_LOAD_FUNCTIONS"; break;
-						case MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER: return "MUCOSA_FAILED_FIND_COMPATIBLE_FRAMEBUFFER"; break;
 						case MUCOSA_FAILED_CREATE_OPENGL_CONTEXT: return "MUCOSA_FAILED_CREATE_OPENGL_CONTEXT"; break;
 						case MUCOSA_FAILED_LOAD_OPENGL_CONTEXT: return "MUCOSA_FAILED_LOAD_OPENGL_CONTEXT"; break;
-						case MUCOSA_FAILED_USE_PIXEL_FORMAT: return "MUCOSA_FAILED_USE_PIXEL_FORMAT"; break;
-						case MUCOSA_FAILED_JOIN_THREAD: return "MUCOSA_FAILED_JOIN_THREAD"; break;
 						case MUCOSA_FAILED_CREATE_THREAD: return "MUCOSA_FAILED_CREATE_THREAD"; break;
 						case MUCOSA_FAILED_CREATE_INPUT_METHOD: return "MUCOSA_FAILED_CREATE_INPUT_METHOD"; break;
 						case MUCOSA_FAILED_GET_INPUT_STYLES: return "MUCOSA_FAILED_GET_INPUT_STYLES"; break;
@@ -5755,22 +6683,16 @@ primarily around a traditional desktop OS environment.
 						case MUCOSA_FAILED_QUERY_WINDOW_INFO: return "MUCOSA_FAILED_QUERY_WINDOW_INFO"; break;
 						case MUCOSA_FAILED_SET_WINDOW_INFO: return "MUCOSA_FAILED_SET_WINDOW_INFO"; break;
 						case MUCOSA_FAILED_ASSOCIATE_IME_CONTEXT: return "MUCOSA_FAILED_ASSOCIATE_IME_CONTEXT"; break;
-						case MUCOSA_FAILED_LET_IMM_CONTEXT: return "MUCOSA_FAILED_LET_IMM_CONTEXT"; break;
 						case MUCOSA_FAILED_GLOBAL_ALLOCATION: return "MUCOSA_FAILED_GLOBAL_ALLOCATION"; break;
 						case MUCOSA_FAILED_GLOBAL_LOCK: return "MUCOSA_FAILED_GLOBAL_LOCK"; break;
 						case MUCOSA_FAILED_HOLD_CLIPBOARD: return "MUCOSA_FAILED_HOLD_CLIPBOARD"; break;
 						case MUCOSA_FAILED_SET_CLIPBOARD: return "MUCOSA_FAILED_SET_CLIPBOARD"; break;
 						case MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS: return "MUCOSA_INVALID_MINIMUM_MAXIMUM_BOOLS"; break;
 						case MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS: return "MUCOSA_INVALID_MINIMUM_MAXIMUM_DIMENSIONS"; break;
-						case MUCOSA_INVALID_ID: return "MUCOSA_INVALID_ID"; break;
 						case MUCOSA_INVALID_SAMPLE_COUNT: return "MUCOSA_INVALID_SAMPLE_COUNT"; break;
-						case MUCOSA_INVALID_DIMENSIONS: return "MUCOSA_INVALID_DIMENSIONS"; break;
-						case MUCOSA_INVALID_POINTER: return "MUCOSA_INVALID_POINTER"; break;
 						case MUCOSA_INVALID_WINDOW_STATE: return "MUCOSA_INVALID_WINDOW_STATE"; break;
-						case MUCOSA_INVALID_TIME: return "MUCOSA_INVALID_TIME"; break;
 						case MUCOSA_NONEXISTENT_DEVICE: return "MUCOSA_NONEXISTENT_DEVICE"; break;
 						case MUCOSA_OVERSIZED_CLIPBOARD: return "MUCOSA_OVERSIZED_CLIPBOARD"; break;
-						case MUCOSA_WINDOW_NON_RESIZABLE: return "MUCOSA_WINDOW_NON_RESIZABLE"; break;
 					}
 				}
 
