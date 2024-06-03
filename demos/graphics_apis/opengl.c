@@ -5,7 +5,7 @@
 DEMO NAME:          opengl.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-03
 
 ============================================================
                         DEMO PURPOSE
@@ -56,10 +56,15 @@ off when compiling this demo when relevant.
 
 /* Graphics API loading function */
 
+	// Function to get an OpenGL address
+	void* load_gl_func(const char* name) {
+		return mu_opengl_get_function_address(name);
+	}
+
 	// Function that will be passed to the window creation function that will be called when it's
 	// time for OpenGL to be loaded.
 	muBool load_gl_funcs(void) {
-		return gladLoadGL((GLADloadfunc)mu_opengl_get_function_address);
+		return gladLoadGL((GLADloadfunc)load_gl_func);
 	}
 
 /* Dimensions callback */
