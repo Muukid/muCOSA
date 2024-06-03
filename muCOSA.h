@@ -1159,6 +1159,21 @@ primarily around a traditional desktop OS environment.
 
 		#endif
 
+		#if !defined(mu_setlocale) || \
+			!defined(MU_LC_CTYPE)
+
+			#include <locale.h>
+
+			#ifndef mu_setlocale
+				#define mu_setlocale setlocale
+			#endif
+
+			#ifndef MU_LC_CTYPE
+				#define MU_LC_CTYPE LC_CTYPE
+			#endif
+
+		#endif
+
 	#ifdef __cplusplus
 	}
 	#endif
@@ -3442,6 +3457,13 @@ primarily around a traditional desktop OS environment.
 
 		/* Context */
 
+			void muCOSA_X11_set_ic_locale(void) {
+				#ifndef MUCOSA_NO_LOCALE_MOD
+					mu_setlocale(MU_LC_CTYPE, "");
+					XSetLocaleModifiers("");
+				#endif
+			}
+
 			struct muCOSA_X11_context {
 				muCOSA_X11_time time;
 				muCOSA_X11_clipboard clipboard;
@@ -3449,6 +3471,7 @@ primarily around a traditional desktop OS environment.
 			typedef struct muCOSA_X11_context muCOSA_X11_context;
 
 			void muCOSA_X11_context_init(muCOSA_X11_context* context) {
+				muCOSA_X11_set_ic_locale();
 				muCOSA_X11_time_init(&context->time);
 				muCOSA_X11_clipboard_init(&context->clipboard);
 			}
@@ -3596,9 +3619,9 @@ primarily around a traditional desktop OS environment.
 							}
 							XSetICFocus(win->ic.ic);
 
+							win->ic.active = MU_TRUE;
 							muCOSA_X11_window_update_text_cursor(win, x, y);
 							win->ic.callback = callback;
-							win->ic.active = MU_TRUE;
 						}
 
 						void muCOSA_X11_window_let_text_input_focus(muCOSA_X11_window* win) {
@@ -3882,7 +3905,7 @@ primarily around a traditional desktop OS environment.
 						/* Event handling */
 
 							void muCOSA_X11_input_check_state(muCOSA_X11_window* win, unsigned int n, const char* name, muKeyboardState state) {
-								muBool check = (n & (XInternAtom(win->display, name, False) - 1)) != 0;
+								muBool check = (n & XInternAtom(win->display, name, False)) == 1;
 
 								if (check != win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST]) {
 									win->input.keyboard_state_states[state-MU_KEYBOARD_STATE_FIRST] = check;
@@ -4023,6 +4046,7 @@ primarily around a traditional desktop OS environment.
 
 							void muCOSA_X11_window_set_cursor_position(muCOSA_X11_window* win, int32_m x, int32_m y) {
 								XWarpPointer(win->display, win->window, win->window, 0, 0, 0, 0, x, y);
+								 XFlush(win->display);
 							}
 
 							muCursorStyle muCOSA_X11_window_get_cursor_style(muCOSA_X11_window* win) {
@@ -4054,6 +4078,7 @@ primarily around a traditional desktop OS environment.
 
 					/* Global handling */
 
+						void muCOSA_X11_window_get_position(muCOSA_X11_window* win, int32_m* x, int32_m* y);
 						void muCOSA_X11_input_handle_event(muCOSA_X11_window* win, XEvent event) {
 							switch (event.type) {
 								default: return; break;
@@ -4090,9 +4115,13 @@ primarily around a traditional desktop OS environment.
 
 								/* Position changing */
 								case ConfigureNotify: {
-									if (win->x != event.xconfigure.x || win->y != event.xconfigure.y) {
-										win->x = (int32_m)event.xconfigure.x;
-										win->y = (int32_m)event.xconfigure.y;
+									// This is given incorrect values sometimes, so we just have to manually get the
+									// position. :L
+									int32_m wx, wy;
+									muCOSA_X11_window_get_position(win, &wx, &wy);
+									if (win->x != wx || win->y != wy) {
+										win->x = wx;
+										win->y = wy;
 										if (win->position_callback != 0) {
 											win->position_callback(win, win->x, win->y);
 										}
@@ -4730,6 +4759,10 @@ primarily around a traditional desktop OS environment.
 
 			/* Vulkan */
 
+				#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
+					#include MUCOSA_VULKAN_INCLUDE_PATH
+				#endif
+
 				const char** muCOSA_X11_vulkan_get_surface_instance_extensions(muCOSAResult* result, size_m* count) {
 					#ifndef MUCOSA_VULKAN
 						MU_SET_RESULT(result, MUCOSA_UNSUPPORTED_GRAPHICS_API)
@@ -4760,6 +4793,7 @@ primarily around a traditional desktop OS environment.
 						if (vk_result != MU_NULL_PTR) {
 							*((VkResult*)vk_result) = vkres;
 						}
+						return; if (result) {}
 					#endif
 				}
 
@@ -5831,7 +5865,7 @@ primarily around a traditional desktop OS environment.
 				switch (inner->system) {
 					default: return; break;
 					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_Win32_time_set((muCOSA_Win32_context*)inner->context, result, time); break;)
-					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_WIN32: muCOSA_X11_time_set(&((muCOSA_X11_context*)inner->context)->time, time); break;)
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: muCOSA_X11_time_set(&((muCOSA_X11_context*)inner->context)->time, time); break;)
 				}
 
 				return; if (result) {} if (time) {}
