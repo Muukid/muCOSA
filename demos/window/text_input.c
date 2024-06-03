@@ -5,7 +5,7 @@
 DEMO NAME:          text_input.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-25
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-03
 
 ============================================================
                         DEMO PURPOSE
@@ -30,7 +30,6 @@ More explicit license information at the end of file.
 #include "muCOSA.h"
 
 #include <stdio.h> // For printf
-#include <locale.h> // For setlocale
 #include <string.h> // For strlen
 
 /* Variables */
@@ -154,9 +153,6 @@ More explicit license information at the end of file.
 int main(void) {
 /* Initiation */
 
-	// Set locale to be able to print/use UTF-8
-	setlocale(LC_ALL, "");
-
 	// Initiate muCOSA
 
 	muCOSA_context_create(&muCOSA, window_system, MU_TRUE);
@@ -193,7 +189,7 @@ int main(void) {
 		uint32_m width=0, height=0;
 		mu_window_get_dimensions(window, &width, &height);
 
-		mu_window_update_text_cursor(window, (int32_m)width/4, (int32_m)height/4);
+		mu_window_update_text_cursor(window, (int32_m)width/2, (int32_m)height/2);
 
 		// Swap buffers (which renders the screen)
 
