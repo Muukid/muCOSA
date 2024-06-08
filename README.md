@@ -1,6 +1,6 @@
 
 
-# muCOSA v1.0.0
+# muCOSA v1.0.1
 
 muCOSA (COSA standing for cross-operating-system API) is a public domain header-only single-file C library for interacting with operating systems with a cross-platform API. To use it, download the `muCOSA.h` file, add it to your include path, and include it like so:
 
@@ -891,7 +891,7 @@ MUDEF void muCOSA_context_create(muCOSAContext* context, muWindowSystem system, 
 
 Note that the result of this function is stored within `context->result`.
 
-Note that, upon success, this function automatically calls `muCOSA_context_create` on the created context unless `set_context` is equal to `MU_FALSE`.
+Note that, upon success, this function automatically calls `muCOSA_context_set` on the created context unless `set_context` is equal to `MU_FALSE`.
 
 #### Destruction
 
