@@ -71,7 +71,7 @@ primarily around a traditional desktop OS environment.
 
 /* @DOCBEGIN
 
-# muCOSA v1.0.0
+# muCOSA v1.0.1
 
 muCOSA (COSA standing for cross-operating-system API) is a public domain header-only single-file C library for interacting with operating systems with a cross-platform API. To use it, download the `muCOSA.h` file, add it to your include path, and include it like so:
 
@@ -730,7 +730,7 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 
 			#define MUCOSA_VERSION_MAJOR 1
 			#define MUCOSA_VERSION_MINOR 0
-			#define MUCOSA_VERSION_PATCH 0
+			#define MUCOSA_VERSION_PATCH 1
 
 		#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
 			#ifdef MUCOSA_WIN32
@@ -1362,7 +1362,7 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 					// @DOCLINE The function `muCOSA_context_create` creates a context, defined below: @NLNT
 					MUDEF void muCOSA_context_create(muCOSAContext* context, muWindowSystem system, muBool set_context);
 					// @DOCLINE Note that the result of this function is stored within `context->result`.
-					// @DOCLINE Note that, upon success, this function automatically calls `muCOSA_context_create` on the created context unless `set_context` is equal to `MU_FALSE`.
+					// @DOCLINE Note that, upon success, this function automatically calls `muCOSA_context_set` on the created context unless `set_context` is equal to `MU_FALSE`.
 
 				// @DOCLINE #### Destruction
 
