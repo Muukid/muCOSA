@@ -1,6 +1,6 @@
 
 
-# muCOSA v1.0.1
+# muCOSA v1.1.0
 
 muCOSA (COSA standing for cross-operating-system API) is a public domain header-only single-file C library for interacting with operating systems with a cross-platform API. To use it, download the `muCOSA.h` file, add it to your include path, and include it like so:
 
@@ -2045,6 +2045,31 @@ Its result-checking equivalent macro is defined below:
 
 
 Note that the time can be manually changed via `muCOSA_time_set`, which would change the values returned by this function respectively.
+
+### Get fixed time
+
+The function `muCOSA_time_get_fixed` returns the time since the given muCOSA context has been created *without* consideration to the currently user-set time, defined below: 
+
+```c
+MUDEF double muCOSA_time_get_fixed(muCOSAContext* context, muCOSAResult* result);
+```
+
+
+Its non-result-checking equivalent macro is defined below: 
+
+```c
+#define mu_time_get_fixed() muCOSA_time_get_fixed(muCOSA_global_context, &muCOSA_global_context->result)
+```
+
+
+Its result-checking equivalent macro is defined below: 
+
+```c
+#define mu_time_get_fixed_(result) muCOSA_time_get_fixed(muCOSA_global_context, result)
+```
+
+
+When the function `muCOSA_time_set`, the function `muCOSA_time_get` is altered in regards to the time set, but `muCOSA_time_get_fixed` is unaffected.
 
 ### Set time
 
