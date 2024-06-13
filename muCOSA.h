@@ -71,7 +71,7 @@ primarily around a traditional desktop OS environment.
 
 /* @DOCBEGIN
 
-# muCOSA v1.0.1
+# muCOSA v1.1.0
 
 muCOSA (COSA standing for cross-operating-system API) is a public domain header-only single-file C library for interacting with operating systems with a cross-platform API. To use it, download the `muCOSA.h` file, add it to your include path, and include it like so:
 
@@ -729,8 +729,8 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 			// @DOCLINE muCOSA defines three macros to define the version of muCOSA: `MUCOSA_VERSION_MAJOR`, `MUCOSA_VERSION_MINOR`, and `MUCOSA_VERSION_PATCH`, following the format of `vMAJOR.MINOR.PATCH`.
 
 			#define MUCOSA_VERSION_MAJOR 1
-			#define MUCOSA_VERSION_MINOR 0
-			#define MUCOSA_VERSION_PATCH 1
+			#define MUCOSA_VERSION_MINOR 1
+			#define MUCOSA_VERSION_PATCH 0
 
 		#if defined(MUCOSA_VULKAN) && !defined(MUCOSA_NO_INCLUDE_VULKAN)
 			#ifdef MUCOSA_WIN32
@@ -1829,11 +1829,25 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 
 				// @DOCLINE The function `muCOSA_time_get` returns the time since the given muCOSA context has been created, defined below: @NLNT
 				MUDEF double muCOSA_time_get(muCOSAContext* context, muCOSAResult* result);
+
 				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
 				#define mu_time_get() muCOSA_time_get(muCOSA_global_context, &muCOSA_global_context->result)
 				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
 				#define mu_time_get_(result) muCOSA_time_get(muCOSA_global_context, result)
+
 				// @DOCLINE Note that the time can be manually changed via `muCOSA_time_set`, which would change the values returned by this function respectively.
+
+			// @DOCLINE ### Get fixed time
+
+				// @DOCLINE The function `muCOSA_time_get_fixed` returns the time since the given muCOSA context has been created *without* consideration to the currently user-set time, defined below: @NLNT
+				MUDEF double muCOSA_time_get_fixed(muCOSAContext* context, muCOSAResult* result);
+
+				// @DOCLINE Its non-result-checking equivalent macro is defined below: @NLNT
+				#define mu_time_get_fixed() muCOSA_time_get_fixed(muCOSA_global_context, &muCOSA_global_context->result)
+				// @DOCLINE Its result-checking equivalent macro is defined below: @NLNT
+				#define mu_time_get_fixed_(result) muCOSA_time_get_fixed(muCOSA_global_context, result)
+
+				// @DOCLINE When the function `muCOSA_time_set`, the function `muCOSA_time_get` is altered in regards to the time set, but `muCOSA_time_get_fixed` is unaffected.
 
 			// @DOCLINE ### Set time
 
@@ -2329,11 +2343,12 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 
 				struct muCOSA_Win32_time {
 					double orig_time;
+					double fixed_orig_time;
 				};
 				typedef struct muCOSA_Win32_time muCOSA_Win32_time;
 
 				void muCOSA_Win32_time_init(muCOSA_Win32_time* time) {
-					time->orig_time = muCOSA_Win32_get_current_time();
+					time->fixed_orig_time = time->orig_time = muCOSA_Win32_get_current_time();
 				}
 
 		/* OpenGL */
@@ -3815,6 +3830,11 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 					if (result) {}
 				}
 
+				double muCOSA_Win32_time_get_fixed(muCOSA_Win32_context* context, muCOSAResult* result) {
+					return muCOSA_Win32_get_current_time() - context->time.fixed_orig_time;
+					if (result) {}
+				}
+
 				void muCOSA_Win32_time_set(muCOSA_Win32_context* context, muCOSAResult* result, double time) {
 					context->time.orig_time = muCOSA_Win32_get_current_time() - time;
 					return; if (result) {}
@@ -4155,12 +4175,13 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 
 				struct muCOSA_X11_time {
 					double orig_time;
+					double fixed_orig_time;
 				};
 				typedef struct muCOSA_X11_time muCOSA_X11_time;
 
 				double muCOSA_X11_get_system_time(void);
 				void muCOSA_X11_time_init(muCOSA_X11_time* time) {
-					time->orig_time = muCOSA_X11_get_system_time();
+					time->fixed_orig_time = time->orig_time = muCOSA_X11_get_system_time();
 				}
 
 			/* Important functions */
@@ -4174,6 +4195,10 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 
 				double muCOSA_X11_time_get(muCOSA_X11_time* time) {
 					return muCOSA_X11_get_system_time() - time->orig_time;
+				}
+
+				double muCOSA_X11_time_get_fixed(muCOSA_X11_time* time) {
+					return muCOSA_X11_get_system_time() - time->fixed_orig_time;
 				}
 
 				void muCOSA_X11_time_set(muCOSA_X11_time* time, double dtime) {
@@ -6517,6 +6542,18 @@ However, note that the demos that use OpenGL use glad which is built from the Kh
 
 				if (result) {}
 			}
+
+		MUDEF double muCOSA_time_get_fixed(muCOSAContext* context, muCOSAResult* result) {
+			muCOSA_inner* inner = (muCOSA_inner*)context->inner;
+
+				switch (inner->system) {
+					default: return 0.f; break;
+					MUCOSA_WIN32_CALL(case MU_WINDOW_SYSTEM_WIN32: return muCOSA_Win32_time_get_fixed((muCOSA_Win32_context*)inner->context, result); break;)
+					MUCOSA_X11_CALL(case MU_WINDOW_SYSTEM_X11: return muCOSA_X11_time_get_fixed(&((muCOSA_X11_context*)inner->context)->time); break;)
+				}
+
+				if (result) {}
+		}
 
 			MUDEF void muCOSA_time_set(muCOSAContext* context, muCOSAResult* result, double time) {
 				muCOSA_inner* inner = (muCOSA_inner*)context->inner;
