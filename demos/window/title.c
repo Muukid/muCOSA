@@ -5,12 +5,16 @@
 DEMO NAME:          title.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-26
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how changing the title of a window works.
+
+Program should make a window that takes in text input and
+changes the window title based on what the user typed out,
+clearing the window title if they press backspace.
 
 ============================================================
                         LICENSE INFO
@@ -234,8 +238,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window that takes in text input and changes the window title based on
-	// what the user typed out, clearing the window title if they press backspace.
 	return 0;
 }
 

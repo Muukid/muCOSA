@@ -5,12 +5,18 @@
 DEMO NAME:          vulkan.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-27
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows Vulkan working in muCOSA.
+
+Program should render a multi-color triangle upon a white
+background.
+
+Note that window resizing does NOT work; resizing the window
+may result in a crash.
 
 ============================================================
                         LICENSE INFO
@@ -1790,3 +1796,4 @@ ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------------------------------------------------------------------
 */
+

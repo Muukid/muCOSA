@@ -5,13 +5,16 @@
 DEMO NAME:          visible.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-22
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the visibility of a window can be
 modified.
+
+Program should make a window that can be made invisible for
+2 seconds by pressing 'V'.
 
 ============================================================
                         LICENSE INFO
@@ -110,7 +113,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window that can be made invisible for 2 seconds by pressing 'V'.
 	return 0;
 }
 

@@ -5,12 +5,16 @@
 DEMO NAME:          opengl.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-06-03
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how loading OpenGL in muCOSA works.
+
+Program should make a window that displays a 3D cube
+spinning in OpenGL, and you can hold down the 'W' key to
+turn on or off wireframe mode.
 
 ============================================================
                         LICENSE INFO
@@ -28,17 +32,17 @@ off when compiling this demo when relevant.
 ============================================================
 */
 
-// Include glad for OpenGL loading
-
-#define GLAD_GL_IMPLEMENTATION
-#include "glad.h"
-
 // Include muCOSA
 
 #define MUCOSA_NAMES // For name functions
 #define MUCOSA_OPENGL // For 'mu_opengl_get_function_address'
 #define MUCOSA_IMPLEMENTATION
 #include "muCOSA.h"
+
+// Include glad for OpenGL loading
+
+#define GLAD_GL_IMPLEMENTATION
+#include "glad.h"
 
 #include <stdio.h> // For printf
 #include <math.h> // For math functions
@@ -421,8 +425,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window that displays a 3D cube spinning in OpenGL, and you can hold
-	// down the 'W' key to turn on or off wireframe mode.
 	return 0;
 }
 

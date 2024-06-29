@@ -5,13 +5,16 @@
 DEMO NAME:          focus.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows the basics behind using the focused
 attribute of a window.
+
+Program should make a window that focuses itself after 2
+seconds of being unfocused.
 
 ============================================================
                         LICENSE INFO
@@ -122,7 +125,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window that focuses itself after 2 seconds of being unfocused.
 	return 0;
 }
 

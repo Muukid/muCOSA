@@ -5,12 +5,16 @@
 DEMO NAME:          callbacks.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how each window callback generally works.
+
+Program should print various callbacks upon various events
+regarding the window, such as cursor movement in the
+window's boundaries, resizing, etc.
 
 ============================================================
                         LICENSE INFO

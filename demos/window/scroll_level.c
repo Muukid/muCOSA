@@ -5,13 +5,16 @@
 DEMO NAME:          scroll_level.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-23
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the the scroll level is accessed and
 modified.
+
+Program should print the scroll level when it's changed and
+set it to 0 when the '0' key is pressed.
 
 ============================================================
                         LICENSE INFO
@@ -113,8 +116,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should print the scroll level when it's changed and set it to 0 when the '0' key is
-	// pressed.
 	return 0;
 }
 

@@ -5,13 +5,16 @@
 DEMO NAME:          dimensions.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the dimensions of a window can be
 retrieved and modified.
+
+Program should make a window whose dimensions can be
+modified with the WASD keys.
 
 ============================================================
                         LICENSE INFO
@@ -124,7 +127,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window whose dimensions can be modified with the WASD keys.
 	return 0;
 }
 

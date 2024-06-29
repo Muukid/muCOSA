@@ -5,13 +5,17 @@
 DEMO NAME:          keyboard.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-23
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the keyboard key and keyboard state can
 be retrieved and used.
+
+Program should print the A-Z characters every .2 seconds if
+they're held down, and be capitalized or uncapitalized based
+on the caps lock state.
 
 ============================================================
                         LICENSE INFO
@@ -120,8 +124,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should print the A-Z characters every .2 seconds if they're held down, and be
-	// capitalized or uncapitalized based on the caps lock state.
 	return 0;
 }
 

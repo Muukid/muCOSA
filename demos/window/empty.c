@@ -5,13 +5,20 @@
 DEMO NAME:          empty.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows the basics behind creating an empty window
 in muCOSA.
+
+Program should pop up a window on screen named "Empty
+Window". Note that since no graphics API is being used,
+there is no easy way to clear the screen with a color, and
+in muCOSA, a screen that doesn't get cleared has undefined
+contents, meaning that it can look different depending on
+the OS.
 
 ============================================================
                         LICENSE INFO
@@ -102,10 +109,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should pop up a window on screen named "Empty Window". Note that since no graphics
-	// API is being used, there is no easy way to clear the screen with a color, and in muCOSA, a
-	// screen that doesn't get cleared has undefined contents, meaning that it can look different
-	// depending on the OS.
 	return 0;
 }
 

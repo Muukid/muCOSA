@@ -5,12 +5,15 @@
 DEMO NAME:          clipboard.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-26
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how clipboard getting/setting works.
+
+Program should retrieve the clipboard, print it, and then
+set your clipboard and halt for a few seconds.
 
 ============================================================
                         LICENSE INFO
@@ -85,9 +88,7 @@ int main(void) {
 	} else {
 		printf("Successful\n");
 	}
-
-	// Program should retrieve the clipboard, print it, and then set your clipboard and halt for a
-	// few seconds.
+	
 	return 0;
 }
 

@@ -5,12 +5,15 @@
 DEMO NAME:          close.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-21
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how closing a window on command works.
+
+Program should make a window that closes upon the escape key
+being pressed.
 
 ============================================================
                         LICENSE INFO
@@ -99,7 +102,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window that closes upon the escape key being pressed.
 	return 0;
 }
 

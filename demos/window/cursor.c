@@ -5,13 +5,17 @@
 DEMO NAME:          cursor.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-22
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the position and style of a cursor can
 be retrieved and modified.
+
+Program should make a window whose cursor can move by using
+the WASD keys, and whose style can be changed with the left/
+right arrow keys.
 
 ============================================================
                         LICENSE INFO
@@ -154,8 +158,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window whose cursor can move by using the WASD keys, and whose style
-	// can be changed with the left/right arrow keys.
 	return 0;
 }
 

@@ -5,13 +5,16 @@
 DEMO NAME:          frame_extents.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-23
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the frame extents of a window are
 accessed.
+
+Program should print the frame extents on initiation and
+whenever they change.
 
 ============================================================
                         LICENSE INFO
@@ -111,7 +114,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should print the frame extents on initiation and whenever they change.
 	return 0;
 }
 

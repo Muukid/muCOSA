@@ -5,13 +5,17 @@
 DEMO NAME:          minimized_maximized.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-22
-LAST UPDATED:       2024-06-01
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows how the minimized/maximized functions can
 be used to modify a window.
+
+Program should make a window whose minimized/maximized state
+can be controlled by pressing 'A' and 'I', automatically
+reverting states after 2 seconds.
 
 ============================================================
                         LICENSE INFO
@@ -138,8 +142,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window whose minimized/maximized state can be controlled by pressing
-	// 'A' and 'I', automatically reverting states after 2 seconds.
 	return 0;
 }
 

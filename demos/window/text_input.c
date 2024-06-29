@@ -5,13 +5,17 @@
 DEMO NAME:          text_input.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-04-25
-LAST UPDATED:       2024-06-03
+LAST UPDATED:       2024-06-28
 
 ============================================================
                         DEMO PURPOSE
 
 This demo shows the basics behind using text input to get
 input from the user.
+
+Program should make a window that takes in text input,
+toggleable by F1 (to turn on (default)) and F2 (to turn
+off).
 
 ============================================================
                         LICENSE INFO
@@ -218,8 +222,6 @@ int main(void) {
 		printf("Successful\n");
 	}
 
-	// Program should make a window that takes in text input, toggleable by F1 (to turn on
-	// (default)) and F2 (to turn off).
 	return 0;
 }
 
