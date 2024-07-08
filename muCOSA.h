@@ -73,7 +73,7 @@ primarily around a traditional desktop OS environment.
 
 # muCOSA v1.1.0
 
-muCOSA (COSA standing for cross-operating-system API) is a public domain header-only single-file C library for interacting with operating systems with a cross-platform API. To use it, download the `muCOSA.h` file, add it to your include path, and include it like so:
+muCOSA (COSA standing for cross-operating-system API) is a public domain single-file C library for interacting with operating systems with a cross-platform API. To use it, download the `muCOSA.h` file, add it to your include path, and include it like so:
 
 ```c
 #define MUCOSA_IMPLEMENTATION
