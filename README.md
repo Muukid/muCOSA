@@ -52,6 +52,10 @@ muCOSA is licensed under public domain or MIT, whichever you prefer. More inform
 
 However, note that the demos that use OpenGL use glad, which is built from the Khronos specification for OpenGL, so its Apache 2.0 license applies within that context. See [further clarification in this issue comment](https://github.com/KhronosGroup/OpenGL-Registry/issues/376#issuecomment-596187053).
 
+# Multi-threading
+
+muCOSA does not directly support thread safety, and must be implemented by the user themselves. Thread safety in muCOSA can be generally achieved by locking each object within a muCOSA context (ie `muWindow` for example), making sure that only one thread is interacting with the given object. There are no known exceptions to this to achieve thread safety, but multi-threading with muCOSA is not thoroughly tested.
+
 # Known bugs and limitations
 
 This section covers all of the known bugs and limitations with muCOSA.
@@ -59,6 +63,16 @@ This section covers all of the known bugs and limitations with muCOSA.
 ## Limited support for most stuff
 
 This version of muCOSA is intended to be very basic, meaning that it only supports Windows and OpenGL, and is not thoroughly tested on other devices. This, if not abandoned, will change in the future, as more support is added, but for now, this library's reach will be fairly limited.
+
+## Minimal overhead attribute management
+
+Currently, muCOSA gets/sets attributes using a single function that requires at least one get/set call for every attribute being modified. Theoretically, more overhead could be abolished by allowing to get/set multiple attributes in one function call, perhaps using the `muWindowInfo` struct and a flag system. This has not been outruled as an option, and muCOSA may stand to gain via this being implemented at some point.
+
+## Inefficient window memory allocation on Win32
+
+Due to limitations with how a window is identified via its handle in the window procedure functions, the implementation for Win32 has a memory buffer that contains pointers to each window. The logic for this uses filling in empty slots to ensure that a fair amount of memory is allocated even in the event of a large amount of windows being destroyed and created. However, the logic of it currently does not decrease the amount of memory allocated for the window pointers, meaning that a peak in the amount of windows created (across all muCOSA contexts) will peak the memory usage for the buffer, and will not decrease until all muCOSA contexts are destroyed.
+
+This is generally okay, both because the maximum amount of memory allocated for this buffer is the size of a pointer multiplied by the closest power of 2 greater than the amount of windows. So, for example, if there were a maximum of 2718 windows reached at some point during the program's lifespan, and the device is using 64 bits per pointer, the memory usage by this buffer will peak at `64*4096`, or 262144 bytes, and will not decrease until all muCOSA contexts are destroyed. However, it is not only unlikely that a program will ever use this amount of windows, but it is even more unlikely that Windows itself will be able to run properly after this amount of windows have been created.
 
 
 # Other library dependencies
@@ -295,9 +309,13 @@ The window is described by several attributes, with each attribute represented b
 
 * `MU_WINDOW_TITLE` - the title of the window, represented by a `char*` UTF-8 string. This cannot be "get", but can be "set".
 
-* `MU_WINDOW_DIMENSIONS` - the width and height of the window's surface, in pixels, represented by a pointer to an array of two `uint32_m`s, where the first element is the width, and the second element is the height. This can be "get" and "set".
+* `MU_WINDOW_DIMENSIONS` - the width and height of the window's surface, in pixels, represented by an array of two `uint32_m`s, where the first element is the width, and the second element is the height. This can be "get" and "set".
 
-* `MU_WINDOW_POSITION` - the x- and y-coordinates of the top-leftest pixel of the window's surface relative to the entire window space of the window system, represented by a pointer to an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
+* `MU_WINDOW_POSITION` - the x- and y-coordinates of the top-leftest pixel of the window's surface relative to the entire window space of the window system, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
+
+* `MU_WINDOW_KEYBOARD_MAP` - the keyboard keymap, represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable keyboard key. This can be "get", but not "set".
+
+> Note that when being read, the data is not expected to be the actual array, but instead a pointer that will be set to the internally-used keymap array, which remains consistent for an entire window's lifespan. More information about the keyboard keymap can be found in the [keymap](#keymaps) section.
 
 A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
 
@@ -343,6 +361,100 @@ MUDEF void muCOSA_window_set(muCOSAContext* context, muCOSAResult* result, muWin
 
 For both functions, `data` is a pointer to data dictated by the value of `attrib`. In the case of `muCOOSA_window_get`, the data is derefenced and filled in corresponding to the window's requested attribute (if successful); in the case of `muCOSA_window_set`, the data is dereferenced and read, and the requested window attribute is changed to the given value(s) (if successful).
 
+## Keymaps
+
+In order to make input require as minimal overhead as possible, muCOSA allows the user to read key input using "keymaps". A keymap is an array of booleans (type `muBool`) that dictate the state of each key. Therefore, if a user wanted to check a particular key's state, they would retrieve the keymap, and index into it based on what key they want to check. This array is stored internally somewhere in the API, and, when retrieved (via a "get" function call), a pointer to this array is given. Since the keymap is stored as a pointer to inner memory used by muCOSA, it is automatically updated every call to `muCOSA_window_update`.
+
+The big advantage of keymaps is that the array remains at the same point in memory for the entire window's lifespan; a user could grab the pointer to the keymap once at the beginning of the program, and instantly know the state of any key via indexing into it, without any need for refreshing or extra function calls as long as the window remains alive.
+
+> Note that when the keymap is retrieved, a *pointer* to it is retrieved, not the array itself. This means that when calling a "get" function with a keymap, a pointer to a pointer should be given, to which muCOSA will dereference the initial pointer and set the pointer to the address of the keymap array.
+
+> Note that keymaps are only meant to be read, not modified. Changing any value within a keymap array will result in undefined behavior.
+
+### Keyboard keymap
+
+The keyboard keymap represents keys on the keyboard readable by muCOSA, using type `muKeyboardKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_KEYBOARD_LENGTH`. It has the following indexes:
+
+* `MU_KEYBOARD_UNKNOWN` - unknown key.
+
+* `MU_KEYBOARD_BACKSPACE` - the [backspace key](https://en.wikipedia.org/wiki/Backspace).
+
+* `MU_KEYBOARD_TAB` - the [tab key](https://en.wikipedia.org/wiki/Tab_key).
+
+* `MU_KEYBOARD_CLEAR` - the [clear key](https://en.wikipedia.org/wiki/Clear_key).
+
+* `MU_KEYBOARD_RETURN` - the [return key](https://en.wikipedia.org/wiki/Return_key).
+
+* `MU_KEYBOARD_PAUSE` - the [pause key](https://en.wikipedia.org/wiki/Pause_key).
+
+* `MU_KEYBOARD_ESCAPE` - the [escape key](https://en.wikipedia.org/wiki/Escape_key).
+
+* `MU_KEYBOARD_MODECHANGE` - the [modechange key](https://en.wikipedia.org/wiki/Language_input_keys).
+
+* `MU_KEYBOARD_SPACE` - the [space key](https://en.wikipedia.org/wiki/Space_bar).
+
+* `MU_KEYBOARD_PRIOR` - the [page up key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
+
+* `MU_KEYBOARD_NEXT` - the [page down key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
+
+* `MU_KEYBOARD_END` - the [end key](https://en.wikipedia.org/wiki/End_key).
+
+* `MU_KEYBOARD_HOME` - the [home key](https://en.wikipedia.org/wiki/Home_key).
+
+* `MU_KEYBOARD_(LEFT/UP/RIGHT/DOWN)` - the left, up, right, and down (arrow keys)[https://en.wikipedia.org/wiki/Arrow_keys].
+
+* `MU_KEYBOARD_SELECT` - the [select key](https://stackoverflow.com/questions/23995537/what-is-the-select-key).
+
+* `MU_KEYBOARD_PRINT` - the [print key](https://en.wikipedia.org/wiki/Print_Screen).
+
+* `MU_KEYBOARD_EXECUTE` - the execute key.
+
+* `MU_KEYBOARD_INSERT` - the [insert key](https://en.wikipedia.org/wiki/Insert_key).
+
+* `MU_KEYBOARD_DELETE` - the [delete key](https://en.wikipedia.org/wiki/Delete_key).
+
+* `MU_KEYBOARD_HELP` - the [help key](https://en.wikipedia.org/wiki/Help_key).
+
+* `MU_KEYBOARD_(0...9)` - [the number keys](https://en.wikipedia.org/wiki/Numerical_digit) (0-9).
+
+* `MU_KEYBOARD_(A...Z)` - the [alphabet keys](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys) (A-Z).
+
+* `MU_KEYBOARD_(LEFT/RIGHT)_WINDOWS` - the left and right [Windows](https://en.wikipedia.org/wiki/Windows_key)/[super](https://en.wikipedia.org/wiki/Super_key_(keyboard_button))/[command](https://en.wikipedia.org/wiki/Command_key) keys.
+
+* `MU_KEYBOARD_NUMPAD_(0...9)` - the [numpad number keys](https://en.wikipedia.org/wiki/Numeric_keypad) (0-9).
+
+* `MU_KEYBOARD_(ADD/SUBTRACT/MULTIPLY/DIVIDE)` - the addition, subtraction, multiplication, and division [numpad keys](https://en.wikipedia.org/wiki/Numeric_keypad).
+
+* `MU_KEYBOARD_SEPARATOR` - the [separator key](https://stackoverflow.com/questions/67916923/what-physical-key-maps-to-keycode-108-vk-separator).
+
+* `MU_KEYBOARD_DECIMAL` - the [decimal/period/dot key](https://en.wikipedia.org/wiki/Numeric_keypad).
+
+* `MU_KEYBOARD_F(1...24)` - the [function keys](https://en.wikipedia.org/wiki/Function_key) (1-24).
+
+* `MU_KEYBOARD_NUMLOCK` - the [Num Lock key](https://en.wikipedia.org/wiki/Num_Lock).
+
+* `MU_KEYBOARD_SCROLL` - the [Scroll Lock key](https://en.wikipedia.org/wiki/Scroll_Lock).
+
+* `MU_KEYBOARD_(LEFT/RIGHT)_SHIFT` - the left/right [shift keys](https://en.wikipedia.org/wiki/Shift_key).
+
+* `MU_KEYBOARD_(LEFT/RIGHT)_CONTROL` - the left/right [control keys](https://en.wikipedia.org/wiki/Control_key).
+
+* `MU_KEYBOARD_(LEFT/RIGHT)_MENU` - the left/right [menu keys](https://en.wikipedia.org/wiki/Menu_key).
+
+* `MU_KEYBOARD_ATTN` - the [ATTN key](https://www.ibm.com/support/pages/apar/II04992).
+
+* `MU_KEYBOARD_CRSEL` - the [CRSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
+
+* `MU_KEYBOARD_EXSEL` - the [EXSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
+
+* `MU_KEYBOARD_EREOF` - the [EREOF key](https://www.ibm.com/docs/en/wsfz-and-o/1.1?topic=descriptions-ereof-erase-end-field-key-statement).
+
+* `MU_KEYBOARD_PLAY` - the play key.
+
+* `MU_KEYBOARD_PA1` - the [PA1 key](https://www.ibm.com/docs/en/zos-basic-skills?topic=ispf-keyboard-keys-functions).
+
+Once the pointer to the keyboard keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any keyboard key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
+
 # Result
 
 The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
@@ -351,9 +463,11 @@ The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task
 
 * `MUCOSA_FAILED_NULL_WINDOW_SYSTEM` - rather an invalid window system value was given by the user, the window system value given by the user was unsupported, or no supported window system could be found.
 
-* `MUCOSA_FAILED_MALLOC` - a call to malloc failed, meaning that there is insufficient memory available to perform the task.
+* `MUCOSA_FAILED_MALLOC` - a call to `mu_malloc` failed, meaning that there is insufficient memory available to perform the task.
 
 * `MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB` - an invalid `muWindowAttrib` value was given by the user.
+
+* `MUCOSA_FAILED_REALLOC` - a call to `mu_realloc` failed, meaning that there is insufficient memory available to perform the task.
 
 * `MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR` - a conversion from a UTF-8 string to a wide character string failed, rather due to the conversion itself failing or the allocation of memory required for the conversion; this is exclusive to Win32.
 
@@ -405,3 +519,5 @@ muCOSA has several C standard library dependencies, all of which are overridable
 * `mu_malloc` - equivalent to `malloc`.
 
 * `mu_free` - equivalent to `free`.
+
+* `mu_realloc` - equivalent to `realloc`.
