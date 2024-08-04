@@ -873,6 +873,8 @@ This is generally okay, both because the maximum amount of memory allocated for 
 		// @DOCLINE ## Window system names
 		#ifdef MUCOSA_NAMES
 
+		// @DOCLINE > Note that although on most operating systems, only one window system can exist (such as macOS or Windows), some operating systems can have more than one window system, such as Linux with X11 or Wayland. Just in case, muCOSA allows more than one window system to be defined at once in its API, tying each muCOSA context to a particular window system, theoretically allowing for multiple muCOSA contexts to exist at once with different window systems in one program.
+
 		// @DOCLINE The name function `mu_window_system_get_name` returns a `const char*` representation of the given window sytem (for example, `MU_WINDOW_NULL` returns "MU_WINDOW_NULL"), defined below: @NLNT
 		MUDEF const char* mu_window_system_get_name(muWindowSystem system);
 
@@ -1294,6 +1296,48 @@ This is generally okay, both because the maximum amount of memory allocated for 
 
 		// @DOCLINE Once the pointer to the keyboard keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any keyboard key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
 
+	// @DOCLINE # Time
+
+		// @DOCLINE Every muCOSA context has a "fixed time", which refers to the amount of seconds it has been since the context was first created, stored internally as a double. The "fixed time" is different than the "time", which is usually equal to the fixed time, unless it is manually overwritten by the user, which is available in the muCOSA API.
+
+		// @DOCLINE ## Get fixed time
+
+		// @DOCLINE The function `muCOSA_fixed_time_get` retrieves the current amount of fixed time for a muCOSA context, defined below: @NLNT
+		MUDEF double muCOSA_fixed_time_get(muCOSAContext* context);
+
+		// @DOCLINE This function cannot fail if the parameter(s) are valid.
+
+		// @DOCLINE > The macro `mu_fixed_time_get` is the non-result-checking equivalent.
+		#define mu_fixed_time_get() muCOSA_fixed_time_get(muCOSA_global_context)
+
+		// @DOCLINE ## Get/Set time
+
+		// @DOCLINE The function `muCOSA_time_get` retrieves the current amount of time for a muCOSA context, defined below: @NLNT
+		MUDEF double muCOSA_time_get(muCOSAContext* context);
+
+		// @DOCLINE > The macro `mu_time_get` is the non-result-checking equivalent.
+		#define mu_time_get() muCOSA_time_get(muCOSA_global_context)
+
+		// @DOCLINE The function `muCOSA_time_set` overwrites the current time for a muCOSA context, defined below: @NLNT
+		MUDEF void muCOSA_time_set(muCOSAContext* context, double time);
+
+		// @DOCLINE This function is valid to call with negative values.
+
+		// @DOCLINE > The macro `mu_time_set` is the non-result-checking equivalent.
+		#define mu_time_set(...) muCOSA_time_set(muCOSA_global_context, __VA_ARGS__)
+
+		// @DOCLINE These functions cannot fail if the parameter(s) are valid.
+
+	// @DOCLINE # Sleep
+
+		// @DOCLINE The sleep function `muCOSA_sleep` is used to sleep for a given amount of seconds, defined below: @NLNT
+		MUDEF void muCOSA_sleep(muCOSAContext* context, double time);
+
+		// @DOCLINE This function cannot fail if the parameter(s) are valid.
+
+		// @DOCLINE > The macro `mu_sleep` is the non-result-checking equivalent.
+		#define mu_sleep(...) muCOSA_sleep(muCOSA_global_context, __VA_ARGS__)
+
 	// @DOCLINE # Result
 
 		// @DOCLINE The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
@@ -1576,10 +1620,40 @@ This is generally okay, both because the maximum amount of memory allocated for 
 				}
 			}
 
+		/* Time */
+
+			struct muCOSAW32_Time {
+				// @DOCLINE The original time the context was created.
+				double orig_time;
+				// @DOCLINE The non-overwritable time.
+				double fixed_time;
+			};
+			typedef struct muCOSAW32_Time muCOSAW32_Time;
+
+			// https://stackoverflow.com/questions/1695288/getting-the-current-time-in-milliseconds-from-the-system-clock-in-windows
+			double muCOSAW32_get_current_time(void) {
+				// Get system time
+				FILETIME file_time;
+				GetSystemTimeAsFileTime(&file_time);
+
+				// Format low + high time
+				LONGLONG ll_now = 
+					(LONGLONG)(file_time.dwLowDateTime) + ((LONGLONG)(file_time.dwHighDateTime) << 32LL)
+				;
+				// Return time properly divided
+				return (double)(ll_now) / (double)(1.0e7);
+			}
+
+			// Initiates the time struct
+			void muCOSAW32_time_init(muCOSAW32_Time* time) {
+				// Set time to current time
+				time->orig_time = time->fixed_time = muCOSAW32_get_current_time();
+			}
+
 		/* Context */
 
 			struct muCOSAW32_Context {
-				int filler;
+				muCOSAW32_Time time;
 			};
 			typedef struct muCOSAW32_Context muCOSAW32_Context;
 
@@ -1590,13 +1664,38 @@ This is generally okay, both because the maximum amount of memory allocated for 
 			void muCOSAW32_context_init(muCOSAW32_Context* context) {
 				// Mark newly created context for pmap
 				muCOSAW32_window_pmap_access();
-				return; if (context) {}
+				// Initiate context time
+				muCOSAW32_time_init(&context->time);
 			}
 
 			void muCOSAW32_context_term(muCOSAW32_Context* context) {
 				// Remove context from pmap
 				muCOSAW32_window_pmap_deaccess();
 				return; if (context) {}
+			}
+
+		/* Context time */
+
+			double muCOSAW32_fixed_time_get(muCOSAW32_Context* context) {
+				// Return the difference between now and when the context was created
+				return muCOSAW32_get_current_time() - context->time.fixed_time;
+			}
+
+			double muCOSAW32_time_get(muCOSAW32_Context* context) {
+				// Return the difference between now and the overridable original time
+				return muCOSAW32_get_current_time() - context->time.orig_time;
+			}
+
+			void muCOSAW32_time_set(muCOSAW32_Context* context, double time) {
+				// Set time to current time minus the given time
+				context->time.orig_time = muCOSAW32_get_current_time() - time;
+			}
+
+		/* Sleep */
+
+			void muCOSAW32_sleep(double time) {
+				// Sleep for the approx. amount of milliseconds
+				Sleep((DWORD)(time*1000.0));
 			}
 
 		/* Window structs */
@@ -2540,6 +2639,78 @@ This is generally okay, both because the maximum amount of memory allocated for 
 				// To avoid unused parameter warnings in some cases
 				if (result) {} if (win) {} if (attrib) {} if (data) {}
 			}
+
+	/* Time */
+
+		MUDEF double muCOSA_fixed_time_get(muCOSAContext* context) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return 0.0; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					return muCOSAW32_fixed_time_get((muCOSAW32_Context*)inner->context);
+				} break;)
+			}
+		}
+
+		MUDEF double muCOSA_time_get(muCOSAContext* context) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return 0.0; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					return muCOSAW32_time_get((muCOSAW32_Context*)inner->context);
+				} break;)
+			}
+		}
+
+		MUDEF void muCOSA_time_set(muCOSAContext* context, double time) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					muCOSAW32_time_set((muCOSAW32_Context*)inner->context, time);
+					return;
+				} break;)
+			}
+
+			// To avoid parameter warnings in certain cirumstances
+			if (time) {}
+		}
+
+	/* Sleep */
+
+		MUDEF void muCOSA_sleep(muCOSAContext* context, double time) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					muCOSAW32_sleep(time);
+					return;
+				} break;)
+			}
+
+			// To avoid parameter warnings in certain circumstances
+			if (time) {}
+		}
 
 	/* Names */
 

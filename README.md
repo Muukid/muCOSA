@@ -93,6 +93,8 @@ The type `muWindowSystem` (typedef for `uint8_m`) is used to define all of the c
 
 ## Window system names
 
+> Note that although on most operating systems, only one window system can exist (such as macOS or Windows), some operating systems can have more than one window system, such as Linux with X11 or Wayland. Just in case, muCOSA allows more than one window system to be defined at once in its API, tying each muCOSA context to a particular window system, theoretically allowing for multiple muCOSA contexts to exist at once with different window systems in one program.
+
 The name function `mu_window_system_get_name` returns a `const char*` representation of the given window sytem (for example, `MU_WINDOW_NULL` returns "MU_WINDOW_NULL"), defined below: 
 
 ```c
@@ -455,6 +457,60 @@ The keyboard keymap represents keys on the keyboard readable by muCOSA, using ty
 
 Once the pointer to the keyboard keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any keyboard key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
 
+# Time
+
+Every muCOSA context has a "fixed time", which refers to the amount of seconds it has been since the context was first created, stored internally as a double. The "fixed time" is different than the "time", which is usually equal to the fixed time, unless it is manually overwritten by the user, which is available in the muCOSA API.
+
+## Get fixed time
+
+The function `muCOSA_fixed_time_get` retrieves the current amount of fixed time for a muCOSA context, defined below: 
+
+```c
+MUDEF double muCOSA_fixed_time_get(muCOSAContext* context);
+```
+
+
+This function cannot fail if the parameter(s) are valid.
+
+> The macro `mu_fixed_time_get` is the non-result-checking equivalent.
+
+## Get/Set time
+
+The function `muCOSA_time_get` retrieves the current amount of time for a muCOSA context, defined below: 
+
+```c
+MUDEF double muCOSA_time_get(muCOSAContext* context);
+```
+
+
+> The macro `mu_time_get` is the non-result-checking equivalent.
+
+The function `muCOSA_time_set` overwrites the current time for a muCOSA context, defined below: 
+
+```c
+MUDEF void muCOSA_time_set(muCOSAContext* context, double time);
+```
+
+
+This function is valid to call with negative values.
+
+> The macro `mu_time_set` is the non-result-checking equivalent.
+
+These functions cannot fail if the parameter(s) are valid.
+
+# Sleep
+
+The sleep function `muCOSA_sleep` is used to sleep for a given amount of seconds, defined below: 
+
+```c
+MUDEF void muCOSA_sleep(muCOSAContext* context, double time);
+```
+
+
+This function cannot fail if the parameter(s) are valid.
+
+> The macro `mu_sleep` is the non-result-checking equivalent.
+
 # Result
 
 The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
@@ -521,3 +577,7 @@ muCOSA has several C standard library dependencies, all of which are overridable
 * `mu_free` - equivalent to `free`.
 
 * `mu_realloc` - equivalent to `realloc`.
+
+The original time the context was created.
+
+The non-overwritable time.

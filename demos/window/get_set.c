@@ -62,6 +62,9 @@ More explicit license information at the end of file.
 		50, 50
 	};
 
+	// Window keyboard map
+	muBool* keyboard;
+
 int main(void)
 {
 
@@ -78,6 +81,9 @@ int main(void)
 	// Create window
 	win = mu_window_create(&wininfo);
 
+	// Get keyboard map
+	mu_window_get(win, MU_WINDOW_KEYBOARD_MAP, &keyboard);
+
 /* Print explanation */
 
 	printf("WASD to move window, arrow keys to resize\n");
@@ -88,8 +94,17 @@ int main(void)
 	int32_m pos[2] = { wininfo.x, wininfo.y };
 	uint32_m dim[2] = { wininfo.width, wininfo.height };
 
-	// Set up a loop that continues as long as the window isn't closed
+	// Desired FPS
+	double FPS = 60.0;
+	// Inverse desired FPS (aka how much time each frame is)
+	double invFPS = 1.0 / FPS;
+	// Current time (used for deltatime)
+	double current_time = mu_time_get();
 
+	// Amount of pixels moving per frame
+	uint32_m ppf = 2;
+
+	// Loop while window isn't closed:
 	while (!mu_window_get_closed(win))
 	{
 		// Get window position
@@ -100,10 +115,24 @@ int main(void)
 		mu_window_get(win, MU_WINDOW_DIMENSIONS, new_dim);
 
 		// Move window based on WASD
-		// ...
+		// - Up/Down
+		new_pos[1] += ppf*keyboard[MU_KEYBOARD_S];
+		new_pos[1] -= ppf*keyboard[MU_KEYBOARD_W];
+		// - Left/Right
+		new_pos[0] += ppf*keyboard[MU_KEYBOARD_D];
+		new_pos[0] -= ppf*keyboard[MU_KEYBOARD_A];
+		// - Set position
+		mu_window_set(win, MU_WINDOW_POSITION, new_pos);
 
 		// Resize window based on arrow keys
-		// ...
+		// - Width
+		new_dim[0] += ppf*keyboard[MU_KEYBOARD_RIGHT];
+		new_dim[0] -= ppf*keyboard[MU_KEYBOARD_LEFT];
+		// - Height
+		new_dim[1] += ppf*keyboard[MU_KEYBOARD_DOWN];
+		new_dim[1] -= ppf*keyboard[MU_KEYBOARD_UP];
+		// - Set dimensions
+		mu_window_set(win, MU_WINDOW_DIMENSIONS, new_dim);
 
 		// Print if position has changed
 		if (new_pos[0] != pos[0] || new_pos[1] != pos[1]) {
@@ -124,6 +153,16 @@ int main(void)
 
 		// Update window (which refreshes input and such)
 		mu_window_update(win);
+
+		// Calculate deltatime
+		double deltatime = mu_time_get() - current_time;
+		current_time = mu_time_get();
+
+		// Sleep for time needed to achieve (approx.) the desired FPS
+		double sleep_time = invFPS-deltatime;
+		if (sleep_time > 0.0) {
+			mu_sleep(sleep_time);
+		}
 	}
 
 /* Termination */
