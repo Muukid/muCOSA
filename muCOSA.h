@@ -6,6 +6,8 @@ No warranty implied; use at your own risk.
 
 Licensed under MIT license or public domain, whichever you prefer.
 More explicit license information at the end of file.
+
+@TODO A bunch of name functions.
 */
 
 /* @DOCBEGIN
@@ -1082,9 +1084,18 @@ This is generally okay, both because the maximum amount of memory allocated for 
 		// @DOCLINE * `MU_WINDOW_POSITION` - the x- and y-coordinates of the top-leftest pixel of the window's surface relative to the entire window space of the window system, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
 		#define MU_WINDOW_POSITION 2
 
-		// @DOCLINE * `MU_WINDOW_KEYBOARD_MAP` - the keyboard keymap, represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable keyboard key. This can be "get", but not "set".
+		// @DOCLINE * `MU_WINDOW_KEYBOARD_MAP` - the [keyboard keymap](#keyboard-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable keyboard key. This can be "get", but not "set".
 		#define MU_WINDOW_KEYBOARD_MAP 3
 		// @DOCLINE > Note that when being read, the data is not expected to be the actual array, but instead a pointer that will be set to the internally-used keymap array, which remains consistent for an entire window's lifespan. More information about the keyboard keymap can be found in the [keymap](#keymaps) section.
+
+		// @DOCLINE * `MU_WINDOW_MOUSE_MAP` - the [mouse keymap](#mouse-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable mouse key. This can be "get", but not "set".
+		#define MU_WINDOW_MOUSE_MAP 4
+
+		// @DOCLINE * `MU_WINDOW_CURSOR` - the x- and y-coordinates of the visual cursor relative to the position of the window's surface, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
+		#define MU_WINDOW_CURSOR 5
+
+		// @DOCLINE * `MU_WINDOW_CURSOR_STYLE` - the [style of the cursor](#cursor-style), represented by a single value `muCursorStyle`. This can be "get" and "set".
+		#define MU_WINDOW_CURSOR_STYLE 6
 
 		// @DOCLINE A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
 
@@ -1120,6 +1131,8 @@ This is generally okay, both because the maximum amount of memory allocated for 
 		#define mu_window_set_(result, ...) muCOSA_window_set(muCOSA_global_context, result, __VA_ARGS__)
 
 		// @DOCLINE For both functions, `data` is a pointer to data dictated by the value of `attrib`. In the case of `muCOOSA_window_get`, the data is derefenced and filled in corresponding to the window's requested attribute (if successful); in the case of `muCOSA_window_set`, the data is dereferenced and read, and the requested window attribute is changed to the given value(s) (if successful).
+
+		// @DOCLINE > `mu_window_set` will only read from `data` and never modify it. Likewise, `mu_window_get` will only dereference `data` and never read from it.
 
 		// @DOCLINE ## Keymaps
 
@@ -1296,6 +1309,58 @@ This is generally okay, both because the maximum amount of memory allocated for 
 
 		// @DOCLINE Once the pointer to the keyboard keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any keyboard key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
 
+		// @DOCLINE ### Mouse keymap
+
+		typedef uint16_m muMouseKey;
+
+		// @DOCLINE The mouse keymap represents the keys on a common computer mouse readable by muCOSA, using type `muMouseKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_MOUSE_LENGTH`. It has the following indexes:
+
+		// @DOCLINE * `MU_MOUSE_UNKNOWN` - unknown mouse key.
+		#define MU_MOUSE_UNKNOWN 0
+		// @DOCLINE * `MU_MOUSE_LEFT` - the left mouse key.
+		#define MU_MOUSE_LEFT 1
+		// @DOCLINE * `MU_MOUSE_RIGHT` - the right mouse key.
+		#define MU_MOUSE_RIGHT 2
+		// @DOCLINE * `MU_MOUSE_MIDDLE` - the middle mouse key; this indicates whether or not the middle mouse key (usually the scroll wheel) is being clicked, not scrolled.
+		#define MU_MOUSE_MIDDLE 3
+
+		#define MU_MOUSE_LENGTH 4
+
+		// @DOCLINE Once the pointer to the mouse keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any mouse key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
+
+		// @DOCLINE ## Cursor style
+
+		typedef uint16_m muCursorStyle;
+
+		// @DOCLINE The style of a cursor determines how it visually appears based on a number of presets for its look that the window system provides. Its type is `muCursorStyle` (typedef for `uint16_m`), and has the following values:
+
+		// @DOCLINE * `MU_CURSOR_UNKNOWN` - unknown cursor style.
+		#define MU_CURSOR_UNKNOWN 0
+		// @DOCLINE * `MU_CURSOR_ARROW` - the normal arrow-looking cursor style; equivalent to `IDC_ARROW` in Win32.
+		#define MU_CURSOR_ARROW 1
+		// @DOCLINE * `MU_CURSOR_IBEAM` - the text-select cursor style, appearing as a vertical beam; equivalent to `IDC_IBEAM` in Win32.
+		#define MU_CURSOR_IBEAM 2
+		// @DOCLINE * `MU_CURSOR_WAIT` - the waiting/busy/loading cursor style; equivalent to `IDC_WAIT` in Win32.
+		#define MU_CURSOR_WAIT 3
+		// @DOCLINE * `MU_CURSOR_WAIT_ARROW` - the waiting/busy/loading cursor style, but also with the normal arrow visible; equivalent to `IDC_APPSTARTING` in Win32.
+		#define MU_CURSOR_WAIT_ARROW 4
+		// @DOCLINE * `MU_CURSOR_CROSSHAIR` - the crosshair cursor style; equivalent to `IDC_CROSS` in Win32.
+		#define MU_CURSOR_CROSSHAIR 5
+		// @DOCLINE * `MU_CURSOR_HAND` - the finger-pointing/link-select cursor style; equivalent to `IDC_HAND` in Win32.
+		#define MU_CURSOR_HAND 6
+		// @DOCLINE * `MU_CURSOR_SIZE_LR` - the resize cursor style, pointing left-to-right horizontally; equivalent to `IDC_SIZEWE` in Win32.
+		#define MU_CURSOR_SIZE_LR 7
+		// @DOCLINE * `MU_CURSOR_SIZE_TB` - the resize cursor style, pointing up-to-down vertically; equivalent to `IDC_SIZENS` in Win32.
+		#define MU_CURSOR_SIZE_TB 8
+		// @DOCLINE * `MU_CURSOR_SIZE_TL_BR` - the resize cursor style, pointing from top-left to bottom-right sideways; equivalent to `IDC_NWSE` in Win32.
+		#define MU_CURSOR_SIZE_TL_BR 9
+		// @DOCLINE * `MU_CURSOR_SIZE_TR_BL` - the resize cursor style, pointing from top-right to bottom-left sideways; equivalent to `IDC_NESW` in Win32.
+		#define MU_CURSOR_SIZE_TR_BL 10
+		// @DOCLINE * `MU_CURSOR_ALL` - the move/resize-all cursor style, pointing outwards in all directions; equivalent to `IDC_SIZEALL` in Win32.
+		#define MU_CURSOR_ALL 11
+		// @DOCLINE * `MU_CURSOR_NO` - the disallowing/error/not-allowed cursor style; equivalent to `IDC_NO` in WIn32.
+		#define MU_CURSOR_NO 12
+
 	// @DOCLINE # Time
 
 		// @DOCLINE Every muCOSA context has a "fixed time", which refers to the amount of seconds it has been since the context was first created, stored internally as a double. The "fixed time" is different than the "time", which is usually equal to the fixed time, unless it is manually overwritten by the user, which is available in the muCOSA API.
@@ -1374,12 +1439,14 @@ This is generally okay, both because the maximum amount of memory allocated for 
 		#define MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB 4099
 		// @DOCLINE    * In the case of dimensions, `GetClientRect` failed.
 		// @DOCLINE    * In the case of position, `GetWindowRect` failed.
+		// @DOCLINE    * In the case of cursor, rather `GetCursorPos` or `muCOSA_window_get(...MU_WINDOW_POSITION)` failed.
 
 		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB` - whatever function needed to modify the requested window attribute returned a non-success value; this is exclusive to Win32.
 		#define MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB 4100
 		// @DOCLINE    * In the case of title, `SetWindowTextW` failed.
 		// @DOCLINE    * In the case of dimensions, rather `GetWindowInfo`, `AdjustWindowRect`, or `SetWindowPos` failed.
 		// @DOCLINE    * In the case of position, `SetWindowPos` failed.
+		// @DOCLINE    * In the case of cursor, rather `SetCursorPos` or `muCOSA_window_get(...MU_WINDOW_POSITION)` failed.
 
 		// @DOCLINE All non-success values (unless explicitly stated otherwise) mean that the function fully failed, and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function failed, nothing was allocated.
 
@@ -1620,6 +1687,25 @@ This is generally okay, both because the maximum amount of memory allocated for 
 				}
 			}
 
+			// muCOSA cursor style to Win32 cursor
+			void* muCOSAW32_muCOSA_cursor_to_W32(muCursorStyle style) {
+				switch (style) {
+					default: return IDC_ARROW; break;
+					case MU_CURSOR_ARROW: return IDC_ARROW; break;
+					case MU_CURSOR_IBEAM: return IDC_IBEAM; break;
+					case MU_CURSOR_WAIT: return IDC_WAIT; break;
+					case MU_CURSOR_WAIT_ARROW: return IDC_APPSTARTING; break;
+					case MU_CURSOR_CROSSHAIR: return IDC_CROSS; break;
+					case MU_CURSOR_HAND: return IDC_HAND; break;
+					case MU_CURSOR_SIZE_LR: return IDC_SIZEWE; break;
+					case MU_CURSOR_SIZE_TB: return IDC_SIZENS; break;
+					case MU_CURSOR_SIZE_TL_BR: return IDC_SIZENWSE; break;
+					case MU_CURSOR_SIZE_TR_BL: return IDC_SIZENESW; break;
+					case MU_CURSOR_ALL: return IDC_SIZEALL; break;
+					case MU_CURSOR_NO: return IDC_NO; break;
+				}
+			}
+
 		/* Time */
 
 			struct muCOSAW32_Time {
@@ -1703,6 +1789,8 @@ This is generally okay, both because the maximum amount of memory allocated for 
 			struct muCOSAW32_Keymaps {
 				// Keyboard keys
 				muBool keyboard[MU_KEYBOARD_LENGTH];
+				// Mouse keys
+				muBool mouse[MU_MOUSE_LENGTH];
 			};
 			typedef struct muCOSAW32_Keymaps muCOSAW32_Keymaps;
 
@@ -1724,6 +1812,8 @@ This is generally okay, both because the maximum amount of memory allocated for 
 			struct muCOSAW32_WindowStates {
 				// Closed or not
 				muBool closed;
+				// Cursor style
+				muCursorStyle cursor_style;
 			};
 			typedef struct muCOSAW32_WindowStates muCOSAW32_WindowStates;
 
@@ -1994,6 +2084,29 @@ This is generally okay, both because the maximum amount of memory allocated for 
 				return 0;
 			}
 
+			// Handling for WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_LBUTTONUP, and WM_RBUTTONDOWN
+			LRESULT CALLBACK muCOSAW32_MBUTTON(muCOSAW32_ProcMsg msg, muMouseKey key, muBool up) {
+				msg.win->keymaps.mouse[key] = up;
+				return 0;
+			}
+
+			muCOSAResult muCOSAW32_window_get_dimensions(muCOSAW32_Window* win, uint32_m* data);
+			muCOSAResult muCOSAW32_window_get_cursor_pos(muCOSAW32_Window* win, int32_m* data);
+			// Handling for WM_SETCURSOR
+			LRESULT CALLBACK muCOSAW32_SETCURSOR(muCOSAW32_ProcMsg msg) {
+				// Only allow the cursor to change if it's outside the window surface
+				// This is a hack and a half, but largely works
+				int32_m cur[2]; muCOSAW32_window_get_cursor_pos(msg.win, cur);
+				uint32_m dim[2]; muCOSAW32_window_get_dimensions(msg.win, dim);
+				int32_m idim[2] = { (int32_m)dim[0], (int32_m)dim[1] };
+				if (cur[0] >= 0 && cur[1] >= 0 && cur[0] < idim[0] && cur[1] < idim[1]) {
+					SetCursor(msg.win->handles.hcursor);
+				} else {
+					return DefWindowProcW(msg.win->handles.hwnd, msg.uMsg, msg.wParam, msg.lParam);
+				}
+				return 0;
+			}
+
 			// Handles a proc message
 			LRESULT muCOSAW32_procmsg(muCOSAW32_ProcMsg msg) {
 				// Do things based on the message code
@@ -2006,6 +2119,16 @@ This is generally okay, both because the maximum amount of memory allocated for 
 					case WM_KEYDOWN: return muCOSAW32_KEY(msg, MU_TRUE); break;
 					// Key up
 					case WM_KEYUP: return muCOSAW32_KEY(msg, MU_FALSE); break;
+					// Left mouse up
+					case WM_LBUTTONUP: return muCOSAW32_MBUTTON(msg, MU_MOUSE_LEFT, MU_FALSE); break;
+					// Left mouse down
+					case WM_LBUTTONDOWN: return muCOSAW32_MBUTTON(msg, MU_MOUSE_LEFT, MU_TRUE); break;
+					// Right mouse up
+					case WM_RBUTTONUP: return muCOSAW32_MBUTTON(msg, MU_MOUSE_RIGHT, MU_FALSE); break;
+					// Right mouse down
+					case WM_RBUTTONDOWN: return muCOSAW32_MBUTTON(msg, MU_MOUSE_RIGHT, MU_TRUE); break;
+					// Cursor style changing
+					case WM_SETCURSOR: return muCOSAW32_SETCURSOR(msg); break;
 				}
 
 				// Default handling
@@ -2049,6 +2172,7 @@ This is generally okay, both because the maximum amount of memory allocated for 
 					mu_memset(&win->handles, 0, sizeof(win->handles));
 					mu_memset(&win->keymaps, 0, sizeof(win->keymaps));
 					win->states.closed = MU_FALSE;
+					win->states.cursor_style = MU_CURSOR_ARROW;
 
 				/* Class */
 
@@ -2334,6 +2458,65 @@ This is generally okay, both because the maximum amount of memory allocated for 
 				return MUCOSA_SUCCESS;
 			}
 
+			muCOSAResult muCOSAW32_window_get_mouse_map(muCOSAW32_Window* win, muBool** data) {
+				// Point to mouse keymap
+				*data = win->keymaps.mouse;
+				return MUCOSA_SUCCESS;
+			}
+
+		/* Cursor */
+
+			muCOSAResult muCOSAW32_window_get_cursor_pos(muCOSAW32_Window* win, int32_m* data) {
+				// Get cursor position
+				POINT p;
+				if (!GetCursorPos(&p)) {
+					return MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB;
+				}
+
+				// Get window position
+				int32_m wpos[2];
+				if (muCOSAW32_window_get_position(win, wpos) != MUCOSA_SUCCESS) {
+					return MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB;
+				}
+
+				// Retrieve cursor position relative to window
+				data[0] = p.x-wpos[0];
+				data[1] = p.y-wpos[1];
+				return MUCOSA_SUCCESS;
+			}
+
+			muCOSAResult muCOSAW32_window_set_cursor_pos(muCOSAW32_Window* win, int32_m* data) {
+				// Get window position
+				int32_m wpos[2];
+				if (muCOSAW32_window_get_position(win, wpos) != MUCOSA_SUCCESS) {
+					return MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB;
+				}
+
+				// Set cursor position relative to window
+				if (!SetCursorPos(wpos[0]+data[0], wpos[1]+data[1])) {
+					return MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB;
+				}
+				return MUCOSA_SUCCESS;
+			}
+
+			muCOSAResult muCOSAW32_window_get_cursor_style(muCOSAW32_Window* win, muCursorStyle* data) {
+				// Set data to cursor style
+				*data = win->states.cursor_style;
+				return MUCOSA_SUCCESS;
+			}
+
+			muCOSAResult muCOSAW32_window_set_cursor_style(muCOSAW32_Window* win, muCursorStyle* data) {
+				// Set internal storage to cursor style
+				win->states.cursor_style = *data;
+				// Destroy cursor
+				DestroyCursor(win->handles.hcursor);
+				// Load cursor
+				win->handles.hcursor = LoadCursor(0, (LPCSTR)muCOSAW32_muCOSA_cursor_to_W32(*data));
+				// Set cursor
+				SetCursor(win->handles.hcursor);
+				return MUCOSA_SUCCESS;
+			}
+
 	#endif /* MUCOSA_WIN32 */
 
 	/* Inner */
@@ -2591,6 +2774,12 @@ This is generally okay, both because the maximum amount of memory allocated for 
 							case MU_WINDOW_POSITION: res = muCOSAW32_window_get_position(w32_win, (int32_m*)data); break;
 							// Keyboard keymap
 							case MU_WINDOW_KEYBOARD_MAP: res = muCOSAW32_window_get_keyboard_map(w32_win, (muBool**)data); break;
+							// Mouse keymap
+							case MU_WINDOW_MOUSE_MAP: res = muCOSAW32_window_get_mouse_map(w32_win, (muBool**)data); break;
+							// Cursor
+							case MU_WINDOW_CURSOR: res = muCOSAW32_window_get_cursor_pos(w32_win, (int32_m*)data); break;
+							// Cursor style
+							case MU_WINDOW_CURSOR_STYLE: res = muCOSAW32_window_get_cursor_style(w32_win, (muCursorStyle*)data); break;
 						}
 
 						if (res != MUCOSA_SUCCESS) {
@@ -2627,6 +2816,10 @@ This is generally okay, both because the maximum amount of memory allocated for 
 							case MU_WINDOW_DIMENSIONS: res = muCOSAW32_window_set_dimensions(w32_win, (uint32_m*)data); break;
 							// Position
 							case MU_WINDOW_POSITION: res = muCOSAW32_window_set_position(w32_win, (int32_m*)data); break;
+							// Cursor
+							case MU_WINDOW_CURSOR: res = muCOSAW32_window_set_cursor_pos(w32_win, (int32_m*)data); break;
+							// Cursor style
+							case MU_WINDOW_CURSOR_STYLE: res = muCOSAW32_window_set_cursor_style(w32_win, (muCursorStyle*)data); break;
 						}
 
 						if (res != MUCOSA_SUCCESS) {

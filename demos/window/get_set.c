@@ -17,6 +17,10 @@ Program should create a window that can be moved using the
 WASD keys, and resized using the arrow keys. Any change in
 the dimensions or position of the window trigger a print of
 the new values.
+The window should be moveable by holding down the left-click
+mouse button on the window's surface, dragging it with the
+mouse.
+The cursor style can be changed via the J and L keys.
 
 ============================================================
                         LICENSE INFO
@@ -65,6 +69,12 @@ More explicit license information at the end of file.
 	// Window keyboard map
 	muBool* keyboard;
 
+	// Window mouse map
+	muBool* mouse;
+
+	// Current cursor style
+	muCursorStyle cursor_style = MU_CURSOR_ARROW;
+
 int main(void)
 {
 
@@ -84,15 +94,24 @@ int main(void)
 	// Get keyboard map
 	mu_window_get(win, MU_WINDOW_KEYBOARD_MAP, &keyboard);
 
+	// Get mouse map
+	mu_window_get(win, MU_WINDOW_MOUSE_MAP, &mouse);
+
 /* Print explanation */
 
 	printf("WASD to move window, arrow keys to resize\n");
+	printf("Hold down left-click on the window's surface to drag it\n");
+	printf("Use J/L keys to change cursor style\n");
 
 /* Main loop */
 
-	// Initialize position and dimension trackers
+	// Initialize position, dimension, cursor, and key trackers
 	int32_m pos[2] = { wininfo.x, wininfo.y };
 	uint32_m dim[2] = { wininfo.width, wininfo.height };
+	int32_m cur[2];
+	muBool prevcur = MU_FALSE; // (last state of left button being down)
+	muBool last_L = MU_FALSE; // (last state of L key)
+	muBool last_J = MU_FALSE; // (last state of J key)
 
 	// Desired FPS
 	double FPS = 60.0;
@@ -121,8 +140,6 @@ int main(void)
 		// - Left/Right
 		new_pos[0] += ppf*keyboard[MU_KEYBOARD_D];
 		new_pos[0] -= ppf*keyboard[MU_KEYBOARD_A];
-		// - Set position
-		mu_window_set(win, MU_WINDOW_POSITION, new_pos);
 
 		// Resize window based on arrow keys
 		// - Width
@@ -131,7 +148,38 @@ int main(void)
 		// - Height
 		new_dim[1] += ppf*keyboard[MU_KEYBOARD_DOWN];
 		new_dim[1] -= ppf*keyboard[MU_KEYBOARD_UP];
-		// - Set dimensions
+
+		// Handle mouse dragging
+		if (mouse[MU_MOUSE_LEFT]) {
+			// If this is the first frame, just get coordinates and leave
+			if (!prevcur) {
+				prevcur = MU_TRUE;
+				mu_window_get(win, MU_WINDOW_CURSOR, cur);
+				// Make coordinates non-relative to window for consistency
+				cur[0] += new_pos[0];
+				cur[1] += new_pos[1];
+			}
+			// If this isn't the first frame:
+			else {
+				// Get new cursor position
+				int32_m new_cur[2];
+				mu_window_get(win, MU_WINDOW_CURSOR, new_cur);
+				// Make non-relative to window for consistency
+				new_cur[0] += new_pos[0];
+				new_cur[1] += new_pos[1];
+				// Move window based on how much cursor moved
+				new_pos[0] += new_cur[0]-cur[0];
+				new_pos[1] += new_cur[1]-cur[1];
+				// Set new cursor position
+				cur[0] = new_cur[0];
+				cur[1] = new_cur[1];
+			}
+		} else {
+			prevcur = MU_FALSE;
+		}
+
+		// Set new position/dimensions
+		mu_window_set(win, MU_WINDOW_POSITION, new_pos);
 		mu_window_set(win, MU_WINDOW_DIMENSIONS, new_dim);
 
 		// Print if position has changed
@@ -147,6 +195,35 @@ int main(void)
 			dim[0] = new_dim[0];
 			dim[1] = new_dim[1];
 		}
+
+		// Change cursor style if needed
+		if (keyboard[MU_KEYBOARD_L] && !last_L) {
+			// Handle wrapping
+			if (cursor_style == MU_CURSOR_NO) {
+				cursor_style = MU_CURSOR_IBEAM;
+			} else {
+				++cursor_style;
+			}
+			// Set cursor style
+			mu_window_set(win, MU_WINDOW_CURSOR_STYLE, &cursor_style);
+			// Print new cursor style (USE GET)
+			// ...
+		}
+		if (keyboard[MU_KEYBOARD_J] && !last_J) {
+			// Handle wrapping
+			if (cursor_style == MU_CURSOR_IBEAM) {
+				cursor_style = MU_CURSOR_NO;
+			} else {
+				--cursor_style;
+			}
+			// Set cursor style
+			mu_window_set(win, MU_WINDOW_CURSOR_STYLE, &cursor_style);
+			// Print new cursor style
+			// ...
+		}
+		// Update last key trackers
+		last_L = keyboard[MU_KEYBOARD_L];
+		last_J = keyboard[MU_KEYBOARD_J];
 
 		// Swap buffers (which renders the screen)
 		mu_window_swap_buffers(win);
