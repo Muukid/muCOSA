@@ -2,22 +2,21 @@
 ============================================================
                         DEMO INFO
 
-DEMO NAME:          window.c
+DEMO NAME:          get_set.c
 DEMO WRITTEN BY:    Muukid
-CREATION DATE:      2024-08-03
+CREATION DATE:      2024-08-04
 LAST UPDATED:       2024-08-04
 
 ============================================================
                         DEMO PURPOSE
 
-This demo shows the basics behind creating a default, empty
-window in muCOSA.
+This demo shows how a window's attributes can be get and set
+via the muCOSA API.
 
-Program should pop up a window on screen named "Window". 
-Note that since no graphics API is being used, there is no
-easy way to clear the screen with a color, and in muCOSA, a
-screen that doesn't get cleared has undefined contents,
-meaning that it can look different depending on the OS.
+Program should create a window that can be moved using the
+WASD keys, and resized using the arrow keys. Any change in
+the dimensions or position of the window trigger a print of
+the new values.
 
 ============================================================
                         LICENSE INFO
@@ -35,9 +34,12 @@ More explicit license information at the end of file.
 	#define MUCOSA_NAMES // For name functions
 	#define MUCOSA_IMPLEMENTATION // For source code
 	#include "muCOSA.h"
-
+	
 	// Include stdio for print functions
 	#include <stdio.h>
+	
+	// Include inttypes for printing certain types
+	#include <inttypes.h>
 
 /* Variables */
 	
@@ -76,13 +78,46 @@ int main(void)
 	// Create window
 	win = mu_window_create(&wininfo);
 
+/* Print explanation */
+
+	printf("WASD to move window, arrow keys to resize\n");
+
 /* Main loop */
+
+	// Initialize position and dimension trackers
+	int32_m pos[2] = { wininfo.x, wininfo.y };
+	uint32_m dim[2] = { wininfo.width, wininfo.height };
 
 	// Set up a loop that continues as long as the window isn't closed
 
 	while (!mu_window_get_closed(win))
 	{
-		// ... This is where we would do our frame-by-frame logic
+		// Get window position
+		int32_m new_pos[2];
+		mu_window_get(win, MU_WINDOW_POSITION, new_pos);
+		// Get window dimensions
+		uint32_m new_dim[2];
+		mu_window_get(win, MU_WINDOW_DIMENSIONS, new_dim);
+
+		// Move window based on WASD
+		// ...
+
+		// Resize window based on arrow keys
+		// ...
+
+		// Print if position has changed
+		if (new_pos[0] != pos[0] || new_pos[1] != pos[1]) {
+			printf("Position: (%" PRIi32 ", %" PRIi32 ")\n", new_pos[0], new_pos[1]);
+			pos[0] = new_pos[0];
+			pos[1] = new_pos[1];
+		}
+
+		// Print if dimensions have changed
+		if (new_dim[0] != dim[0] || new_dim[1] != dim[1]) {
+			printf("Dimensions: (%" PRIu32 ", %" PRIu32 ")\n", new_dim[0], new_dim[1]);
+			dim[0] = new_dim[0];
+			dim[1] = new_dim[1];
+		}
 
 		// Swap buffers (which renders the screen)
 		mu_window_swap_buffers(win);
@@ -101,7 +136,7 @@ int main(void)
 
 	// Print possible error
 	if (muCOSA.result != MUCOSA_SUCCESS) {
-		printf("Something went wrong during the program's lifespan; result: %s\n", 
+		printf("Something went wrong during the program's lifespan; result: %s\n",
 			muCOSA_result_get_name(muCOSA.result)
 		);
 	} else {

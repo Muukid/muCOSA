@@ -967,8 +967,8 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 		// @DOCLINE The struct `muWindowInfo` represents information about a window. It has the following members:
 
 		struct muWindowInfo {
-			// @DOCLINE * `@NLFT* name` - the name of the window.
-			char* name;
+			// @DOCLINE * `@NLFT* title` - the title of the window shown to the user in most interfaces (primarily the title bar).
+			char* title;
 			// @DOCLINE * `@NLFT width` - the width of the window's surface, in pixels.
 			uint32_m width;
 			// @DOCLINE * `@NLFT height` - the height of the window's surface, in pixels.
@@ -1052,6 +1052,55 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 		#define mu_window_update(...) muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
 		#define mu_window_update_(result, ...) muCOSA_window_update(muCOSA_global_context, result, __VA_ARGS__)
 
+		// @DOCLINE ## Window attributes
+
+		typedef uint16_m muWindowAttrib;
+		// @DOCLINE The window is described by several attributes, with each attribute represented by the type `muWindowAttrib` (typedef for `uint16_m`). It has the following values:
+
+		// @DOCLINE * `MU_WINDOW_TITLE` - the title of the window, represented by a `char*` UTF-8 string. This cannot be "get", but can be "set".
+		#define MU_WINDOW_TITLE 0
+
+		// @DOCLINE * `MU_WINDOW_DIMENSIONS` - the width and height of the window's surface, in pixels, represented by a pointer to an array of two `uint32_m`s, where the first element is the width, and the second element is the height. This can be "get" and "set".
+		#define MU_WINDOW_DIMENSIONS 1
+
+		// @DOCLINE * `MU_WINDOW_POSITION` - the x- and y-coordinates of the top-leftest pixel of the window's surface relative to the entire window space of the window system, represented by a pointer to an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
+		#define MU_WINDOW_POSITION 2
+
+		// @DOCLINE A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
+
+		// @DOCLINE ### Names
+		#ifdef MUCOSA_NAMES
+
+		// @DOCLINE The name function for `muWindowAttrib` is `mu_window_attrib_get_name`, defined below: @NLNT
+		MUDEF const char* mu_window_attrib_get_name(muWindowAttrib attrib);
+
+		// @DOCLINE > This function returns "MUCOSA_UNKNOWN" if the value of `attrib` is unrecognized.
+
+		// @DOCLINE The nice name function for `muWindowAttrib` is `mu_window_attrib_get_nice_name`, defined below: @NLNT
+		MUDEF const char* mu_window_attrib_get_nice_name(muWindowAttrib attrib);
+
+		// @DOCLINE > This function returns "Unknown" if the value of `attrib` is unrecognized.
+
+		#endif
+
+		// @DOCLINE ### Get and set window attributes
+
+		// @DOCLINE The function `muCOSA_window_get` retrieves an attribute of a window, defined below: @NLNT
+		MUDEF void muCOSA_window_get(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
+
+		// @DOCLINE > The macro `mu_window_get` is the non-result-checking equivalent, and the macro `mu_window_get_` is the result-checking equivalent.
+		#define mu_window_get(...) muCOSA_window_get(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+		#define mu_window_get_(result, ...) muCOSA_window_get(muCOSA_global_context, result, __VA_ARGS__)
+
+		// @DOCLINE The function `muCOSA_window_set` modifies an attribute of a window, defined below: @NLNT
+		MUDEF void muCOSA_window_set(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
+
+		// @DOCLINE > The macro `mu_window_set` is the non-result-checking equivalent, and the macro `mu_window_set_` is the result-checking equivalent.
+		#define mu_window_set(...) muCOSA_window_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+		#define mu_window_set_(result, ...) muCOSA_window_set(muCOSA_global_context, result, __VA_ARGS__)
+
+		// @DOCLINE For both functions, `data` is a pointer to data dictated by the value of `attrib`. In the case of `muCOOSA_window_get`, the data is derefenced and filled in corresponding to the window's requested attribute (if successful); in the case of `muCOSA_window_set`, the data is dereferenced and read, and the requested window attribute is changed to the given value(s) (if successful).
+
 	// @DOCLINE # Result
 
 		// @DOCLINE The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
@@ -1067,6 +1116,9 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 		// @DOCLINE * `MUCOSA_FAILED_MALLOC` - a call to malloc failed, meaning that there is insufficient memory available to perform the task.
 		#define MUCOSA_FAILED_MALLOC 2
 
+		// @DOCLINE * `MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB` - an invalid `muWindowAttrib` value was given by the user.
+		#define MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB 3
+
 		// == MUCOSA_WIN32_... 4096-8191 ==
 
 		// @DOCLINE * `MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR` - a conversion from a UTF-8 string to a wide character string failed, rather due to the conversion itself failing or the allocation of memory required for the conversion; this is exclusive to Win32.
@@ -1077,6 +1129,17 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 		// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_WINDOW` - a call to `CreateWindowExW` failed, meaning that the window could not be created; this is exclusive to Win32.
 		#define MUCOSA_WIN32_FAILED_CREATE_WINDOW 4098
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB` - whatever function needed to retrieve the requested window attribute returned a non-success value; this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB 4099
+		// @DOCLINE    * In the case of dimensions, `GetClientRect` failed.
+		// @DOCLINE    * In the case of position, `GetWindowRect` failed.
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB` - whatever function needed to modify the requested window attribute returned a non-success value; this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB 4100
+		// @DOCLINE    * In the case of title, `SetWindowTextW` failed.
+		// @DOCLINE    * In the case of dimensions, rather `GetWindowInfo`, `AdjustWindowRect`, or `SetWindowPos` failed.
+		// @DOCLINE    * In the case of position, `SetWindowPos` failed.
 
 		// @DOCLINE All non-success values (unless explicitly stated otherwise) mean that the function fully failed, and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function failed, nothing was allocated.
 
@@ -1216,6 +1279,8 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 				HWND hwnd;
 				// Device context
 				HDC dc;
+				// Cursor handle
+				HCURSOR hcursor;
 			};
 			typedef struct muCOSAW32_WindowHandles muCOSAW32_WindowHandles;
 
@@ -1226,6 +1291,8 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 		/* Creation / Destruction */
 
+			muCOSAResult muCOSAW32_window_set_position(muCOSAW32_Window* win, int32_m* data);
+
 			muCOSAResult muCOSAW32_window_create(muWindowInfo* info, muCOSAW32_Window* win) {
 				/* Default attributes */
 
@@ -1233,8 +1300,8 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 				/* Class */
 
-					// Window name
-					wchar_t* wname = muCOSAW32_utf8_to_wchar(info->name);
+					// Window title
+					wchar_t* wname = muCOSAW32_utf8_to_wchar(info->title);
 					if (!wname) {
 						return MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR;
 					}
@@ -1243,7 +1310,7 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 					// To generate a unique window class, I hamfistedly
 					// attempt to generate one by adding the actual pointer
 					// value of 'win' to a character, creating an often
-					// unreadable class name. This needs to be improved
+					// unreadable class title. This needs to be improved
 					// at some point, but works for me :P
 
 					win->handles.wclass_name[0] = (wchar_t)'!';
@@ -1260,6 +1327,8 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 					// Hinstance
 					win->handles.hinstance = muCOSAW32_get_hinstance();
+					// Hcursor
+					win->handles.hcursor = LoadCursor(NULL, IDC_ARROW);
 
 					// Create class struct
 					WNDCLASSEXW wclass = MU_ZERO_STRUCT(WNDCLASSEXW);
@@ -1267,6 +1336,7 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 					wclass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 					wclass.lpfnWndProc = DefWindowProcW;
 					wclass.hInstance = win->handles.hinstance;
+					wclass.hCursor = win->handles.hcursor;
 					wclass.lpszMenuName = wname;
 					wclass.lpszClassName = win->handles.wclass_name;
 
@@ -1331,6 +1401,14 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 						// ?
 					}
 
+				/* Set position manually */
+
+					// A bit of a hack considering that it should work on the first try,
+					// but frame extents on Win32 will be frame extents on Win32.
+
+					int32_m pos[2] = { info->x, info->y };
+					muCOSAW32_window_set_position(win, pos);
+
 				return MUCOSA_SUCCESS;
 			}
 
@@ -1361,6 +1439,138 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 					TranslateMessage(&msg);
 					DispatchMessage(&msg);
 				}
+			}
+
+		/* Title */
+
+			// Set title
+			muCOSAResult muCOSAW32_window_set_title(muCOSAW32_Window* win, char* data) {
+				// Convert UTF-8 data to wchar_t* data
+				wchar_t* wtitle = muCOSAW32_utf8_to_wchar(data);
+				if (!wtitle) {
+					return MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR;
+				}
+
+				// Set window title
+				if (!SetWindowTextW(win->handles.hwnd, wtitle)) {
+					mu_free(wtitle);
+					return MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB;
+				}
+
+				mu_free(wtitle);
+				return MUCOSA_SUCCESS;
+			}
+
+		/* Frame extents */
+
+			// Default frame extents
+			// I love you Bill...
+			void muCOSAW32_def_window_frame_extents(uint32_m* data) {
+				data[0] = data[1] = data[3] = (uint32_m)GetSystemMetrics(SM_CXSIZEFRAME);
+				data[2] = (uint32_m)(GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(92));
+			}
+
+			// Get frame extents for a window
+			// I LOVE YOU BILL GATES!!!!!
+			void muCOSAW32_window_get_frame_extents(muCOSAW32_Window* win, uint32_m* data) {
+				// Fallback
+				muCOSAW32_def_window_frame_extents(data);
+
+				// Get window and client rect
+				RECT wr, cr;
+				if (!GetWindowRect(win->handles.hwnd, &wr)) {
+					// (Not returning error since default window frame extents are filled)
+					return;
+				}
+				if (!GetClientRect(win->handles.hwnd, &cr)) {
+					return;
+				}
+
+				// Map client rect to window points
+				if (!MapWindowPoints(win->handles.hwnd, NULL, (LPPOINT)&cr, 2)) {
+					return;
+				}
+
+				// Set values based on window and client rect
+				data[0] = (uint32_m)(cr.left-wr.left);
+				data[1] = (uint32_m)(wr.right-cr.right);
+				data[2] = (uint32_m)(cr.top-wr.top);
+				data[3] = (uint32_m)(wr.bottom-cr.bottom);
+			}
+
+		/* Dimensions */
+
+			muCOSAResult muCOSAW32_window_get_dimensions(muCOSAW32_Window* win, uint32_m* data) {
+				// Get client rect
+				RECT r;
+				if (!GetClientRect(win->handles.hwnd, &r)) {
+					return MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB;
+				}
+
+				// Set values
+				data[0] = (uint32_m)(r.right-r.left);
+				data[1] = (uint32_m)(r.bottom-r.top);
+				return MUCOSA_SUCCESS;
+			}
+
+			muCOSAResult muCOSAW32_window_set_dimensions(muCOSAW32_Window* win, uint32_m* data) {
+				// Get general window info for style
+				WINDOWINFO wi;
+				if (!GetWindowInfo(win->handles.hwnd, &wi)) {
+					return MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB;
+				}
+
+				// Calculate rect
+				RECT r;
+				r.left = r.top = 0;
+				r.right = data[0];
+				r.bottom = data[1];
+
+				// Calculate appropriate window rect for dimensions
+				if (!AdjustWindowRect(&r, wi.dwStyle, FALSE)) {
+					return MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB;
+				}
+
+				// Set window rect based on this
+				if (!SetWindowPos(win->handles.hwnd, HWND_TOP, 0, 0, r.right-r.left, r.bottom-r.top, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE)) {
+					return MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB;
+				}
+				return MUCOSA_SUCCESS;
+			}
+
+		/* Position */
+
+			muCOSAResult muCOSAW32_window_get_position(muCOSAW32_Window* win, int32_m* data) {
+				// Get window rect
+				RECT r;
+				if (!GetWindowRect(win->handles.hwnd, &r)) {
+					return MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB;
+				}
+
+				// Get frame extents
+				uint32_m fe[4];
+				muCOSAW32_window_get_frame_extents(win, fe);
+
+				// Set position based on rect and relative frame extents
+				data[0] = (int32_m)(r.left) + (int32_m)(fe[0]);
+				data[1] = (int32_m)(r.top) + (int32_m)(fe[2]);
+				return MUCOSA_SUCCESS;
+			}
+
+			muCOSAResult muCOSAW32_window_set_position(muCOSAW32_Window* win, int32_m* data) {
+				// Get frame extents
+				uint32_m fe[4];
+				muCOSAW32_window_get_frame_extents(win, fe);
+
+				// Translate x and y based on extents
+				int32_m x = data[0] - (int32_m)(fe[0]);
+				int32_m y = data[1] - (int32_m)(fe[2]);
+
+				// Set window position
+				if (!SetWindowPos(win->handles.hwnd, HWND_TOP, x, y, 0, 0, SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSIZE)) {
+					return MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB;
+				}
+				return MUCOSA_SUCCESS;
 			}
 
 	#endif /* MUCOSA_WIN32 */
@@ -1407,7 +1617,7 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 						// Create context
 						muCOSAW32_context_init((muCOSAW32_Context*)inner->context);
-						
+
 						return MUCOSA_SUCCESS;
 					} break;
 				)
@@ -1595,6 +1805,78 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 				if (result) {} if (win) {}
 			}
 
+		/* Get / Set */
+
+			MUDEF void muCOSA_window_get(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data) {
+				// Get inner from context
+				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+				// Do things based on window system
+				switch (inner->system) {
+					default: return; break;
+
+					// Win32
+					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+						muCOSAResult res;
+						muCOSAW32_Window* w32_win = (muCOSAW32_Window*)win;
+
+						// Do things based on attribute
+						switch (attrib) {
+							default: MU_SET_RESULT(result, MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB) return; break;
+
+							// Dimensions
+							case MU_WINDOW_DIMENSIONS: res = muCOSAW32_window_get_dimensions(w32_win, (uint32_m*)data); break;
+							// Position
+							case MU_WINDOW_POSITION: res = muCOSAW32_window_get_position(w32_win, (int32_m*)data); break;
+						}
+
+						if (res != MUCOSA_SUCCESS) {
+							MU_SET_RESULT(result, res)
+						}
+						return;
+					} break;)
+				}
+
+				// To avoid unused parameter warnings in some cases
+				if (result) {} if (win) {} if (attrib) {} if (data) {}
+			}
+
+		MUDEF void muCOSA_window_set(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data) {
+				// Get inner from context
+				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+				// Do things based on window system
+				switch (inner->system) {
+					default: return; break;
+
+					// Win32
+					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+						muCOSAResult res;
+						muCOSAW32_Window* w32_win = (muCOSAW32_Window*)win;
+
+						// Do things based on attribute
+						switch (attrib) {
+							default: MU_SET_RESULT(result, MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB) return; break;
+
+							// Title
+							case MU_WINDOW_TITLE: res = muCOSAW32_window_set_title(w32_win, (char*)data); break;
+							// Dimensions
+							case MU_WINDOW_DIMENSIONS: res = muCOSAW32_window_set_dimensions(w32_win, (uint32_m*)data); break;
+							// Position
+							case MU_WINDOW_POSITION: res = muCOSAW32_window_set_position(w32_win, (int32_m*)data); break;
+						}
+
+						if (res != MUCOSA_SUCCESS) {
+							MU_SET_RESULT(result, res)
+						}
+						return;
+					} break;)
+				}
+
+				// To avoid unused parameter warnings in some cases
+				if (result) {} if (win) {} if (attrib) {} if (data) {}
+			}
+
 	/* Names */
 
 	MUCOSA_NAME_CALL(
@@ -1609,6 +1891,8 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 				case MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR: return "MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR"; break;
 				case MUCOSA_WIN32_FAILED_REGISTER_WINDOW_CLASS: return "MUCOSA_WIN32_FAILED_REGISTER_WINDOW_CLASS"; break;
 				case MUCOSA_WIN32_FAILED_CREATE_WINDOW: return "MUCOSA_WIN32_FAILED_CREATE_WINDOW"; break;
+				case MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB: return "MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB"; break;
+				case MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB: return "MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB"; break;
 			}
 		}
 
@@ -1627,6 +1911,24 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 				case MU_WINDOW_NULL: return "Unknown/Auto"; break;
 				case MU_WINDOW_WIN32: return "Win32"; break;
+			}
+		}
+
+		MUDEF const char* mu_window_attrib_get_name(muWindowAttrib attrib) {
+			switch (attrib) {
+				default: return "MUCOSA_UNKNOWN"; break;
+				case MU_WINDOW_TITLE: return "MU_WINDOW_TITLE"; break;
+				case MU_WINDOW_DIMENSIONS: return "MU_WINDOW_DIMENSIONS"; break;
+				case MU_WINDOW_POSITION: return "MU_WINDOW_POSITION"; break;
+			}
+		}
+
+		MUDEF const char* mu_window_attrib_get_nice_name(muWindowAttrib attrib) {
+			switch (attrib) {
+				default: return "MUCOSA_UNKNOWN"; break;
+				case MU_WINDOW_TITLE: return "Title"; break;
+				case MU_WINDOW_DIMENSIONS: return "Dimensions"; break;
+				case MU_WINDOW_POSITION: return "Position"; break;
 			}
 		}
 	)

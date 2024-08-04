@@ -198,7 +198,7 @@ The documentation of this library will use the term "surface" in regards to the 
 
 The struct `muWindowInfo` represents information about a window. It has the following members:
 
-* `char* name` - the name of the window.
+* `char* title` - the title of the window shown to the user in most interfaces (primarily the title bar).
 
 * `uint32_m width` - the width of the window's surface, in pixels.
 
@@ -289,6 +289,60 @@ MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, mu
 
 > The macro `mu_window_update` is the non-result-checking equivalent, and the macro `mu_window_update_` is the result-checking equivalent.
 
+## Window attributes
+
+The window is described by several attributes, with each attribute represented by the type `muWindowAttrib` (typedef for `uint16_m`). It has the following values:
+
+* `MU_WINDOW_TITLE` - the title of the window, represented by a `char*` UTF-8 string. This cannot be "get", but can be "set".
+
+* `MU_WINDOW_DIMENSIONS` - the width and height of the window's surface, in pixels, represented by a pointer to an array of two `uint32_m`s, where the first element is the width, and the second element is the height. This can be "get" and "set".
+
+* `MU_WINDOW_POSITION` - the x- and y-coordinates of the top-leftest pixel of the window's surface relative to the entire window space of the window system, represented by a pointer to an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
+
+A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
+
+### Names
+
+The name function for `muWindowAttrib` is `mu_window_attrib_get_name`, defined below: 
+
+```c
+MUDEF const char* mu_window_attrib_get_name(muWindowAttrib attrib);
+```
+
+
+> This function returns "MUCOSA_UNKNOWN" if the value of `attrib` is unrecognized.
+
+The nice name function for `muWindowAttrib` is `mu_window_attrib_get_nice_name`, defined below: 
+
+```c
+MUDEF const char* mu_window_attrib_get_nice_name(muWindowAttrib attrib);
+```
+
+
+> This function returns "Unknown" if the value of `attrib` is unrecognized.
+
+### Get and set window attributes
+
+The function `muCOSA_window_get` retrieves an attribute of a window, defined below: 
+
+```c
+MUDEF void muCOSA_window_get(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
+```
+
+
+> The macro `mu_window_get` is the non-result-checking equivalent, and the macro `mu_window_get_` is the result-checking equivalent.
+
+The function `muCOSA_window_set` modifies an attribute of a window, defined below: 
+
+```c
+MUDEF void muCOSA_window_set(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
+```
+
+
+> The macro `mu_window_set` is the non-result-checking equivalent, and the macro `mu_window_set_` is the result-checking equivalent.
+
+For both functions, `data` is a pointer to data dictated by the value of `attrib`. In the case of `muCOOSA_window_get`, the data is derefenced and filled in corresponding to the window's requested attribute (if successful); in the case of `muCOSA_window_set`, the data is dereferenced and read, and the requested window attribute is changed to the given value(s) (if successful).
+
 # Result
 
 The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
@@ -299,11 +353,27 @@ The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task
 
 * `MUCOSA_FAILED_MALLOC` - a call to malloc failed, meaning that there is insufficient memory available to perform the task.
 
+* `MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB` - an invalid `muWindowAttrib` value was given by the user.
+
 * `MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR` - a conversion from a UTF-8 string to a wide character string failed, rather due to the conversion itself failing or the allocation of memory required for the conversion; this is exclusive to Win32.
 
 * `MUCOSA_WIN32_FAILED_REGISTER_WINDOW_CLASS` - a call to `RegisterClassExW` failed, meaning that the window class needed to create the window could not be created; this is exclusive to Win32.
 
 * `MUCOSA_WIN32_FAILED_CREATE_WINDOW` - a call to `CreateWindowExW` failed, meaning that the window could not be created; this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB` - whatever function needed to retrieve the requested window attribute returned a non-success value; this is exclusive to Win32.
+
+   * In the case of dimensions, `GetClientRect` failed.
+
+   * In the case of position, `GetWindowRect` failed.
+
+* `MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB` - whatever function needed to modify the requested window attribute returned a non-success value; this is exclusive to Win32.
+
+   * In the case of title, `SetWindowTextW` failed.
+
+   * In the case of dimensions, rather `GetWindowInfo`, `AdjustWindowRect`, or `SetWindowPos` failed.
+
+   * In the case of position, `SetWindowPos` failed.
 
 All non-success values (unless explicitly stated otherwise) mean that the function fully failed, and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function failed, nothing was allocated.
 
