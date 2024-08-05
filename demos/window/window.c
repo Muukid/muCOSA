@@ -5,7 +5,7 @@
 DEMO NAME:          window.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-08-03
-LAST UPDATED:       2024-08-04
+LAST UPDATED:       2024-08-05
 
 ============================================================
                         DEMO PURPOSE
@@ -83,9 +83,6 @@ int main(void)
 	while (!mu_window_get_closed(win))
 	{
 		// ... This is where we would do our frame-by-frame logic
-
-		// Swap buffers (which renders the screen)
-		mu_window_swap_buffers(win);
 
 		// Update window (which refreshes input and such)
 		mu_window_update(win);

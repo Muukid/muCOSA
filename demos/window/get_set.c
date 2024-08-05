@@ -5,7 +5,7 @@
 DEMO NAME:          get_set.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-08-04
-LAST UPDATED:       2024-08-04
+LAST UPDATED:       2024-08-05
 
 ============================================================
                         DEMO PURPOSE
@@ -32,9 +32,12 @@ More explicit license information at the end of file.
 ============================================================
 */
 
+#include <stdio.h>
+
 /* Inclusion */
 
 	// Include muCOSA
+	#define MU_SUPPORT_OPENGL
 	#define MUCOSA_NAMES // For name functions
 	#define MUCOSA_IMPLEMENTATION // For source code
 	#include "muCOSA.h"
@@ -63,7 +66,9 @@ More explicit license information at the end of file.
 		// Resolution (width & height)
 		800, 600,
 		// Coordinates (x and y)
-		50, 50
+		50, 50,
+		// Pixel format (default)
+		0
 	};
 
 	// Window keyboard map
@@ -200,7 +205,7 @@ int main(void)
 		if (keyboard[MU_KEYBOARD_L] && !last_L) {
 			// Handle wrapping
 			if (cursor_style == MU_CURSOR_NO) {
-				cursor_style = MU_CURSOR_IBEAM;
+				cursor_style = MU_CURSOR_ARROW;
 			} else {
 				++cursor_style;
 			}
@@ -211,7 +216,7 @@ int main(void)
 		}
 		if (keyboard[MU_KEYBOARD_J] && !last_J) {
 			// Handle wrapping
-			if (cursor_style == MU_CURSOR_IBEAM) {
+			if (cursor_style == MU_CURSOR_ARROW) {
 				cursor_style = MU_CURSOR_NO;
 			} else {
 				--cursor_style;
@@ -224,9 +229,6 @@ int main(void)
 		// Update last key trackers
 		last_L = keyboard[MU_KEYBOARD_L];
 		last_J = keyboard[MU_KEYBOARD_J];
-
-		// Swap buffers (which renders the screen)
-		mu_window_swap_buffers(win);
 
 		// Update window (which refreshes input and such)
 		mu_window_update(win);
