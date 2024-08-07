@@ -114,7 +114,7 @@ MUDEF const char* mu_window_system_get_name(muWindowSystem system);
 ```
 
 
-It will return "MUCOSA_UNKNOWN" in the case that `system` is an invalid window system value.
+It will return "MU_UNKNOWN" in the case that `system` is an invalid window system value.
 
 The name function `mu_window_system_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_WINDOW_NULL` returns "Unknown/Auto"), defined below: 
 
@@ -359,6 +359,8 @@ The window is described by several attributes, with each attribute represented b
 
    > Note that when being read, the data is not expected to be the actual array, but instead a pointer that will be set to the internally-used keymap array, which remains consistent for an entire window's lifespan. More information about the keyboard keymap can be found in the [keymap](#keymaps) section.
 
+* `MU_WINDOW_KEYSTATE_MAP` - the [keystate keymap](#keystate-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of all keyboard states (such as caps lock, for example). This can be "get" but not "set".
+
 * `MU_WINDOW_MOUSE_MAP` - the [mouse keymap](#mouse-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable mouse key. This can be "get", but not "set".
 
 * `MU_WINDOW_CURSOR` - the x- and y-coordinates of the visual cursor relative to the position of the window's surface, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
@@ -376,7 +378,7 @@ MUDEF const char* mu_window_attrib_get_name(muWindowAttrib attrib);
 ```
 
 
-> This function returns "MUCOSA_UNKNOWN" if the value of `attrib` is unrecognized.
+> This function returns "MU_UNKNOWN" if the value of `attrib` is unrecognized.
 
 The nice name function for `muWindowAttrib` is `mu_window_attrib_get_nice_name`, defined below: 
 
@@ -505,6 +507,64 @@ The keyboard keymap represents keys on the keyboard readable by muCOSA, using ty
 
 Once the pointer to the keyboard keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any keyboard key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
 
+#### Keyboard names
+
+The name function `mu_keyboard_key_get_name` returns a `const char*` representation of the given keyboard key (for example, `MU_KEYBOARD_W` returns "MU_KEYBOARD_W"), defined below: 
+
+```c
+MUDEF const char* mu_keyboard_key_get_name(muKeyboardKey key);
+```
+
+
+It will return "MU_UNKNOWN" in the case that `key` is an invalid keyboard key value.
+
+The name function `mu_keyboard_key_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYBOARD_W` returns "W"), defined below: 
+
+```c
+MUDEF const char* mu_keyboard_key_get_nice_name(muKeyboardKey key);
+```
+
+
+It will return "Unknown" in the case that `key` is an invalid keyboard key value.
+
+> These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
+
+### Keystate keymap
+
+The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeystate` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
+
+* `MU_KEYSTATE_UNKNOWN` - unknown keystate.
+
+* `MU_KEYSTATE_CAPS_LOCK` - the [caps lock](https://en.wikipedia.org/wiki/Caps_Lock) state.
+
+* `MU_KEYSTATE_SCROLL_LOCK` - the [scroll lock](https://en.wikipedia.org/wiki/Scroll_Lock) state.
+
+* `MU_KEYSTATE_NUM_LOCK` - the [num lock](https://en.wikipedia.org/wiki/Num_Lock) state.
+
+Once the pointer to the keystate keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any mouse key, in which `MU_TRUE` indicates that the keystate is active, and `MU_FALSE` indicates that the keystate is inactive.
+
+#### Keystate names
+
+The name function `mu_keystate_get_name` returns a `const char*` representation of the given keystate (for example, `MU_KEYSTATE_CAPS_LOCK` returns "MU_KEYSTATE_CAPS_LOCK"), defined below: 
+
+```c
+MUDEF const char* mu_keystate_get_name(muKeystate state);
+```
+
+
+It will return "MU_UNKNOWN" in the case that `state` is an invalid keystate value.
+
+The name function `mu_keystate_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYSTATE_CAPS_LOCK` returns "Caps Lock"), defined below: 
+
+```c
+MUDEF const char* mu_keystate_get_nice_name(muKeystate state);
+```
+
+
+It will return "Unknown" in the case that `state` is an invalid keystate value.
+
+> These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
+
 ### Mouse keymap
 
 The mouse keymap represents the keys on a common computer mouse readable by muCOSA, using type `muMouseKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_MOUSE_LENGTH`. It has the following indexes:
@@ -518,6 +578,28 @@ The mouse keymap represents the keys on a common computer mouse readable by muCO
 * `MU_MOUSE_MIDDLE` - the middle mouse key; this indicates whether or not the middle mouse key (usually the scroll wheel) is being clicked, not scrolled.
 
 Once the pointer to the mouse keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any mouse key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
+
+#### Mouse key names
+
+The name function `mu_mouse_key_get_name` returns a `const char*` representation of the given mouse key (for example, `MU_MOUSE_LEFT` returns "MU_MOUSE_LEFT"), defined below: 
+
+```c
+MUDEF const char* mu_mouse_key_get_name(muMouseKey key);
+```
+
+
+It will return "MU_UNKNOWN" in the case that `key` is an invalid mouse key value.
+
+The name function `mu_mouse_key_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_MOUSE_LEFT` returns "Left"), defined below: 
+
+```c
+MUDEF const char* mu_mouse_key_get_nice_name(muMouseKey key);
+```
+
+
+It will return "Unknown" in the case that `key` is an invalid mouse key value.
+
+> These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
 
 ## Cursor style
 
@@ -545,9 +627,31 @@ The style of a cursor determines how it visually appears based on a number of pr
 
 * `MU_CURSOR_SIZE_TR_BL` - the resize cursor style, pointing from top-right to bottom-left sideways; equivalent to `IDC_NESW` in Win32.
 
-* `MU_CURSOR_ALL` - the move/resize-all cursor style, pointing outwards in all directions; equivalent to `IDC_SIZEALL` in Win32.
+* `MU_CURSOR_SIZE_ALL` - the move/resize-all cursor style, pointing outwards in all directions; equivalent to `IDC_SIZEALL` in Win32.
 
 * `MU_CURSOR_NO` - the disallowing/error/not-allowed cursor style; equivalent to `IDC_NO` in WIn32.
+
+### Cursor style names
+
+The name function `mu_cursor_style_get_name` returns a `const char*` representation of the given cursor style (for example, `MU_CURSOR_HAND` returns "MU_CURSOR_HAND"), defined below: 
+
+```c
+MUDEF const char* mu_cursor_style_get_name(muCursorStyle style);
+```
+
+
+It will return "MU_UNKNOWN" in the case that `style` is an invalid cursor style value.
+
+The name function `mu_cursor_style_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_CURSOR_HAND` returns "Hand"), defined below: 
+
+```c
+MUDEF const char* mu_cursor_style_get_nice_name(muCursorStyle style);
+```
+
+
+It will return "Unknown" in the case that `style` is an invalid cursor style value.
+
+> These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
 
 ## Graphics APIs
 
@@ -618,6 +722,28 @@ Note that OpenGL will only work if `MU_SUPPORT_OPENGL` is defined before `muCOSA
 ### Graphics API macro customization
 
 Files necessary to define OpenGL features (such as `gl/gh.`/`gl/glu.h` on Win32) are automatically included if `MU_SUPPORT_OPENGL` is defined; the inclusion of these files can be manually turned off (in case they have already been included) via defining `MUCOSA_NO_INCLUDE_OPENGL`.
+
+### Graphics API names
+
+The name function `mu_graphics_api_get_name` returns a `const char*` representation of the given graphics API (for example, `MU_OPENGL_3_3_CORE` returns "MU_OPENGL_3_3_CORE"), defined below: 
+
+```c
+MUDEF const char* mu_graphics_api_get_name(muGraphicsAPI api);
+```
+
+
+It will return "MU_UNKNOWN" in the case that `api` is an invalid graphics API value.
+
+The name function `mu_graphics_api_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_OPENGL_3_3_CORE` returns "OpenGL 3.3 (Core Profile)"), defined below: 
+
+```c
+MUDEF const char* mu_graphics_api_get_nice_name(muGraphicsAPI api);
+```
+
+
+It will return "Unknown" in the case that `api` is an invalid graphics API value.
+
+> These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
 
 ## OpenGL context
 
@@ -836,7 +962,7 @@ MUDEF const char* muCOSA_result_get_name(muCOSAResult result);
 ```
 
 
-It will return "MUCOSA_UNKNOWN" in the case that `result` is an invalid result value.
+It will return "MU_UNKNOWN" in the case that `result` is an invalid result value.
 
 > This function is a "name" function, and therefore is only defined if `MUCOSA_NAMES` is also defined by the user.
 

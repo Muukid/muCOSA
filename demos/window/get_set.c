@@ -5,7 +5,7 @@
 DEMO NAME:          get_set.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-08-04
-LAST UPDATED:       2024-08-05
+LAST UPDATED:       2024-08-07
 
 ============================================================
                         DEMO PURPOSE
@@ -211,8 +211,10 @@ int main(void)
 			}
 			// Set cursor style
 			mu_window_set(win, MU_WINDOW_CURSOR_STYLE, &cursor_style);
-			// Print new cursor style (USE GET)
-			// ...
+			// Print new cursor style
+			muCursorStyle win_cs;
+			mu_window_get(win, MU_WINDOW_CURSOR_STYLE, &win_cs);
+			printf("Cursor style: %s\n", mu_cursor_style_get_nice_name(win_cs));
 		}
 		if (keyboard[MU_KEYBOARD_J] && !last_J) {
 			// Handle wrapping
@@ -224,7 +226,9 @@ int main(void)
 			// Set cursor style
 			mu_window_set(win, MU_WINDOW_CURSOR_STYLE, &cursor_style);
 			// Print new cursor style
-			// ...
+			muCursorStyle win_cs;
+			mu_window_get(win, MU_WINDOW_CURSOR_STYLE, &win_cs);
+			printf("Cursor style: %s\n", mu_cursor_style_get_nice_name(win_cs));
 		}
 		// Update last key trackers
 		last_L = keyboard[MU_KEYBOARD_L];

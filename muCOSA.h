@@ -892,7 +892,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 		// @DOCLINE The name function `mu_window_system_get_name` returns a `const char*` representation of the given window sytem (for example, `MU_WINDOW_NULL` returns "MU_WINDOW_NULL"), defined below: @NLNT
 		MUDEF const char* mu_window_system_get_name(muWindowSystem system);
 
-		// @DOCLINE It will return "MUCOSA_UNKNOWN" in the case that `system` is an invalid window system value.
+		// @DOCLINE It will return "MU_UNKNOWN" in the case that `system` is an invalid window system value.
 
 		// @DOCLINE The name function `mu_window_system_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_WINDOW_NULL` returns "Unknown/Auto"), defined below: @NLNT
 		MUDEF const char* mu_window_system_get_nice_name(muWindowSystem system);
@@ -994,557 +994,652 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		// @DOCLINE ## Window information
 
-		// @DOCLINE The struct `muWindowInfo` represents information about a window. It has the following members:
+			// @DOCLINE The struct `muWindowInfo` represents information about a window. It has the following members:
 
-		typedef struct muPixelFormat muPixelFormat;
-		struct muWindowInfo {
-			// @DOCLINE * `@NLFT* title` - the title of the window shown to the user in most interfaces (primarily the title bar).
-			char* title;
-			// @DOCLINE * `@NLFT width` - the width of the window's surface, in pixels.
-			uint32_m width;
-			// @DOCLINE * `@NLFT height` - the height of the window's surface, in pixels.
-			uint32_m height;
-			// @DOCLINE * `@NLFT x` - the x-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
-			int32_m x;
-			// @DOCLINE * `@NLFT y` - the y-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
-			int32_m y;
-			// @DOCLINE * `@NLFT* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will throw a non-fatal error and default on a compatible pixel format.
-			muPixelFormat* pixel_format;
-		};
-		typedef struct muWindowInfo muWindowInfo;
+			typedef struct muPixelFormat muPixelFormat;
+			struct muWindowInfo {
+				// @DOCLINE * `@NLFT* title` - the title of the window shown to the user in most interfaces (primarily the title bar).
+				char* title;
+				// @DOCLINE * `@NLFT width` - the width of the window's surface, in pixels.
+				uint32_m width;
+				// @DOCLINE * `@NLFT height` - the height of the window's surface, in pixels.
+				uint32_m height;
+				// @DOCLINE * `@NLFT x` - the x-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
+				int32_m x;
+				// @DOCLINE * `@NLFT y` - the y-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
+				int32_m y;
+				// @DOCLINE * `@NLFT* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will throw a non-fatal error and default on a compatible pixel format.
+				muPixelFormat* pixel_format;
+			};
+			typedef struct muWindowInfo muWindowInfo;
 
-		// @DOCLINE > Note that due to the way certain window systems work, negative coordiantes may not function properly for a given window in regards to setting them to that value, and should not be relied upon for functionality.
+			// @DOCLINE > Note that due to the way certain window systems work, negative coordiantes may not function properly for a given window in regards to setting them to that value, and should not be relied upon for functionality.
 
 		// @DOCLINE ## Window creation and destruction
 
-		// @DOCLINE In order to create a window, the function `muCOSA_window_create` must be called, defined below: @NLNT
-		MUDEF muWindow muCOSA_window_create(muCOSAContext* context, muCOSAResult* result, muWindowInfo* info);
+			// @DOCLINE In order to create a window, the function `muCOSA_window_create` must be called, defined below: @NLNT
+			MUDEF muWindow muCOSA_window_create(muCOSAContext* context, muCOSAResult* result, muWindowInfo* info);
 
-		// @DOCLINE Upon failure (marked by the value of `result`), the creation function returns 0.
+			// @DOCLINE Upon failure (marked by the value of `result`), the creation function returns 0.
 
-		// @DOCLINE > The macro `mu_window_create` is the non-result-checking equivalent, and the macro `mu_window_create_` is the result-checking equivalent.
-		#define mu_window_create(...) muCOSA_window_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_window_create_(result, ...) muCOSA_window_create(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_window_create` is the non-result-checking equivalent, and the macro `mu_window_create_` is the result-checking equivalent.
+			#define mu_window_create(...) muCOSA_window_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_window_create_(result, ...) muCOSA_window_create(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE Every successfully created window must be destroyed at some point during the relevant context's lifetime using the function `muCOSA_window_destroy`, defined below: @NLNT
-		MUDEF muWindow muCOSA_window_destroy(muCOSAContext* context, muWindow win);
+			// @DOCLINE Every successfully created window must be destroyed at some point during the relevant context's lifetime using the function `muCOSA_window_destroy`, defined below: @NLNT
+			MUDEF muWindow muCOSA_window_destroy(muCOSAContext* context, muWindow win);
 
-		// @DOCLINE The destruction function cannot fail if given a proper context and window, and thus, there is no `result` parameter.
+			// @DOCLINE The destruction function cannot fail if given a proper context and window, and thus, there is no `result` parameter.
 
-		// @DOCLINE > The macro `mu_window_destroy` is the non-result-checking equivalent.
-		#define mu_window_destroy(...) muCOSA_window_destroy(muCOSA_global_context, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_window_destroy` is the non-result-checking equivalent.
+			#define mu_window_destroy(...) muCOSA_window_destroy(muCOSA_global_context, __VA_ARGS__)
 
 		// @DOCLINE ## The main loop
 
-		// @DOCLINE The "main loop" of a window consists of two functions that are called each "frame": `muCOSA_window_get_closed` and `muCOSA_window_update`. A main loop with these functions generally looks like this:
+			// @DOCLINE The "main loop" of a window consists of two functions that are called each "frame": `muCOSA_window_get_closed` and `muCOSA_window_update`. A main loop with these functions generally looks like this:
 
-		/* @DOCBEGIN
-		```c
-		// Initialization / Window creation here...
+			/* @DOCBEGIN
+			```c
+			// Initialization / Window creation here...
 
-		while (!mu_window_get_closed(window)) {
+			while (!mu_window_get_closed(window)) {
 
-			// ... (This is where the frame-by-frame logic would go) ...
+				// ... (This is where the frame-by-frame logic would go) ...
 
-			mu_window_update(window);
-		}
+				mu_window_update(window);
+			}
 
-		// Termination here...
-		```
-		@DOCEND */
+			// Termination here...
+			```
+			@DOCEND */
 
-		// @DOCLINE OpenGL contexts slightly change this; an OpenGL context renders directly to the window's surface, meaning that swapping the buffers of a window needs to occur each frame with a valid OpenGL context binded. For example, if `window` had an OpenGL context created from it named `gl`, a main loop for it would look like this:
+			// @DOCLINE OpenGL contexts slightly change this; an OpenGL context renders directly to the window's surface, meaning that swapping the buffers of a window needs to occur each frame with a valid OpenGL context binded. For example, if `window` had an OpenGL context created from it named `gl`, a main loop for it would look like this:
 
-		/* @DOCBEGIN
-		```c
-		// Initialization / Window / OpenGL context creation here...
+			/* @DOCBEGIN
+			```c
+			// Initialization / Window / OpenGL context creation here...
 
-		// Bind OpenGL context (necessary for mu_gl_swap_buffers to work)
-		mu_gl_bind(gl);
-		
-		while (!mu_window_get_closed(window)) {
+			// Bind OpenGL context (necessary for mu_gl_swap_buffers to work)
+			mu_gl_bind(gl);
 			
-			// ... (This is where the frame-by-frame logic would go) ...
+			while (!mu_window_get_closed(window)) {
+				
+				// ... (This is where the frame-by-frame logic would go) ...
 
-			mu_gl_swap_buffers(window);
-			mu_window_update(window);
-		}
+				mu_gl_swap_buffers(window);
+				mu_window_update(window);
+			}
 
-		```
-		@DOCEND */
+			```
+			@DOCEND */
 
-		// @DOCLINE More information is provided in the [OpenGL context](#opengl-context) section.
+			// @DOCLINE More information is provided in the [OpenGL context](#opengl-context) section.
 
-		// @DOCLINE ### Get closed
+			// @DOCLINE ### Get closed
 
-		// @DOCLINE The function `muCOSA_window_get_closed` returns whether or not a given window has been closed, defined below: @NLNT
-		MUDEF muBool muCOSA_window_get_closed(muCOSAContext* context, muCOSAResult* result, muWindow win);
+			// @DOCLINE The function `muCOSA_window_get_closed` returns whether or not a given window has been closed, defined below: @NLNT
+			MUDEF muBool muCOSA_window_get_closed(muCOSAContext* context, muCOSAResult* result, muWindow win);
 
-		// @DOCLINE Once this function returns `MU_FALSE`, it is no longer usable in all circumstances other than destroying it with `muCOSA_window_destroy`; a window cannot be revived once closed.
+			// @DOCLINE Once this function returns `MU_FALSE`, it is no longer usable in all circumstances other than destroying it with `muCOSA_window_destroy`; a window cannot be revived once closed.
 
-		// @DOCLINE > The macro `mu_window_get_closed` is the non-result-checking equivalent, and the macro `mu_window_get_closed_` is the result-checking equivalent.
-		#define mu_window_get_closed(...) muCOSA_window_get_closed(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_window_get_closed_(result, ...) muCOSA_window_get_closed(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_window_get_closed` is the non-result-checking equivalent, and the macro `mu_window_get_closed_` is the result-checking equivalent.
+			#define mu_window_get_closed(...) muCOSA_window_get_closed(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_window_get_closed_(result, ...) muCOSA_window_get_closed(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE ### Update
+			// @DOCLINE ### Update
 
-		// @DOCLINE The function `muCOSA_window_update` updates/refreshes a window and triggers all relevant callbacks, presenting the contents of the surface, defined below: @NLNT
-		MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow win);
+			// @DOCLINE The function `muCOSA_window_update` updates/refreshes a window and triggers all relevant callbacks, presenting the contents of the surface, defined below: @NLNT
+			MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow win);
 
-		// @DOCLINE > The macro `mu_window_update` is the non-result-checking equivalent, and the macro `mu_window_update_` is the result-checking equivalent.
-		#define mu_window_update(...) muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_window_update_(result, ...) muCOSA_window_update(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_window_update` is the non-result-checking equivalent, and the macro `mu_window_update_` is the result-checking equivalent.
+			#define mu_window_update(...) muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_window_update_(result, ...) muCOSA_window_update(muCOSA_global_context, result, __VA_ARGS__)
 
 		// @DOCLINE ## Pixel format
 
-		// @DOCLINE A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
+			// @DOCLINE A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
 
-		struct muPixelFormat {
-			// @DOCLINE * `@NLFT red_bits` - the amount of bits used for the red channel.
-			uint16_m red_bits;
-			// @DOCLINE * `@NLFT green_bits` - the amount of bits used for the green channel.
-			uint16_m green_bits;
-			// @DOCLINE * `@NLFT blue_bits` - the amount of bits used for the blue channel.
-			uint16_m blue_bits;
-			// @DOCLINE * `@NLFT alpha_bits` - the amount of bits used for the alpha channel.
-			uint16_m alpha_bits;
+			struct muPixelFormat {
+				// @DOCLINE * `@NLFT red_bits` - the amount of bits used for the red channel.
+				uint16_m red_bits;
+				// @DOCLINE * `@NLFT green_bits` - the amount of bits used for the green channel.
+				uint16_m green_bits;
+				// @DOCLINE * `@NLFT blue_bits` - the amount of bits used for the blue channel.
+				uint16_m blue_bits;
+				// @DOCLINE * `@NLFT alpha_bits` - the amount of bits used for the alpha channel.
+				uint16_m alpha_bits;
 
-			// @DOCLINE * `@NLFT depth_bits` - the amount of bits used for the depth channel.
-			uint16_m depth_bits;
-			// @DOCLINE * `@NLFT stencil_bits` - the amount of bits used for the stencil channel.
-			uint16_m stencil_bits;
+				// @DOCLINE * `@NLFT depth_bits` - the amount of bits used for the depth channel.
+				uint16_m depth_bits;
+				// @DOCLINE * `@NLFT stencil_bits` - the amount of bits used for the stencil channel.
+				uint16_m stencil_bits;
 
-			// @DOCLINE * `@NLFT samples` - the amount of samples used for each pixel. A value of 1 means no multi-sampling is performed. Any value other than 1 indicates multi-sampling, and must be a power of 2.
-			uint8_m samples;
-		};
+				// @DOCLINE * `@NLFT samples` - the amount of samples used for each pixel. A value of 1 means no multi-sampling is performed. Any value other than 1 indicates multi-sampling, and must be a power of 2.
+				uint8_m samples;
+			};
 
-		// @DOCLINE 0 bits means that the data does not include it; for example, if `depth_bits` is equal to 0, then no depth data is defined in the pixel format.
+			// @DOCLINE 0 bits means that the data does not include it; for example, if `depth_bits` is equal to 0, then no depth data is defined in the pixel format.
 
 		// @DOCLINE ## Window attributes
 
-		typedef uint16_m muWindowAttrib;
-		// @DOCLINE The window is described by several attributes, with each attribute represented by the type `muWindowAttrib` (typedef for `uint16_m`). It has the following values:
+			typedef uint16_m muWindowAttrib;
+			// @DOCLINE The window is described by several attributes, with each attribute represented by the type `muWindowAttrib` (typedef for `uint16_m`). It has the following values:
 
-		// @DOCLINE * `MU_WINDOW_TITLE` - the title of the window, represented by a `char*` UTF-8 string. This cannot be "get", but can be "set".
-		#define MU_WINDOW_TITLE 0
+			// @DOCLINE * `MU_WINDOW_TITLE` - the title of the window, represented by a `char*` UTF-8 string. This cannot be "get", but can be "set".
+			#define MU_WINDOW_TITLE 0
 
-		// @DOCLINE * `MU_WINDOW_DIMENSIONS` - the width and height of the window's surface, in pixels, represented by an array of two `uint32_m`s, where the first element is the width, and the second element is the height. This can be "get" and "set".
-		#define MU_WINDOW_DIMENSIONS 1
+			// @DOCLINE * `MU_WINDOW_DIMENSIONS` - the width and height of the window's surface, in pixels, represented by an array of two `uint32_m`s, where the first element is the width, and the second element is the height. This can be "get" and "set".
+			#define MU_WINDOW_DIMENSIONS 1
 
-		// @DOCLINE * `MU_WINDOW_POSITION` - the x- and y-coordinates of the top-leftest pixel of the window's surface relative to the entire window space of the window system, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
-		#define MU_WINDOW_POSITION 2
+			// @DOCLINE * `MU_WINDOW_POSITION` - the x- and y-coordinates of the top-leftest pixel of the window's surface relative to the entire window space of the window system, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
+			#define MU_WINDOW_POSITION 2
 
-		// @DOCLINE * `MU_WINDOW_KEYBOARD_MAP` - the [keyboard keymap](#keyboard-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable keyboard key. This can be "get", but not "set".
-		#define MU_WINDOW_KEYBOARD_MAP 3
-		// @DOCLINE    > Note that when being read, the data is not expected to be the actual array, but instead a pointer that will be set to the internally-used keymap array, which remains consistent for an entire window's lifespan. More information about the keyboard keymap can be found in the [keymap](#keymaps) section.
+			// @DOCLINE * `MU_WINDOW_KEYBOARD_MAP` - the [keyboard keymap](#keyboard-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable keyboard key. This can be "get", but not "set".
+			#define MU_WINDOW_KEYBOARD_MAP 3
+			// @DOCLINE    > Note that when being read, the data is not expected to be the actual array, but instead a pointer that will be set to the internally-used keymap array, which remains consistent for an entire window's lifespan. More information about the keyboard keymap can be found in the [keymap](#keymaps) section.
 
-		// @DOCLINE * `MU_WINDOW_MOUSE_MAP` - the [mouse keymap](#mouse-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable mouse key. This can be "get", but not "set".
-		#define MU_WINDOW_MOUSE_MAP 4
+			// @DOCLINE * `MU_WINDOW_KEYSTATE_MAP` - the [keystate keymap](#keystate-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of all keyboard states (such as caps lock, for example). This can be "get" but not "set".
+			#define MU_WINDOW_KEYSTATE_MAP 4
 
-		// @DOCLINE * `MU_WINDOW_CURSOR` - the x- and y-coordinates of the visual cursor relative to the position of the window's surface, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
-		#define MU_WINDOW_CURSOR 5
+			// @DOCLINE * `MU_WINDOW_MOUSE_MAP` - the [mouse keymap](#mouse-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable mouse key. This can be "get", but not "set".
+			#define MU_WINDOW_MOUSE_MAP 5
 
-		// @DOCLINE * `MU_WINDOW_CURSOR_STYLE` - the [style of the cursor](#cursor-style), represented by a single value `muCursorStyle`. This can be "get" and "set".
-		#define MU_WINDOW_CURSOR_STYLE 6
+			// @DOCLINE * `MU_WINDOW_CURSOR` - the x- and y-coordinates of the visual cursor relative to the position of the window's surface, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
+			#define MU_WINDOW_CURSOR 6
 
-		// @DOCLINE A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
+			// @DOCLINE * `MU_WINDOW_CURSOR_STYLE` - the [style of the cursor](#cursor-style), represented by a single value `muCursorStyle`. This can be "get" and "set".
+			#define MU_WINDOW_CURSOR_STYLE 7
 
-		// @DOCLINE ### Names
-		#ifdef MUCOSA_NAMES
+			// @DOCLINE A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
 
-		// @DOCLINE The name function for `muWindowAttrib` is `mu_window_attrib_get_name`, defined below: @NLNT
-		MUDEF const char* mu_window_attrib_get_name(muWindowAttrib attrib);
+			// @DOCLINE ### Names
+			#ifdef MUCOSA_NAMES
 
-		// @DOCLINE > This function returns "MUCOSA_UNKNOWN" if the value of `attrib` is unrecognized.
+			// @DOCLINE The name function for `muWindowAttrib` is `mu_window_attrib_get_name`, defined below: @NLNT
+			MUDEF const char* mu_window_attrib_get_name(muWindowAttrib attrib);
 
-		// @DOCLINE The nice name function for `muWindowAttrib` is `mu_window_attrib_get_nice_name`, defined below: @NLNT
-		MUDEF const char* mu_window_attrib_get_nice_name(muWindowAttrib attrib);
+			// @DOCLINE > This function returns "MU_UNKNOWN" if the value of `attrib` is unrecognized.
 
-		// @DOCLINE > This function returns "Unknown" if the value of `attrib` is unrecognized.
+			// @DOCLINE The nice name function for `muWindowAttrib` is `mu_window_attrib_get_nice_name`, defined below: @NLNT
+			MUDEF const char* mu_window_attrib_get_nice_name(muWindowAttrib attrib);
 
-		#endif
+			// @DOCLINE > This function returns "Unknown" if the value of `attrib` is unrecognized.
 
-		// @DOCLINE ### Get and set window attributes
+			#endif
 
-		// @DOCLINE The function `muCOSA_window_get` retrieves an attribute of a window, defined below: @NLNT
-		MUDEF void muCOSA_window_get(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
+			// @DOCLINE ### Get and set window attributes
 
-		// @DOCLINE > The macro `mu_window_get` is the non-result-checking equivalent, and the macro `mu_window_get_` is the result-checking equivalent.
-		#define mu_window_get(...) muCOSA_window_get(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_window_get_(result, ...) muCOSA_window_get(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE The function `muCOSA_window_get` retrieves an attribute of a window, defined below: @NLNT
+			MUDEF void muCOSA_window_get(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
 
-		// @DOCLINE The function `muCOSA_window_set` modifies an attribute of a window, defined below: @NLNT
-		MUDEF void muCOSA_window_set(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
+			// @DOCLINE > The macro `mu_window_get` is the non-result-checking equivalent, and the macro `mu_window_get_` is the result-checking equivalent.
+			#define mu_window_get(...) muCOSA_window_get(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_window_get_(result, ...) muCOSA_window_get(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE > The macro `mu_window_set` is the non-result-checking equivalent, and the macro `mu_window_set_` is the result-checking equivalent.
-		#define mu_window_set(...) muCOSA_window_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_window_set_(result, ...) muCOSA_window_set(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE The function `muCOSA_window_set` modifies an attribute of a window, defined below: @NLNT
+			MUDEF void muCOSA_window_set(muCOSAContext* context, muCOSAResult* result, muWindow win, muWindowAttrib attrib, void* data);
 
-		// @DOCLINE For both functions, `data` is a pointer to data dictated by the value of `attrib`. In the case of `muCOOSA_window_get`, the data is derefenced and filled in corresponding to the window's requested attribute (if successful); in the case of `muCOSA_window_set`, the data is dereferenced and read, and the requested window attribute is changed to the given value(s) (if successful).
+			// @DOCLINE > The macro `mu_window_set` is the non-result-checking equivalent, and the macro `mu_window_set_` is the result-checking equivalent.
+			#define mu_window_set(...) muCOSA_window_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_window_set_(result, ...) muCOSA_window_set(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE > `mu_window_set` will only read from `data` and never modify it. Likewise, `mu_window_get` will only dereference `data` and never read from it.
+			// @DOCLINE For both functions, `data` is a pointer to data dictated by the value of `attrib`. In the case of `muCOOSA_window_get`, the data is derefenced and filled in corresponding to the window's requested attribute (if successful); in the case of `muCOSA_window_set`, the data is dereferenced and read, and the requested window attribute is changed to the given value(s) (if successful).
+
+			// @DOCLINE > `mu_window_set` will only read from `data` and never modify it. Likewise, `mu_window_get` will only dereference `data` and never read from it.
 
 		// @DOCLINE ## Keymaps
 
-		// @DOCLINE In order to make input require as minimal overhead as possible, muCOSA allows the user to read key input using "keymaps". A keymap is an array of booleans (type `muBool`) that dictate the state of each key. Therefore, if a user wanted to check a particular key's state, they would retrieve the keymap, and index into it based on what key they want to check. This array is stored internally somewhere in the API, and, when retrieved (via a "get" function call), a pointer to this array is given. Since the keymap is stored as a pointer to inner memory used by muCOSA, it is automatically updated every call to `muCOSA_window_update`.
+			// @DOCLINE In order to make input require as minimal overhead as possible, muCOSA allows the user to read key input using "keymaps". A keymap is an array of booleans (type `muBool`) that dictate the state of each key. Therefore, if a user wanted to check a particular key's state, they would retrieve the keymap, and index into it based on what key they want to check. This array is stored internally somewhere in the API, and, when retrieved (via a "get" function call), a pointer to this array is given. Since the keymap is stored as a pointer to inner memory used by muCOSA, it is automatically updated every call to `muCOSA_window_update`.
 
-		// @DOCLINE The big advantage of keymaps is that the array remains at the same point in memory for the entire window's lifespan; a user could grab the pointer to the keymap once at the beginning of the program, and instantly know the state of any key via indexing into it, without any need for refreshing or extra function calls as long as the window remains alive.
+			// @DOCLINE The big advantage of keymaps is that the array remains at the same point in memory for the entire window's lifespan; a user could grab the pointer to the keymap once at the beginning of the program, and instantly know the state of any key via indexing into it, without any need for refreshing or extra function calls as long as the window remains alive.
 
-		// @DOCLINE > Note that when the keymap is retrieved, a *pointer* to it is retrieved, not the array itself. This means that when calling a "get" function with a keymap, a pointer to a pointer should be given, to which muCOSA will dereference the initial pointer and set the pointer to the address of the keymap array.
+			// @DOCLINE > Note that when the keymap is retrieved, a *pointer* to it is retrieved, not the array itself. This means that when calling a "get" function with a keymap, a pointer to a pointer should be given, to which muCOSA will dereference the initial pointer and set the pointer to the address of the keymap array.
 
-		// @DOCLINE > Note that keymaps are only meant to be read, not modified. Changing any value within a keymap array will result in undefined behavior.
+			// @DOCLINE > Note that keymaps are only meant to be read, not modified. Changing any value within a keymap array will result in undefined behavior.
 
-		// @DOCLINE ### Keyboard keymap
+			// @DOCLINE ### Keyboard keymap
 
-		typedef uint16_m muKeyboardKey;
+			typedef uint16_m muKeyboardKey;
 
-		// @DOCLINE The keyboard keymap represents keys on the keyboard readable by muCOSA, using type `muKeyboardKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_KEYBOARD_LENGTH`. It has the following indexes:
+			// @DOCLINE The keyboard keymap represents keys on the keyboard readable by muCOSA, using type `muKeyboardKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_KEYBOARD_LENGTH`. It has the following indexes:
 
-		// @DOCLINE * `MU_KEYBOARD_UNKNOWN` - unknown key.
-		#define MU_KEYBOARD_UNKNOWN 0
-		// @DOCLINE * `MU_KEYBOARD_BACKSPACE` - the [backspace key](https://en.wikipedia.org/wiki/Backspace).
-		#define MU_KEYBOARD_BACKSPACE 1
-		// @DOCLINE * `MU_KEYBOARD_TAB` - the [tab key](https://en.wikipedia.org/wiki/Tab_key).
-		#define MU_KEYBOARD_TAB 2
-		// @DOCLINE * `MU_KEYBOARD_CLEAR` - the [clear key](https://en.wikipedia.org/wiki/Clear_key).
-		#define MU_KEYBOARD_CLEAR 3
-		// @DOCLINE * `MU_KEYBOARD_RETURN` - the [return key](https://en.wikipedia.org/wiki/Return_key).
-		#define MU_KEYBOARD_RETURN 4
-		// @DOCLINE * `MU_KEYBOARD_PAUSE` - the [pause key](https://en.wikipedia.org/wiki/Pause_key).
-		#define MU_KEYBOARD_PAUSE 5
-		// @DOCLINE * `MU_KEYBOARD_ESCAPE` - the [escape key](https://en.wikipedia.org/wiki/Escape_key).
-		#define MU_KEYBOARD_ESCAPE 6
-		// @DOCLINE * `MU_KEYBOARD_MODECHANGE` - the [modechange key](https://en.wikipedia.org/wiki/Language_input_keys).
-		#define MU_KEYBOARD_MODECHANGE 7
-		// @DOCLINE * `MU_KEYBOARD_SPACE` - the [space key](https://en.wikipedia.org/wiki/Space_bar).
-		#define MU_KEYBOARD_SPACE 8
-		// @DOCLINE * `MU_KEYBOARD_PRIOR` - the [page up key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
-		#define MU_KEYBOARD_PRIOR 9
-		// @DOCLINE * `MU_KEYBOARD_NEXT` - the [page down key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
-		#define MU_KEYBOARD_NEXT 10
-		// @DOCLINE * `MU_KEYBOARD_END` - the [end key](https://en.wikipedia.org/wiki/End_key).
-		#define MU_KEYBOARD_END 11
-		// @DOCLINE * `MU_KEYBOARD_HOME` - the [home key](https://en.wikipedia.org/wiki/Home_key).
-		#define MU_KEYBOARD_HOME 12
-		// @DOCLINE * `MU_KEYBOARD_(LEFT/UP/RIGHT/DOWN)` - the left, up, right, and down (arrow keys)[https://en.wikipedia.org/wiki/Arrow_keys].
-		#define MU_KEYBOARD_LEFT 13
-		#define MU_KEYBOARD_UP 14
-		#define MU_KEYBOARD_RIGHT 15
-		#define MU_KEYBOARD_DOWN 16
-		// @DOCLINE * `MU_KEYBOARD_SELECT` - the [select key](https://stackoverflow.com/questions/23995537/what-is-the-select-key).
-		#define MU_KEYBOARD_SELECT 17
-		// @DOCLINE * `MU_KEYBOARD_PRINT` - the [print key](https://en.wikipedia.org/wiki/Print_Screen).
-		#define MU_KEYBOARD_PRINT 18
-		// @DOCLINE * `MU_KEYBOARD_EXECUTE` - the execute key.
-		#define MU_KEYBOARD_EXECUTE 19
-		// @DOCLINE * `MU_KEYBOARD_INSERT` - the [insert key](https://en.wikipedia.org/wiki/Insert_key).
-		#define MU_KEYBOARD_INSERT 20
-		// @DOCLINE * `MU_KEYBOARD_DELETE` - the [delete key](https://en.wikipedia.org/wiki/Delete_key).
-		#define MU_KEYBOARD_DELETE 21
-		// @DOCLINE * `MU_KEYBOARD_HELP` - the [help key](https://en.wikipedia.org/wiki/Help_key).
-		#define MU_KEYBOARD_HELP 22
-		// @DOCLINE * `MU_KEYBOARD_(0...9)` - [the number keys](https://en.wikipedia.org/wiki/Numerical_digit) (0-9).
-		#define MU_KEYBOARD_0 23
-		#define MU_KEYBOARD_1 24
-		#define MU_KEYBOARD_2 25
-		#define MU_KEYBOARD_3 26
-		#define MU_KEYBOARD_4 27
-		#define MU_KEYBOARD_5 28
-		#define MU_KEYBOARD_6 29
-		#define MU_KEYBOARD_7 30
-		#define MU_KEYBOARD_8 31
-		#define MU_KEYBOARD_9 32
-		// @DOCLINE * `MU_KEYBOARD_(A...Z)` - the [alphabet keys](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys) (A-Z).
-		#define MU_KEYBOARD_A 33
-		#define MU_KEYBOARD_B 34
-		#define MU_KEYBOARD_C 35
-		#define MU_KEYBOARD_D 36
-		#define MU_KEYBOARD_E 37
-		#define MU_KEYBOARD_F 38
-		#define MU_KEYBOARD_G 39
-		#define MU_KEYBOARD_H 40
-		#define MU_KEYBOARD_I 41
-		#define MU_KEYBOARD_J 42
-		#define MU_KEYBOARD_K 43
-		#define MU_KEYBOARD_L 44
-		#define MU_KEYBOARD_M 45
-		#define MU_KEYBOARD_N 46
-		#define MU_KEYBOARD_O 47
-		#define MU_KEYBOARD_P 48
-		#define MU_KEYBOARD_Q 49
-		#define MU_KEYBOARD_R 50
-		#define MU_KEYBOARD_S 51
-		#define MU_KEYBOARD_T 52
-		#define MU_KEYBOARD_U 53
-		#define MU_KEYBOARD_V 54
-		#define MU_KEYBOARD_W 55
-		#define MU_KEYBOARD_X 56
-		#define MU_KEYBOARD_Y 57
-		#define MU_KEYBOARD_Z 58
-		// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_WINDOWS` - the left and right [Windows](https://en.wikipedia.org/wiki/Windows_key)/[super](https://en.wikipedia.org/wiki/Super_key_(keyboard_button))/[command](https://en.wikipedia.org/wiki/Command_key) keys.
-		#define MU_KEYBOARD_LEFT_WINDOWS 59
-		#define MU_KEYBOARD_RIGHT_WINDOWS 60
-		// @DOCLINE * `MU_KEYBOARD_NUMPAD_(0...9)` - the [numpad number keys](https://en.wikipedia.org/wiki/Numeric_keypad) (0-9).
-		#define MU_KEYBOARD_NUMPAD_0 61
-		#define MU_KEYBOARD_NUMPAD_1 62
-		#define MU_KEYBOARD_NUMPAD_2 63
-		#define MU_KEYBOARD_NUMPAD_3 64
-		#define MU_KEYBOARD_NUMPAD_4 65
-		#define MU_KEYBOARD_NUMPAD_5 66
-		#define MU_KEYBOARD_NUMPAD_6 67
-		#define MU_KEYBOARD_NUMPAD_7 68
-		#define MU_KEYBOARD_NUMPAD_8 69
-		#define MU_KEYBOARD_NUMPAD_9 70
-		// @DOCLINE * `MU_KEYBOARD_(ADD/SUBTRACT/MULTIPLY/DIVIDE)` - the addition, subtraction, multiplication, and division [numpad keys](https://en.wikipedia.org/wiki/Numeric_keypad).
-		#define MU_KEYBOARD_ADD      71
-		#define MU_KEYBOARD_SUBTRACT 72
-		#define MU_KEYBOARD_MULTIPLY 73
-		#define MU_KEYBOARD_DIVIDE   74
-		// @DOCLINE * `MU_KEYBOARD_SEPARATOR` - the [separator key](https://stackoverflow.com/questions/67916923/what-physical-key-maps-to-keycode-108-vk-separator).
-		#define MU_KEYBOARD_SEPARATOR 75
-		// @DOCLINE * `MU_KEYBOARD_DECIMAL` - the [decimal/period/dot key](https://en.wikipedia.org/wiki/Numeric_keypad).
-		#define MU_KEYBOARD_DECIMAL 76
-		// @DOCLINE * `MU_KEYBOARD_F(1...24)` - the [function keys](https://en.wikipedia.org/wiki/Function_key) (1-24).
-		#define MU_KEYBOARD_F1  77
-		#define MU_KEYBOARD_F2  78
-		#define MU_KEYBOARD_F3  79
-		#define MU_KEYBOARD_F4  80
-		#define MU_KEYBOARD_F5  81
-		#define MU_KEYBOARD_F6  82
-		#define MU_KEYBOARD_F7  83
-		#define MU_KEYBOARD_F8  84
-		#define MU_KEYBOARD_F9  85
-		#define MU_KEYBOARD_F10 86
-		#define MU_KEYBOARD_F11 87
-		#define MU_KEYBOARD_F12 88
-		#define MU_KEYBOARD_F13 89
-		#define MU_KEYBOARD_F14 90
-		#define MU_KEYBOARD_F15 91
-		#define MU_KEYBOARD_F16 92
-		#define MU_KEYBOARD_F17 93
-		#define MU_KEYBOARD_F18 94
-		#define MU_KEYBOARD_F19 95
-		#define MU_KEYBOARD_F20 96
-		#define MU_KEYBOARD_F21 97
-		#define MU_KEYBOARD_F22 98
-		#define MU_KEYBOARD_F23 99
-		#define MU_KEYBOARD_F24 100
-		// @DOCLINE * `MU_KEYBOARD_NUMLOCK` - the [Num Lock key](https://en.wikipedia.org/wiki/Num_Lock).
-		#define MU_KEYBOARD_NUMLOCK 101
-		// @DOCLINE * `MU_KEYBOARD_SCROLL` - the [Scroll Lock key](https://en.wikipedia.org/wiki/Scroll_Lock).
-		#define MU_KEYBOARD_SCROLL 102
-		// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_SHIFT` - the left/right [shift keys](https://en.wikipedia.org/wiki/Shift_key).
-		#define MU_KEYBOARD_LEFT_SHIFT 103
-		#define MU_KEYBOARD_RIGHT_SHIFT 104
-		// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_CONTROL` - the left/right [control keys](https://en.wikipedia.org/wiki/Control_key).
-		#define MU_KEYBOARD_LEFT_CONTROL 105
-		#define MU_KEYBOARD_RIGHT_CONTROL 106
-		// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_MENU` - the left/right [menu keys](https://en.wikipedia.org/wiki/Menu_key).
-		#define MU_KEYBOARD_LEFT_MENU 107
-		#define MU_KEYBOARD_RIGHT_MENU 108
-		// @DOCLINE * `MU_KEYBOARD_ATTN` - the [ATTN key](https://www.ibm.com/support/pages/apar/II04992).
-		#define MU_KEYBOARD_ATTN 109
-		// @DOCLINE * `MU_KEYBOARD_CRSEL` - the [CRSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
-		#define MU_KEYBOARD_CRSEL 110
-		// @DOCLINE * `MU_KEYBOARD_EXSEL` - the [EXSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
-		#define MU_KEYBOARD_EXSEL 111
-		// @DOCLINE * `MU_KEYBOARD_EREOF` - the [EREOF key](https://www.ibm.com/docs/en/wsfz-and-o/1.1?topic=descriptions-ereof-erase-end-field-key-statement).
-		#define MU_KEYBOARD_EREOF 112
-		// @DOCLINE * `MU_KEYBOARD_PLAY` - the play key.
-		#define MU_KEYBOARD_PLAY 113
-		// @DOCLINE * `MU_KEYBOARD_PA1` - the [PA1 key](https://www.ibm.com/docs/en/zos-basic-skills?topic=ispf-keyboard-keys-functions).
-		#define MU_KEYBOARD_PA1 114
+			// @DOCLINE * `MU_KEYBOARD_UNKNOWN` - unknown key.
+			#define MU_KEYBOARD_UNKNOWN 0
+			// @DOCLINE * `MU_KEYBOARD_BACKSPACE` - the [backspace key](https://en.wikipedia.org/wiki/Backspace).
+			#define MU_KEYBOARD_BACKSPACE 1
+			// @DOCLINE * `MU_KEYBOARD_TAB` - the [tab key](https://en.wikipedia.org/wiki/Tab_key).
+			#define MU_KEYBOARD_TAB 2
+			// @DOCLINE * `MU_KEYBOARD_CLEAR` - the [clear key](https://en.wikipedia.org/wiki/Clear_key).
+			#define MU_KEYBOARD_CLEAR 3
+			// @DOCLINE * `MU_KEYBOARD_RETURN` - the [return key](https://en.wikipedia.org/wiki/Return_key).
+			#define MU_KEYBOARD_RETURN 4
+			// @DOCLINE * `MU_KEYBOARD_PAUSE` - the [pause key](https://en.wikipedia.org/wiki/Pause_key).
+			#define MU_KEYBOARD_PAUSE 5
+			// @DOCLINE * `MU_KEYBOARD_ESCAPE` - the [escape key](https://en.wikipedia.org/wiki/Escape_key).
+			#define MU_KEYBOARD_ESCAPE 6
+			// @DOCLINE * `MU_KEYBOARD_MODECHANGE` - the [modechange key](https://en.wikipedia.org/wiki/Language_input_keys).
+			#define MU_KEYBOARD_MODECHANGE 7
+			// @DOCLINE * `MU_KEYBOARD_SPACE` - the [space key](https://en.wikipedia.org/wiki/Space_bar).
+			#define MU_KEYBOARD_SPACE 8
+			// @DOCLINE * `MU_KEYBOARD_PRIOR` - the [page up key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
+			#define MU_KEYBOARD_PRIOR 9
+			// @DOCLINE * `MU_KEYBOARD_NEXT` - the [page down key](https://en.wikipedia.org/wiki/Page_Up_and_Page_Down_keys).
+			#define MU_KEYBOARD_NEXT 10
+			// @DOCLINE * `MU_KEYBOARD_END` - the [end key](https://en.wikipedia.org/wiki/End_key).
+			#define MU_KEYBOARD_END 11
+			// @DOCLINE * `MU_KEYBOARD_HOME` - the [home key](https://en.wikipedia.org/wiki/Home_key).
+			#define MU_KEYBOARD_HOME 12
+			// @DOCLINE * `MU_KEYBOARD_(LEFT/UP/RIGHT/DOWN)` - the left, up, right, and down (arrow keys)[https://en.wikipedia.org/wiki/Arrow_keys].
+			#define MU_KEYBOARD_LEFT 13
+			#define MU_KEYBOARD_UP 14
+			#define MU_KEYBOARD_RIGHT 15
+			#define MU_KEYBOARD_DOWN 16
+			// @DOCLINE * `MU_KEYBOARD_SELECT` - the [select key](https://stackoverflow.com/questions/23995537/what-is-the-select-key).
+			#define MU_KEYBOARD_SELECT 17
+			// @DOCLINE * `MU_KEYBOARD_PRINT` - the [print key](https://en.wikipedia.org/wiki/Print_Screen).
+			#define MU_KEYBOARD_PRINT 18
+			// @DOCLINE * `MU_KEYBOARD_EXECUTE` - the execute key.
+			#define MU_KEYBOARD_EXECUTE 19
+			// @DOCLINE * `MU_KEYBOARD_INSERT` - the [insert key](https://en.wikipedia.org/wiki/Insert_key).
+			#define MU_KEYBOARD_INSERT 20
+			// @DOCLINE * `MU_KEYBOARD_DELETE` - the [delete key](https://en.wikipedia.org/wiki/Delete_key).
+			#define MU_KEYBOARD_DELETE 21
+			// @DOCLINE * `MU_KEYBOARD_HELP` - the [help key](https://en.wikipedia.org/wiki/Help_key).
+			#define MU_KEYBOARD_HELP 22
+			// @DOCLINE * `MU_KEYBOARD_(0...9)` - [the number keys](https://en.wikipedia.org/wiki/Numerical_digit) (0-9).
+			#define MU_KEYBOARD_0 23
+			#define MU_KEYBOARD_1 24
+			#define MU_KEYBOARD_2 25
+			#define MU_KEYBOARD_3 26
+			#define MU_KEYBOARD_4 27
+			#define MU_KEYBOARD_5 28
+			#define MU_KEYBOARD_6 29
+			#define MU_KEYBOARD_7 30
+			#define MU_KEYBOARD_8 31
+			#define MU_KEYBOARD_9 32
+			// @DOCLINE * `MU_KEYBOARD_(A...Z)` - the [alphabet keys](https://en.wikipedia.org/wiki/Keyboard_layout#Character_keys) (A-Z).
+			#define MU_KEYBOARD_A 33
+			#define MU_KEYBOARD_B 34
+			#define MU_KEYBOARD_C 35
+			#define MU_KEYBOARD_D 36
+			#define MU_KEYBOARD_E 37
+			#define MU_KEYBOARD_F 38
+			#define MU_KEYBOARD_G 39
+			#define MU_KEYBOARD_H 40
+			#define MU_KEYBOARD_I 41
+			#define MU_KEYBOARD_J 42
+			#define MU_KEYBOARD_K 43
+			#define MU_KEYBOARD_L 44
+			#define MU_KEYBOARD_M 45
+			#define MU_KEYBOARD_N 46
+			#define MU_KEYBOARD_O 47
+			#define MU_KEYBOARD_P 48
+			#define MU_KEYBOARD_Q 49
+			#define MU_KEYBOARD_R 50
+			#define MU_KEYBOARD_S 51
+			#define MU_KEYBOARD_T 52
+			#define MU_KEYBOARD_U 53
+			#define MU_KEYBOARD_V 54
+			#define MU_KEYBOARD_W 55
+			#define MU_KEYBOARD_X 56
+			#define MU_KEYBOARD_Y 57
+			#define MU_KEYBOARD_Z 58
+			// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_WINDOWS` - the left and right [Windows](https://en.wikipedia.org/wiki/Windows_key)/[super](https://en.wikipedia.org/wiki/Super_key_(keyboard_button))/[command](https://en.wikipedia.org/wiki/Command_key) keys.
+			#define MU_KEYBOARD_LEFT_WINDOWS 59
+			#define MU_KEYBOARD_RIGHT_WINDOWS 60
+			// @DOCLINE * `MU_KEYBOARD_NUMPAD_(0...9)` - the [numpad number keys](https://en.wikipedia.org/wiki/Numeric_keypad) (0-9).
+			#define MU_KEYBOARD_NUMPAD_0 61
+			#define MU_KEYBOARD_NUMPAD_1 62
+			#define MU_KEYBOARD_NUMPAD_2 63
+			#define MU_KEYBOARD_NUMPAD_3 64
+			#define MU_KEYBOARD_NUMPAD_4 65
+			#define MU_KEYBOARD_NUMPAD_5 66
+			#define MU_KEYBOARD_NUMPAD_6 67
+			#define MU_KEYBOARD_NUMPAD_7 68
+			#define MU_KEYBOARD_NUMPAD_8 69
+			#define MU_KEYBOARD_NUMPAD_9 70
+			// @DOCLINE * `MU_KEYBOARD_(ADD/SUBTRACT/MULTIPLY/DIVIDE)` - the addition, subtraction, multiplication, and division [numpad keys](https://en.wikipedia.org/wiki/Numeric_keypad).
+			#define MU_KEYBOARD_ADD      71
+			#define MU_KEYBOARD_SUBTRACT 72
+			#define MU_KEYBOARD_MULTIPLY 73
+			#define MU_KEYBOARD_DIVIDE   74
+			// @DOCLINE * `MU_KEYBOARD_SEPARATOR` - the [separator key](https://stackoverflow.com/questions/67916923/what-physical-key-maps-to-keycode-108-vk-separator).
+			#define MU_KEYBOARD_SEPARATOR 75
+			// @DOCLINE * `MU_KEYBOARD_DECIMAL` - the [decimal/period/dot key](https://en.wikipedia.org/wiki/Numeric_keypad).
+			#define MU_KEYBOARD_DECIMAL 76
+			// @DOCLINE * `MU_KEYBOARD_F(1...24)` - the [function keys](https://en.wikipedia.org/wiki/Function_key) (1-24).
+			#define MU_KEYBOARD_F1  77
+			#define MU_KEYBOARD_F2  78
+			#define MU_KEYBOARD_F3  79
+			#define MU_KEYBOARD_F4  80
+			#define MU_KEYBOARD_F5  81
+			#define MU_KEYBOARD_F6  82
+			#define MU_KEYBOARD_F7  83
+			#define MU_KEYBOARD_F8  84
+			#define MU_KEYBOARD_F9  85
+			#define MU_KEYBOARD_F10 86
+			#define MU_KEYBOARD_F11 87
+			#define MU_KEYBOARD_F12 88
+			#define MU_KEYBOARD_F13 89
+			#define MU_KEYBOARD_F14 90
+			#define MU_KEYBOARD_F15 91
+			#define MU_KEYBOARD_F16 92
+			#define MU_KEYBOARD_F17 93
+			#define MU_KEYBOARD_F18 94
+			#define MU_KEYBOARD_F19 95
+			#define MU_KEYBOARD_F20 96
+			#define MU_KEYBOARD_F21 97
+			#define MU_KEYBOARD_F22 98
+			#define MU_KEYBOARD_F23 99
+			#define MU_KEYBOARD_F24 100
+			// @DOCLINE * `MU_KEYBOARD_NUMLOCK` - the [Num Lock key](https://en.wikipedia.org/wiki/Num_Lock).
+			#define MU_KEYBOARD_NUMLOCK 101
+			// @DOCLINE * `MU_KEYBOARD_SCROLL` - the [Scroll Lock key](https://en.wikipedia.org/wiki/Scroll_Lock).
+			#define MU_KEYBOARD_SCROLL 102
+			// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_SHIFT` - the left/right [shift keys](https://en.wikipedia.org/wiki/Shift_key).
+			#define MU_KEYBOARD_LEFT_SHIFT 103
+			#define MU_KEYBOARD_RIGHT_SHIFT 104
+			// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_CONTROL` - the left/right [control keys](https://en.wikipedia.org/wiki/Control_key).
+			#define MU_KEYBOARD_LEFT_CONTROL 105
+			#define MU_KEYBOARD_RIGHT_CONTROL 106
+			// @DOCLINE * `MU_KEYBOARD_(LEFT/RIGHT)_MENU` - the left/right [menu keys](https://en.wikipedia.org/wiki/Menu_key).
+			#define MU_KEYBOARD_LEFT_MENU 107
+			#define MU_KEYBOARD_RIGHT_MENU 108
+			// @DOCLINE * `MU_KEYBOARD_ATTN` - the [ATTN key](https://www.ibm.com/support/pages/apar/II04992).
+			#define MU_KEYBOARD_ATTN 109
+			// @DOCLINE * `MU_KEYBOARD_CRSEL` - the [CRSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
+			#define MU_KEYBOARD_CRSEL 110
+			// @DOCLINE * `MU_KEYBOARD_EXSEL` - the [EXSEL key](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.keys?view=windowsdesktop-8.0).
+			#define MU_KEYBOARD_EXSEL 111
+			// @DOCLINE * `MU_KEYBOARD_EREOF` - the [EREOF key](https://www.ibm.com/docs/en/wsfz-and-o/1.1?topic=descriptions-ereof-erase-end-field-key-statement).
+			#define MU_KEYBOARD_EREOF 112
+			// @DOCLINE * `MU_KEYBOARD_PLAY` - the play key.
+			#define MU_KEYBOARD_PLAY 113
+			// @DOCLINE * `MU_KEYBOARD_PA1` - the [PA1 key](https://www.ibm.com/docs/en/zos-basic-skills?topic=ispf-keyboard-keys-functions).
+			#define MU_KEYBOARD_PA1 114
 
-		#define MU_KEYBOARD_LENGTH 115
+			#define MU_KEYBOARD_LENGTH 115
 
-		// @DOCLINE Once the pointer to the keyboard keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any keyboard key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
+			// @DOCLINE Once the pointer to the keyboard keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any keyboard key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
 
-		// @DOCLINE ### Mouse keymap
+			#ifdef MUCOSA_NAMES
+			// @DOCLINE #### Keyboard names
 
-		typedef uint16_m muMouseKey;
+			// @DOCLINE The name function `mu_keyboard_key_get_name` returns a `const char*` representation of the given keyboard key (for example, `MU_KEYBOARD_W` returns "MU_KEYBOARD_W"), defined below: @NLNT
+			MUDEF const char* mu_keyboard_key_get_name(muKeyboardKey key);
+			// @DOCLINE It will return "MU_UNKNOWN" in the case that `key` is an invalid keyboard key value.
 
-		// @DOCLINE The mouse keymap represents the keys on a common computer mouse readable by muCOSA, using type `muMouseKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_MOUSE_LENGTH`. It has the following indexes:
+			// @DOCLINE The name function `mu_keyboard_key_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYBOARD_W` returns "W"), defined below: @NLNT
+			MUDEF const char* mu_keyboard_key_get_nice_name(muKeyboardKey key);
+			// @DOCLINE It will return "Unknown" in the case that `key` is an invalid keyboard key value.
 
-		// @DOCLINE * `MU_MOUSE_UNKNOWN` - unknown mouse key.
-		#define MU_MOUSE_UNKNOWN 0
-		// @DOCLINE * `MU_MOUSE_LEFT` - the left mouse key.
-		#define MU_MOUSE_LEFT 1
-		// @DOCLINE * `MU_MOUSE_RIGHT` - the right mouse key.
-		#define MU_MOUSE_RIGHT 2
-		// @DOCLINE * `MU_MOUSE_MIDDLE` - the middle mouse key; this indicates whether or not the middle mouse key (usually the scroll wheel) is being clicked, not scrolled.
-		#define MU_MOUSE_MIDDLE 3
+			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
 
-		#define MU_MOUSE_LENGTH 4
+			#endif
 
-		// @DOCLINE Once the pointer to the mouse keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any mouse key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
+			// @DOCLINE ### Keystate keymap
+
+			typedef uint8_m muKeystate;
+
+			// @DOCLINE The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeystate` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
+
+			// @DOCLINE * `MU_KEYSTATE_UNKNOWN` - unknown keystate.
+			#define MU_KEYSTATE_UNKNOWN 0
+			// @DOCLINE * `MU_KEYSTATE_CAPS_LOCK` - the [caps lock](https://en.wikipedia.org/wiki/Caps_Lock) state.
+			#define MU_KEYSTATE_CAPS_LOCK 1
+			// @DOCLINE * `MU_KEYSTATE_SCROLL_LOCK` - the [scroll lock](https://en.wikipedia.org/wiki/Scroll_Lock) state.
+			#define MU_KEYSTATE_SCROLL_LOCK 2
+			// @DOCLINE * `MU_KEYSTATE_NUM_LOCK` - the [num lock](https://en.wikipedia.org/wiki/Num_Lock) state.
+			#define MU_KEYSTATE_NUM_LOCK 3
+
+			#define MU_KEYSTATE_LENGTH 4
+
+			// @DOCLINE Once the pointer to the keystate keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any mouse key, in which `MU_TRUE` indicates that the keystate is active, and `MU_FALSE` indicates that the keystate is inactive.
+
+			#ifdef MUCOSA_NAMES
+			// @DOCLINE #### Keystate names
+
+			// @DOCLINE The name function `mu_keystate_get_name` returns a `const char*` representation of the given keystate (for example, `MU_KEYSTATE_CAPS_LOCK` returns "MU_KEYSTATE_CAPS_LOCK"), defined below: @NLNT
+			MUDEF const char* mu_keystate_get_name(muKeystate state);
+			// @DOCLINE It will return "MU_UNKNOWN" in the case that `state` is an invalid keystate value.
+
+			// @DOCLINE The name function `mu_keystate_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYSTATE_CAPS_LOCK` returns "Caps Lock"), defined below: @NLNT
+			MUDEF const char* mu_keystate_get_nice_name(muKeystate state);
+			// @DOCLINE It will return "Unknown" in the case that `state` is an invalid keystate value.
+
+			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
+
+			#endif
+
+			// @DOCLINE ### Mouse keymap
+
+			typedef uint16_m muMouseKey;
+
+			// @DOCLINE The mouse keymap represents the keys on a common computer mouse readable by muCOSA, using type `muMouseKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_MOUSE_LENGTH`. It has the following indexes:
+
+			// @DOCLINE * `MU_MOUSE_UNKNOWN` - unknown mouse key.
+			#define MU_MOUSE_UNKNOWN 0
+			// @DOCLINE * `MU_MOUSE_LEFT` - the left mouse key.
+			#define MU_MOUSE_LEFT 1
+			// @DOCLINE * `MU_MOUSE_RIGHT` - the right mouse key.
+			#define MU_MOUSE_RIGHT 2
+			// @DOCLINE * `MU_MOUSE_MIDDLE` - the middle mouse key; this indicates whether or not the middle mouse key (usually the scroll wheel) is being clicked, not scrolled.
+			#define MU_MOUSE_MIDDLE 3
+
+			#define MU_MOUSE_LENGTH 4
+
+			// @DOCLINE Once the pointer to the mouse keymap array has been retrieved via `muCOSA_window_get`, these values can be used as indexes to see the status of any mouse key, in which `MU_TRUE` indicates that the key is being pressed down, and `MU_FALSE` indicates that the key is released.
+
+			#ifdef MUCOSA_NAMES
+			// @DOCLINE #### Mouse key names
+
+			// @DOCLINE The name function `mu_mouse_key_get_name` returns a `const char*` representation of the given mouse key (for example, `MU_MOUSE_LEFT` returns "MU_MOUSE_LEFT"), defined below: @NLNT
+			MUDEF const char* mu_mouse_key_get_name(muMouseKey key);
+			// @DOCLINE It will return "MU_UNKNOWN" in the case that `key` is an invalid mouse key value.
+
+			// @DOCLINE The name function `mu_mouse_key_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_MOUSE_LEFT` returns "Left"), defined below: @NLNT
+			MUDEF const char* mu_mouse_key_get_nice_name(muMouseKey key);
+			// @DOCLINE It will return "Unknown" in the case that `key` is an invalid mouse key value.
+
+			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
+
+			#endif
 
 		// @DOCLINE ## Cursor style
 
-		typedef uint16_m muCursorStyle;
+			typedef uint16_m muCursorStyle;
 
-		// @DOCLINE The style of a cursor determines how it visually appears based on a number of presets for its look that the window system provides. Its type is `muCursorStyle` (typedef for `uint16_m`), and has the following values:
+			// @DOCLINE The style of a cursor determines how it visually appears based on a number of presets for its look that the window system provides. Its type is `muCursorStyle` (typedef for `uint16_m`), and has the following values:
 
-		// @DOCLINE * `MU_CURSOR_UNKNOWN` - unknown cursor style.
-		#define MU_CURSOR_UNKNOWN 0
-		// @DOCLINE * `MU_CURSOR_ARROW` - the normal arrow-looking cursor style; equivalent to `IDC_ARROW` in Win32.
-		#define MU_CURSOR_ARROW 1
-		// @DOCLINE * `MU_CURSOR_IBEAM` - the text-select cursor style, appearing as a vertical beam; equivalent to `IDC_IBEAM` in Win32.
-		#define MU_CURSOR_IBEAM 2
-		// @DOCLINE * `MU_CURSOR_WAIT` - the waiting/busy/loading cursor style; equivalent to `IDC_WAIT` in Win32.
-		#define MU_CURSOR_WAIT 3
-		// @DOCLINE * `MU_CURSOR_WAIT_ARROW` - the waiting/busy/loading cursor style, but also with the normal arrow visible; equivalent to `IDC_APPSTARTING` in Win32.
-		#define MU_CURSOR_WAIT_ARROW 4
-		// @DOCLINE * `MU_CURSOR_CROSSHAIR` - the crosshair cursor style; equivalent to `IDC_CROSS` in Win32.
-		#define MU_CURSOR_CROSSHAIR 5
-		// @DOCLINE * `MU_CURSOR_HAND` - the finger-pointing/link-select cursor style; equivalent to `IDC_HAND` in Win32.
-		#define MU_CURSOR_HAND 6
-		// @DOCLINE * `MU_CURSOR_SIZE_LR` - the resize cursor style, pointing left-to-right horizontally; equivalent to `IDC_SIZEWE` in Win32.
-		#define MU_CURSOR_SIZE_LR 7
-		// @DOCLINE * `MU_CURSOR_SIZE_TB` - the resize cursor style, pointing up-to-down vertically; equivalent to `IDC_SIZENS` in Win32.
-		#define MU_CURSOR_SIZE_TB 8
-		// @DOCLINE * `MU_CURSOR_SIZE_TL_BR` - the resize cursor style, pointing from top-left to bottom-right sideways; equivalent to `IDC_NWSE` in Win32.
-		#define MU_CURSOR_SIZE_TL_BR 9
-		// @DOCLINE * `MU_CURSOR_SIZE_TR_BL` - the resize cursor style, pointing from top-right to bottom-left sideways; equivalent to `IDC_NESW` in Win32.
-		#define MU_CURSOR_SIZE_TR_BL 10
-		// @DOCLINE * `MU_CURSOR_ALL` - the move/resize-all cursor style, pointing outwards in all directions; equivalent to `IDC_SIZEALL` in Win32.
-		#define MU_CURSOR_ALL 11
-		// @DOCLINE * `MU_CURSOR_NO` - the disallowing/error/not-allowed cursor style; equivalent to `IDC_NO` in WIn32.
-		#define MU_CURSOR_NO 12
+			// @DOCLINE * `MU_CURSOR_UNKNOWN` - unknown cursor style.
+			#define MU_CURSOR_UNKNOWN 0
+			// @DOCLINE * `MU_CURSOR_ARROW` - the normal arrow-looking cursor style; equivalent to `IDC_ARROW` in Win32.
+			#define MU_CURSOR_ARROW 1
+			// @DOCLINE * `MU_CURSOR_IBEAM` - the text-select cursor style, appearing as a vertical beam; equivalent to `IDC_IBEAM` in Win32.
+			#define MU_CURSOR_IBEAM 2
+			// @DOCLINE * `MU_CURSOR_WAIT` - the waiting/busy/loading cursor style; equivalent to `IDC_WAIT` in Win32.
+			#define MU_CURSOR_WAIT 3
+			// @DOCLINE * `MU_CURSOR_WAIT_ARROW` - the waiting/busy/loading cursor style, but also with the normal arrow visible; equivalent to `IDC_APPSTARTING` in Win32.
+			#define MU_CURSOR_WAIT_ARROW 4
+			// @DOCLINE * `MU_CURSOR_CROSSHAIR` - the crosshair cursor style; equivalent to `IDC_CROSS` in Win32.
+			#define MU_CURSOR_CROSSHAIR 5
+			// @DOCLINE * `MU_CURSOR_HAND` - the finger-pointing/link-select cursor style; equivalent to `IDC_HAND` in Win32.
+			#define MU_CURSOR_HAND 6
+			// @DOCLINE * `MU_CURSOR_SIZE_LR` - the resize cursor style, pointing left-to-right horizontally; equivalent to `IDC_SIZEWE` in Win32.
+			#define MU_CURSOR_SIZE_LR 7
+			// @DOCLINE * `MU_CURSOR_SIZE_TB` - the resize cursor style, pointing up-to-down vertically; equivalent to `IDC_SIZENS` in Win32.
+			#define MU_CURSOR_SIZE_TB 8
+			// @DOCLINE * `MU_CURSOR_SIZE_TL_BR` - the resize cursor style, pointing from top-left to bottom-right sideways; equivalent to `IDC_NWSE` in Win32.
+			#define MU_CURSOR_SIZE_TL_BR 9
+			// @DOCLINE * `MU_CURSOR_SIZE_TR_BL` - the resize cursor style, pointing from top-right to bottom-left sideways; equivalent to `IDC_NESW` in Win32.
+			#define MU_CURSOR_SIZE_TR_BL 10
+			// @DOCLINE * `MU_CURSOR_SIZE_ALL` - the move/resize-all cursor style, pointing outwards in all directions; equivalent to `IDC_SIZEALL` in Win32.
+			#define MU_CURSOR_SIZE_ALL 11
+			// @DOCLINE * `MU_CURSOR_NO` - the disallowing/error/not-allowed cursor style; equivalent to `IDC_NO` in WIn32.
+			#define MU_CURSOR_NO 12
+
+			#ifdef MUCOSA_NAMES
+			// @DOCLINE ### Cursor style names
+
+			// @DOCLINE The name function `mu_cursor_style_get_name` returns a `const char*` representation of the given cursor style (for example, `MU_CURSOR_HAND` returns "MU_CURSOR_HAND"), defined below: @NLNT
+			MUDEF const char* mu_cursor_style_get_name(muCursorStyle style);
+			// @DOCLINE It will return "MU_UNKNOWN" in the case that `style` is an invalid cursor style value.
+
+			// @DOCLINE The name function `mu_cursor_style_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_CURSOR_HAND` returns "Hand"), defined below: @NLNT
+			MUDEF const char* mu_cursor_style_get_nice_name(muCursorStyle style);
+			// @DOCLINE It will return "Unknown" in the case that `style` is an invalid cursor style value.
+
+			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
+			#endif
 
 		// @DOCLINE ## Graphics APIs
 
-		typedef uint16_m muGraphicsAPI;
+			typedef uint16_m muGraphicsAPI;
 
-		// @DOCLINE muCOSA supports windows creating graphics APIs associated with them (respective type `muGraphicsAPI`, typedef for `uint16_m`). These are the currently defined and supported graphics APIs:
+			// @DOCLINE muCOSA supports windows creating graphics APIs associated with them (respective type `muGraphicsAPI`, typedef for `uint16_m`). These are the currently defined and supported graphics APIs:
 
-		// @DOCLINE * `MU_NULL_GRAPHICS_API` - unknown/no graphics API. This value can be given when the user does not want a window to be associated with a particular graphics API, and will attempt to load no graphics API.
-		#define MU_NULL_GRAPHICS_API 0
+			// @DOCLINE * `MU_NULL_GRAPHICS_API` - unknown/no graphics API. This value can be given when the user does not want a window to be associated with a particular graphics API, and will attempt to load no graphics API.
+			#define MU_NULL_GRAPHICS_API 0
 
-		// == OpenGL (1-256) ==
+			// == OpenGL (1-256) ==
 
-		// @DOCLINE * `MU_OPENGL_1_0` - [OpenGL v1.0](https://registry.khronos.org/OpenGL/specs/gl/glspec10.pdf).
-		#define MU_OPENGL_1_0 1
-		// @DOCLINE * `MU_OPENGL_1_1` - [OpenGL v1.1](https://registry.khronos.org/OpenGL/specs/gl/glspec11.pdf).
-		#define MU_OPENGL_1_1 2
-		// @DOCLINE * `MU_OPENGL_1_2` - [OpenGL v1.2](https://registry.khronos.org/OpenGL/specs/gl/glspec121.pdf).
-		#define MU_OPENGL_1_2 3
-		// @DOCLINE * `MU_OPENGL_1_2_1` - [OpenGL v1.2.1](https://registry.khronos.org/OpenGL/specs/gl/glspec121.pdf).
-		#define MU_OPENGL_1_2_1 4
-		// @DOCLINE * `MU_OPENGL_1_3` - [OpenGL v1.3](https://registry.khronos.org/OpenGL/specs/gl/glspec13.pdf).
-		#define MU_OPENGL_1_3 5
-		// @DOCLINE * `MU_OPENGL_1_4` - [OpenGL v1.4](https://registry.khronos.org/OpenGL/specs/gl/glspec14.pdf).
-		#define MU_OPENGL_1_4 6
-		// @DOCLINE * `MU_OPENGL_1_5` - [OpenGL v1.5](https://registry.khronos.org/OpenGL/specs/gl/glspec15.pdf).
-		#define MU_OPENGL_1_5 7
-		// @DOCLINE * `MU_OPENGL_2_0` - [OpenGL v2.0](https://registry.khronos.org/OpenGL/specs/gl/glspec20.pdf).
-		#define MU_OPENGL_2_0 8
-		// @DOCLINE * `MU_OPENGL_2_1` - [OpenGL v2.1](https://registry.khronos.org/OpenGL/specs/gl/glspec21.pdf).
-		#define MU_OPENGL_2_1 9
-		// @DOCLINE * `MU_OPENGL_3_0` - [OpenGL v3.0](https://registry.khronos.org/OpenGL/specs/gl/glspec30.pdf).
-		#define MU_OPENGL_3_0 10
-		// @DOCLINE * `MU_OPENGL_3_1` - [OpenGL v3.1](https://registry.khronos.org/OpenGL/specs/gl/glspec31.pdf).
-		#define MU_OPENGL_3_1 11
-		// @DOCLINE * `MU_OPENGL_3_2_CORE` - [OpenGL v3.2 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec32.core.pdf).
-		#define MU_OPENGL_3_2_CORE 12
-		// @DOCLINE * `MU_OPENGL_3_2_COMPATIBILITY` - [OpenGL v3.2 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec32.compatibility.pdf).
-		#define MU_OPENGL_3_2_COMPATIBILITY 13
-		// @DOCLINE * `MU_OPENGL_3_3_CORE` - [OpenGL v3.3 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec33.core.pdf).
-		#define MU_OPENGL_3_3_CORE 14
-		// @DOCLINE * `MU_OPENGL_3_3_COMPATIBILITY` - [OpenGL v3.3 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec33.compatibility.pdf).
-		#define MU_OPENGL_3_3_COMPATIBILITY 15
-		// @DOCLINE * `MU_OPENGL_4_0_CORE` - [OpenGL v4.0 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec40.core.pdf).
-		#define MU_OPENGL_4_0_CORE 16
-		// @DOCLINE * `MU_OPENGL_4_0_COMPATIBILITY` - [OpenGL v4.0 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec40.compatibility.pdf).
-		#define MU_OPENGL_4_0_COMPATIBILITY 17
-		// @DOCLINE * `MU_OPENGL_4_1_CORE` - [OpenGL v4.1 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec41.core.pdf).
-		#define MU_OPENGL_4_1_CORE 18
-		// @DOCLINE * `MU_OPENGL_4_1_COMPATIBILITY` - [OpenGL v4.1 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec41.compatibility.pdf).
-		#define MU_OPENGL_4_1_COMPATIBILITY 19
-		// @DOCLINE * `MU_OPENGL_4_2_CORE` - [OpenGL v4.2 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec42.core.pdf).
-		#define MU_OPENGL_4_2_CORE 20
-		// @DOCLINE * `MU_OPENGL_4_2_COMPATIBILITY` - [OpenGL v4.2 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec42.compatibility.pdf).
-		#define MU_OPENGL_4_2_COMPATIBILITY 21
-		// @DOCLINE * `MU_OPENGL_4_3_CORE` - [OpenGL v4.3 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec43.core.pdf).
-		#define MU_OPENGL_4_3_CORE 22
-		// @DOCLINE * `MU_OPENGL_4_3_COMPATIBILITY` - [OpenGL v4.3 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec43.compatibility.pdf).
-		#define MU_OPENGL_4_3_COMPATIBILITY 23
-		// @DOCLINE * `MU_OPENGL_4_4_CORE` - [OpenGL v4.4 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec44.core.pdf).
-		#define MU_OPENGL_4_4_CORE 24
-		// @DOCLINE * `MU_OPENGL_4_4_COMPATIBILITY` - [OpenGL v4.4 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec44.compatibility.pdf).
-		#define MU_OPENGL_4_4_COMPATIBILITY 25
-		// @DOCLINE * `MU_OPENGL_4_5_CORE` - [OpenGL v4.5 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec45.core.pdf).
-		#define MU_OPENGL_4_5_CORE 26
-		// @DOCLINE * `MU_OPENGL_4_5_COMPATIBILITY` - [OpenGL v4.5 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec45.compatibility.pdf).
-		#define MU_OPENGL_4_5_COMPATIBILITY 27
-		// @DOCLINE * `MU_OPENGL_4_6_CORE` - [OpenGL v4.6 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf).
-		#define MU_OPENGL_4_6_CORE 28
-		// @DOCLINE * `MU_OPENGL_4_6_COMPATIBILITY` - [OpenGL v4.6 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec46.compatibility.pdf).
-		#define MU_OPENGL_4_6_COMPATIBILITY 29
+			// @DOCLINE * `MU_OPENGL_1_0` - [OpenGL v1.0](https://registry.khronos.org/OpenGL/specs/gl/glspec10.pdf).
+			#define MU_OPENGL_1_0 1
+			// @DOCLINE * `MU_OPENGL_1_1` - [OpenGL v1.1](https://registry.khronos.org/OpenGL/specs/gl/glspec11.pdf).
+			#define MU_OPENGL_1_1 2
+			// @DOCLINE * `MU_OPENGL_1_2` - [OpenGL v1.2](https://registry.khronos.org/OpenGL/specs/gl/glspec121.pdf).
+			#define MU_OPENGL_1_2 3
+			// @DOCLINE * `MU_OPENGL_1_2_1` - [OpenGL v1.2.1](https://registry.khronos.org/OpenGL/specs/gl/glspec121.pdf).
+			#define MU_OPENGL_1_2_1 4
+			// @DOCLINE * `MU_OPENGL_1_3` - [OpenGL v1.3](https://registry.khronos.org/OpenGL/specs/gl/glspec13.pdf).
+			#define MU_OPENGL_1_3 5
+			// @DOCLINE * `MU_OPENGL_1_4` - [OpenGL v1.4](https://registry.khronos.org/OpenGL/specs/gl/glspec14.pdf).
+			#define MU_OPENGL_1_4 6
+			// @DOCLINE * `MU_OPENGL_1_5` - [OpenGL v1.5](https://registry.khronos.org/OpenGL/specs/gl/glspec15.pdf).
+			#define MU_OPENGL_1_5 7
+			// @DOCLINE * `MU_OPENGL_2_0` - [OpenGL v2.0](https://registry.khronos.org/OpenGL/specs/gl/glspec20.pdf).
+			#define MU_OPENGL_2_0 8
+			// @DOCLINE * `MU_OPENGL_2_1` - [OpenGL v2.1](https://registry.khronos.org/OpenGL/specs/gl/glspec21.pdf).
+			#define MU_OPENGL_2_1 9
+			// @DOCLINE * `MU_OPENGL_3_0` - [OpenGL v3.0](https://registry.khronos.org/OpenGL/specs/gl/glspec30.pdf).
+			#define MU_OPENGL_3_0 10
+			// @DOCLINE * `MU_OPENGL_3_1` - [OpenGL v3.1](https://registry.khronos.org/OpenGL/specs/gl/glspec31.pdf).
+			#define MU_OPENGL_3_1 11
+			// @DOCLINE * `MU_OPENGL_3_2_CORE` - [OpenGL v3.2 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec32.core.pdf).
+			#define MU_OPENGL_3_2_CORE 12
+			// @DOCLINE * `MU_OPENGL_3_2_COMPATIBILITY` - [OpenGL v3.2 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec32.compatibility.pdf).
+			#define MU_OPENGL_3_2_COMPATIBILITY 13
+			// @DOCLINE * `MU_OPENGL_3_3_CORE` - [OpenGL v3.3 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec33.core.pdf).
+			#define MU_OPENGL_3_3_CORE 14
+			// @DOCLINE * `MU_OPENGL_3_3_COMPATIBILITY` - [OpenGL v3.3 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec33.compatibility.pdf).
+			#define MU_OPENGL_3_3_COMPATIBILITY 15
+			// @DOCLINE * `MU_OPENGL_4_0_CORE` - [OpenGL v4.0 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec40.core.pdf).
+			#define MU_OPENGL_4_0_CORE 16
+			// @DOCLINE * `MU_OPENGL_4_0_COMPATIBILITY` - [OpenGL v4.0 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec40.compatibility.pdf).
+			#define MU_OPENGL_4_0_COMPATIBILITY 17
+			// @DOCLINE * `MU_OPENGL_4_1_CORE` - [OpenGL v4.1 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec41.core.pdf).
+			#define MU_OPENGL_4_1_CORE 18
+			// @DOCLINE * `MU_OPENGL_4_1_COMPATIBILITY` - [OpenGL v4.1 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec41.compatibility.pdf).
+			#define MU_OPENGL_4_1_COMPATIBILITY 19
+			// @DOCLINE * `MU_OPENGL_4_2_CORE` - [OpenGL v4.2 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec42.core.pdf).
+			#define MU_OPENGL_4_2_CORE 20
+			// @DOCLINE * `MU_OPENGL_4_2_COMPATIBILITY` - [OpenGL v4.2 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec42.compatibility.pdf).
+			#define MU_OPENGL_4_2_COMPATIBILITY 21
+			// @DOCLINE * `MU_OPENGL_4_3_CORE` - [OpenGL v4.3 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec43.core.pdf).
+			#define MU_OPENGL_4_3_CORE 22
+			// @DOCLINE * `MU_OPENGL_4_3_COMPATIBILITY` - [OpenGL v4.3 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec43.compatibility.pdf).
+			#define MU_OPENGL_4_3_COMPATIBILITY 23
+			// @DOCLINE * `MU_OPENGL_4_4_CORE` - [OpenGL v4.4 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec44.core.pdf).
+			#define MU_OPENGL_4_4_CORE 24
+			// @DOCLINE * `MU_OPENGL_4_4_COMPATIBILITY` - [OpenGL v4.4 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec44.compatibility.pdf).
+			#define MU_OPENGL_4_4_COMPATIBILITY 25
+			// @DOCLINE * `MU_OPENGL_4_5_CORE` - [OpenGL v4.5 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec45.core.pdf).
+			#define MU_OPENGL_4_5_CORE 26
+			// @DOCLINE * `MU_OPENGL_4_5_COMPATIBILITY` - [OpenGL v4.5 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec45.compatibility.pdf).
+			#define MU_OPENGL_4_5_COMPATIBILITY 27
+			// @DOCLINE * `MU_OPENGL_4_6_CORE` - [OpenGL v4.6 Core](https://registry.khronos.org/OpenGL/specs/gl/glspec46.core.pdf).
+			#define MU_OPENGL_4_6_CORE 28
+			// @DOCLINE * `MU_OPENGL_4_6_COMPATIBILITY` - [OpenGL v4.6 Compatibility](https://registry.khronos.org/OpenGL/specs/gl/glspec46.compatibility.pdf).
+			#define MU_OPENGL_4_6_COMPATIBILITY 29
 
-		// @DOCLINE Note that OpenGL will only work if `MU_SUPPORT_OPENGL` is defined before `muCOSA.h` is first included.
+			// @DOCLINE Note that OpenGL will only work if `MU_SUPPORT_OPENGL` is defined before `muCOSA.h` is first included.
 
-		// @DOCLINE ### Graphics API macro customization
+			// @DOCLINE ### Graphics API macro customization
 
-		// @DOCLINE Files necessary to define OpenGL features (such as `gl/gh.`/`gl/glu.h` on Win32) are automatically included if `MU_SUPPORT_OPENGL` is defined; the inclusion of these files can be manually turned off (in case they have already been included) via defining `MUCOSA_NO_INCLUDE_OPENGL`.
+			// @DOCLINE Files necessary to define OpenGL features (such as `gl/gh.`/`gl/glu.h` on Win32) are automatically included if `MU_SUPPORT_OPENGL` is defined; the inclusion of these files can be manually turned off (in case they have already been included) via defining `MUCOSA_NO_INCLUDE_OPENGL`.
+
+			#ifdef MUCOSA_NAMES
+			// @DOCLINE ### Graphics API names
+
+			// @DOCLINE The name function `mu_graphics_api_get_name` returns a `const char*` representation of the given graphics API (for example, `MU_OPENGL_3_3_CORE` returns "MU_OPENGL_3_3_CORE"), defined below: @NLNT
+			MUDEF const char* mu_graphics_api_get_name(muGraphicsAPI api);
+			// @DOCLINE It will return "MU_UNKNOWN" in the case that `api` is an invalid graphics API value.
+
+			// @DOCLINE The name function `mu_graphics_api_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_OPENGL_3_3_CORE` returns "OpenGL 3.3 (Core Profile)"), defined below: @NLNT
+			MUDEF const char* mu_graphics_api_get_nice_name(muGraphicsAPI api);
+			// @DOCLINE It will return "Unknown" in the case that `api` is an invalid graphics API value.
+
+			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
+			#endif
 
 		// @DOCLINE ## OpenGL context
 
-		#define muGLContext void*
+			#define muGLContext void*
 
-		// @DOCLINE A window can be used to create a valid OpenGL context that is linked to the window (respective type `muGLContext`; macro for `void*`). Any operations to an OpenGL context are regarding to the currently bound OpenGL context on the current thread (besides the binding function itself), so some OpenGL context-related functions do not take the actual OpenGL context as a parameter.
+			// @DOCLINE A window can be used to create a valid OpenGL context that is linked to the window (respective type `muGLContext`; macro for `void*`). Any operations to an OpenGL context are regarding to the currently bound OpenGL context on the current thread (besides the binding function itself), so some OpenGL context-related functions do not take the actual OpenGL context as a parameter.
 
-		// @DOCLINE ### Create / Destroy OpenGL context
+			// @DOCLINE ### Create / Destroy OpenGL context
 
-		// @DOCLINE The function `muCOSA_gl_context_create` creates an OpenGL context, defined below: @NLNT
-		MUDEF muGLContext muCOSA_gl_context_create(muCOSAContext* context, muCOSAResult* result, muWindow win, muGraphicsAPI api);
+			// @DOCLINE The function `muCOSA_gl_context_create` creates an OpenGL context, defined below: @NLNT
+			MUDEF muGLContext muCOSA_gl_context_create(muCOSAContext* context, muCOSAResult* result, muWindow win, muGraphicsAPI api);
 
-		// @DOCLINE Every successfully created OpenGL context must be destroyed before the window that created it is destroyed. This function does not modify any previously binded OpenGL context.
+			// @DOCLINE Every successfully created OpenGL context must be destroyed before the window that created it is destroyed. This function does not modify any previously binded OpenGL context.
 
-		// @DOCLINE > The macro `mu_gl_context_create` is the non-result-checking equivalent, and the macro `mu_gl_context_create_` is the result-checking equivalent.
-		#define mu_gl_context_create(...) muCOSA_gl_context_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_gl_context_create_(result, ...) muCOSA_gl_context_create(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_gl_context_create` is the non-result-checking equivalent, and the macro `mu_gl_context_create_` is the result-checking equivalent.
+			#define mu_gl_context_create(...) muCOSA_gl_context_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_gl_context_create_(result, ...) muCOSA_gl_context_create(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE The function `muCOSA_gl_context_destroy` destroys an OpenGL context, defined below: @NLNT
-		MUDEF muGLContext muCOSA_gl_context_destroy(muCOSAContext* context, muWindow win, muGLContext gl_context);
+			// @DOCLINE The function `muCOSA_gl_context_destroy` destroys an OpenGL context, defined below: @NLNT
+			MUDEF muGLContext muCOSA_gl_context_destroy(muCOSAContext* context, muWindow win, muGLContext gl_context);
 
-		// @DOCLINE The destruction function cannot fail if given a proper context and window, and thus, there is no `result` parameter.
+			// @DOCLINE The destruction function cannot fail if given a proper context and window, and thus, there is no `result` parameter.
 
-		// @DOCLINE > The macro `mu_window_destroy` is the non-result-checking equivalent.
-		#define mu_gl_context_destroy(...) muCOSA_gl_context_destroy(muCOSA_global_context, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_window_destroy` is the non-result-checking equivalent.
+			#define mu_gl_context_destroy(...) muCOSA_gl_context_destroy(muCOSA_global_context, __VA_ARGS__)
 
-		// @DOCLINE ### Bind OpenGL context
+			// @DOCLINE ### Bind OpenGL context
 
-		// @DOCLINE The function `muCOSA_gl_bind` binds an OpenGL context to the current thread, defined below: @NLNT
-		MUDEF void muCOSA_gl_bind(muCOSAContext* context, muCOSAResult* result, muWindow win, muGLContext gl_context);
+			// @DOCLINE The function `muCOSA_gl_bind` binds an OpenGL context to the current thread, defined below: @NLNT
+			MUDEF void muCOSA_gl_bind(muCOSAContext* context, muCOSAResult* result, muWindow win, muGLContext gl_context);
 
-		// @DOCLINE If `gl_context` is not 0, it is expected to be a valid OpenGL context. If `gl_context` is 0, this function unbinds any OpenGL context currently binded on the calling thread; doing this without any OpenGL context previously binded is undefined behavior.
+			// @DOCLINE If `gl_context` is not 0, it is expected to be a valid OpenGL context. If `gl_context` is 0, this function unbinds any OpenGL context currently binded on the calling thread; doing this without any OpenGL context previously binded is undefined behavior.
 
-		// @DOCLINE This function is, unfortunately, one of the few functions whose defined functionality can differ based on the currently running window system. If this function gives a fatal return value on Win32, the previously binded OpenGL context is unbinded; on X11, the previously binded OpenGL context stays binded.
+			// @DOCLINE This function is, unfortunately, one of the few functions whose defined functionality can differ based on the currently running window system. If this function gives a fatal return value on Win32, the previously binded OpenGL context is unbinded; on X11, the previously binded OpenGL context stays binded.
 
-		// @DOCLINE > The macro `mu_gl_bind` is the non-result-checking equivalent, and the macro `mu_gl_bind_` is the result-checking equivalent.
-		#define mu_gl_bind(...) muCOSA_gl_bind(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_gl_bind_(result, ...) muCOSA_gl_bind(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_gl_bind` is the non-result-checking equivalent, and the macro `mu_gl_bind_` is the result-checking equivalent.
+			#define mu_gl_bind(...) muCOSA_gl_bind(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_gl_bind_(result, ...) muCOSA_gl_bind(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE ### Swap buffers for OpenGL
+			// @DOCLINE ### Swap buffers for OpenGL
 
-		// @DOCLINE The function `muCOSA_gl_swap_buffers` swaps the buffers of a window associated with at least one OpenGL context, defined below: @NLNT
-		MUDEF void muCOSA_gl_swap_buffers(muCOSAContext* context, muCOSAResult* result, muWindow win);
+			// @DOCLINE The function `muCOSA_gl_swap_buffers` swaps the buffers of a window associated with at least one OpenGL context, defined below: @NLNT
+			MUDEF void muCOSA_gl_swap_buffers(muCOSAContext* context, muCOSAResult* result, muWindow win);
 
-		// @DOCLINE Because this function acts purely on the window, and not directly with any associated OpenGL context, this should only be called if an OpenGL context exists that was created from the given window, and should be called every frame before `muCOSA_window_update` for as long as there is an OpenGL context associated with the window.
+			// @DOCLINE Because this function acts purely on the window, and not directly with any associated OpenGL context, this should only be called if an OpenGL context exists that was created from the given window, and should be called every frame before `muCOSA_window_update` for as long as there is an OpenGL context associated with the window.
 
-		// @DOCLINE > The macro `mu_gl_swap_buffers` is the non-result-checking equivalent, and the macro `mu_gl_swap_buffers_` is the result-checking equivalent.
-		#define mu_gl_swap_buffers(...) muCOSA_gl_swap_buffers(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
-		#define mu_gl_swap_buffers_(result, ...) muCOSA_gl_swap_buffers(muCOSA_global_context, result, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_gl_swap_buffers` is the non-result-checking equivalent, and the macro `mu_gl_swap_buffers_` is the result-checking equivalent.
+			#define mu_gl_swap_buffers(...) muCOSA_gl_swap_buffers(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_gl_swap_buffers_(result, ...) muCOSA_gl_swap_buffers(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE ### Get procedure address
+			// @DOCLINE ### Get procedure address
 
-		// @DOCLINE The function `muCOSA_gl_get_proc_address` returns the address of a requested OpenGL function by name, defined below: @NLNT
-		MUDEF void* muCOSA_gl_get_proc_address(muCOSAContext* context, const char* name);
+			// @DOCLINE The function `muCOSA_gl_get_proc_address` returns the address of a requested OpenGL function by name, defined below: @NLNT
+			MUDEF void* muCOSA_gl_get_proc_address(muCOSAContext* context, const char* name);
 
-		// @DOCLINE This function must be called with a valid OpenGL context binded. On failure, this function returns 0, and on success, returns a non-zero value. A valid address given by this function can only be guaranteed to be valid in relation to the currently binded OpenGL context.
+			// @DOCLINE This function must be called with a valid OpenGL context binded. On failure, this function returns 0, and on success, returns a non-zero value. A valid address given by this function can only be guaranteed to be valid in relation to the currently binded OpenGL context.
 
-		// @DOCLINE > The macro `mu_gl_get_proc_address` is the non-result-checking equivalent.
-		#define mu_gl_get_proc_address(...) muCOSA_gl_get_proc_address(muCOSA_global_context, __VA_ARGS__)
+			// @DOCLINE > The macro `mu_gl_get_proc_address` is the non-result-checking equivalent.
+			#define mu_gl_get_proc_address(...) muCOSA_gl_get_proc_address(muCOSA_global_context, __VA_ARGS__)
 
 	// @DOCLINE # Time
 
@@ -1700,7 +1795,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 		// @DOCLINE The name function `muCOSA_result_get_name` returns a `const char*` representation of the given result value (for example, `MUCOSA_SUCCESS` returns "MUCOSA_SUCCESS"), defined below: @NLNT
 		MUDEF const char* muCOSA_result_get_name(muCOSAResult result);
 
-		// @DOCLINE It will return "MUCOSA_UNKNOWN" in the case that `result` is an invalid result value.
+		// @DOCLINE It will return "MU_UNKNOWN" in the case that `result` is an invalid result value.
 
 		// @DOCLINE > This function is a "name" function, and therefore is only defined if `MUCOSA_NAMES` is also defined by the user.
 
@@ -1955,8 +2050,18 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					case MU_CURSOR_SIZE_TB: return IDC_SIZENS; break;
 					case MU_CURSOR_SIZE_TL_BR: return IDC_SIZENWSE; break;
 					case MU_CURSOR_SIZE_TR_BL: return IDC_SIZENESW; break;
-					case MU_CURSOR_ALL: return IDC_SIZEALL; break;
+					case MU_CURSOR_SIZE_ALL: return IDC_SIZEALL; break;
 					case MU_CURSOR_NO: return IDC_NO; break;
+				}
+			}
+
+			// muCOSA keystate to Win32
+			int muCOSAW32_keystate_to_W32(muKeystate state) {
+				switch (state) {
+					default: return VK_NONAME; break;
+					case MU_KEYSTATE_CAPS_LOCK: return VK_CAPITAL; break;
+					case MU_KEYSTATE_SCROLL_LOCK: return VK_SCROLL; break;
+					case MU_KEYSTATE_NUM_LOCK: return VK_NUMLOCK; break;
 				}
 			}
 
@@ -2164,7 +2269,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				}
 
 				// Creates an OpenGL context
-				muCOSAResult muCOSAW32_create_opengl_context(HDC dc, int win_pixel_format, muCOSAW32_WGL* wgl, muPixelFormat* format, HGLRC* context, muGraphicsAPI api) {
+				muCOSAResult muCOSAW32_create_opengl_context(HDC dc, int win_pixel_format, muCOSAW32_WGL* wgl, muPixelFormat* format, HGLRC* context, muGraphicsAPI api, muBool* set) {
 					muCOSAResult res = MUCOSA_SUCCESS;
 					// Choose pixel format
 					int pixel_format;
@@ -2209,8 +2314,11 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 						return MUCOSA_WIN32_FAILED_DESCRIBE_WGL_PIXEL_FORMAT;
 					}
 					// Set pixel format @TODO Figure this out in window creation
-					if (!SetPixelFormat(dc, pixel_format, &format_desc)) {
-						return MUCOSA_WIN32_FAILED_SET_WGL_PIXEL_FORMAT;
+					if (!*set) {
+						if (!SetPixelFormat(dc, pixel_format, &format_desc)) {
+							return MUCOSA_WIN32_FAILED_SET_WGL_PIXEL_FORMAT;
+						}
+						*set = MU_TRUE;
 					}
 
 					// OpenGL version info
@@ -2466,6 +2574,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			struct muCOSAW32_Keymaps {
 				// Keyboard keys
 				muBool keyboard[MU_KEYBOARD_LENGTH];
+				// Keystates
+				muBool keystates[MU_KEYSTATE_LENGTH];
 				// Mouse keys
 				muBool mouse[MU_MOUSE_LENGTH];
 			};
@@ -2498,6 +2608,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				// Pixel format
 				muPixelFormat format;
 				muBool use_format;
+				muBool format_set;
 				// Default pixel format value
 				int pixel_format;
 			};
@@ -2866,6 +2977,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					} else {
 						win->props.use_format = MU_FALSE;
 					}
+					win->props.format_set = MU_FALSE;
 
 				/* Class */
 
@@ -3026,6 +3138,27 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				return win->states.closed;
 			}
 
+			// Checks all keystates and updates accordingly
+			void muCOSAW32_update_keystate(muCOSAW32_Window* win) {
+				// Loop through each possible keystate
+				for (muKeystate s = 1; s < MU_KEYSTATE_LENGTH; ++s) {
+					// Assume not on at first
+					muBool b = MU_FALSE;
+					// Convert keystate to Win32
+					int s_w32 = muCOSAW32_keystate_to_W32(s);
+					// If not recognized, continue:
+					if (s_w32 == VK_NONAME) {
+						continue;
+					}
+					// Set boolean to if it's on or off
+					b = (GetKeyState(s_w32) & 0x0001) != 0;
+					// Change value if different
+					if (b != win->keymaps.keystates[s]) {
+						b = win->keymaps.keystates[s];
+					}
+				}
+			}
+
 			void muCOSAW32_window_update(muCOSAW32_Window* win) {
 				// Process messages
 				MSG msg = MU_ZERO_STRUCT(MSG);
@@ -3033,6 +3166,9 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					TranslateMessage(&msg);
 					DispatchMessage(&msg);
 				}
+
+				// Update keystates
+				muCOSAW32_update_keystate(win);
 			}
 
 		/* Title */
@@ -3175,6 +3311,12 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				return MUCOSA_SUCCESS;
 			}
 
+			muCOSAResult muCOSAW32_window_get_keystate_map(muCOSAW32_Window* win, muBool** data) {
+				// Point to keystate keymap
+				*data = win->keymaps.keystates;
+				return MUCOSA_SUCCESS;
+			}
+
 			muCOSAResult muCOSAW32_window_get_mouse_map(muCOSAW32_Window* win, muBool** data) {
 				// Point to mouse keymap
 				*data = win->keymaps.mouse;
@@ -3260,7 +3402,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				if (win->props.use_format) {
 					format = &win->props.format;
 				}
-				muCOSAResult res = muCOSAW32_create_opengl_context(win->handles.dc, win->props.pixel_format, &context->wgl, format, &gl->hgl, api);
+				muCOSAResult res = muCOSAW32_create_opengl_context(win->handles.dc, win->props.pixel_format, &context->wgl, format, &gl->hgl, api, &win->props.format_set);
 				if (res != MUCOSA_SUCCESS) {
 					MU_SET_RESULT(result, res)
 					if (muCOSA_result_is_fatal(res)) {
@@ -3557,6 +3699,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 							case MU_WINDOW_POSITION: res = muCOSAW32_window_get_position(w32_win, (int32_m*)data); break;
 							// Keyboard keymap
 							case MU_WINDOW_KEYBOARD_MAP: res = muCOSAW32_window_get_keyboard_map(w32_win, (muBool**)data); break;
+							// Keystate keymap
+							case MU_WINDOW_KEYSTATE_MAP: res = muCOSAW32_window_get_keystate_map(w32_win, (muBool**)data); break;
 							// Mouse keymap
 							case MU_WINDOW_MOUSE_MAP: res = muCOSAW32_window_get_mouse_map(w32_win, (muBool**)data); break;
 							// Cursor
@@ -3859,7 +4003,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 	MUCOSA_NAME_CALL(
 		MUDEF const char* muCOSA_result_get_name(muCOSAResult result) {
 			switch (result) {
-				default: return "MUCOSA_UNKNOWN"; break;
+				default: return "MU_UNKNOWN"; break;
 
 				case MUCOSA_SUCCESS: return "MUCOSA_SUCCESS"; break;
 				case MUCOSA_FAILED_NULL_WINDOW_SYSTEM: return "MUCOSA_FAILED_NULL_WINDOW_SYSTEM"; break;
@@ -3895,7 +4039,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		MUDEF const char* mu_window_system_get_name(muWindowSystem system) {
 			switch (system) {
-				default: return "MUCOSA_UNKNOWN"; break;
+				default: return "MU_UNKNOWN"; break;
 
 				case MU_WINDOW_NULL: return "MU_WINDOW_NULL"; break;
 				case MU_WINDOW_WIN32: return "MU_WINDOW_WIN32"; break;
@@ -3913,19 +4057,421 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		MUDEF const char* mu_window_attrib_get_name(muWindowAttrib attrib) {
 			switch (attrib) {
-				default: return "MUCOSA_UNKNOWN"; break;
+				default: return "MU_UNKNOWN"; break;
 				case MU_WINDOW_TITLE: return "MU_WINDOW_TITLE"; break;
 				case MU_WINDOW_DIMENSIONS: return "MU_WINDOW_DIMENSIONS"; break;
 				case MU_WINDOW_POSITION: return "MU_WINDOW_POSITION"; break;
+				case MU_WINDOW_KEYBOARD_MAP: return "MU_WINDOW_KEYBOARD_MAP"; break;
+				case MU_WINDOW_KEYSTATE_MAP: return "MU_WINDOW_KEYSTATE_MAP"; break;
+				case MU_WINDOW_MOUSE_MAP: return "MU_WINDOW_MOUSE_MAP"; break;
+				case MU_WINDOW_CURSOR: return "MU_WINDOW_CURSOR"; break;
+				case MU_WINDOW_CURSOR_STYLE: return "MU_WINDOW_CURSOR_STYLE"; break;
 			}
 		}
 
 		MUDEF const char* mu_window_attrib_get_nice_name(muWindowAttrib attrib) {
 			switch (attrib) {
-				default: return "MUCOSA_UNKNOWN"; break;
+				default: return "Unknown"; break;
 				case MU_WINDOW_TITLE: return "Title"; break;
 				case MU_WINDOW_DIMENSIONS: return "Dimensions"; break;
 				case MU_WINDOW_POSITION: return "Position"; break;
+				case MU_WINDOW_KEYBOARD_MAP: return "Keyboard map"; break;
+				case MU_WINDOW_KEYSTATE_MAP: return "Keystate map"; break;
+				case MU_WINDOW_MOUSE_MAP: return "Mouse map"; break;
+				case MU_WINDOW_CURSOR: return "Cursor"; break;
+				case MU_WINDOW_CURSOR_STYLE: return "Cursor style"; break;
+			}
+		}
+
+		MUDEF const char* mu_keyboard_key_get_name(muKeyboardKey key) {
+			switch (key) {
+				default: return "MU_UNKNOWN"; break;
+				case MU_KEYBOARD_UNKNOWN: return "MU_KEYBOARD_UNKNOWN"; break;
+				case MU_KEYBOARD_BACKSPACE: return "MU_KEYBOARD_BACKSPACE"; break;
+				case MU_KEYBOARD_TAB: return "MU_KEYBOARD_TAB"; break;
+				case MU_KEYBOARD_CLEAR: return "MU_KEYBOARD_CLEAR"; break;
+				case MU_KEYBOARD_RETURN: return "MU_KEYBOARD_RETURN"; break;
+				case MU_KEYBOARD_PAUSE: return "MU_KEYBOARD_PAUSE"; break;
+				case MU_KEYBOARD_ESCAPE: return "MU_KEYBOARD_ESCAPE"; break;
+				case MU_KEYBOARD_MODECHANGE: return "MU_KEYBOARD_MODECHANGE"; break;
+				case MU_KEYBOARD_SPACE: return "MU_KEYBOARD_SPACE"; break;
+				case MU_KEYBOARD_PRIOR: return "MU_KEYBOARD_PRIOR"; break;
+				case MU_KEYBOARD_NEXT: return "MU_KEYBOARD_NEXT"; break;
+				case MU_KEYBOARD_END: return "MU_KEYBOARD_END"; break;
+				case MU_KEYBOARD_HOME: return "MU_KEYBOARD_HOME"; break;
+				case MU_KEYBOARD_LEFT: return "MU_KEYBOARD_LEFT"; break;
+				case MU_KEYBOARD_UP: return "MU_KEYBOARD_UP"; break;
+				case MU_KEYBOARD_RIGHT: return "MU_KEYBOARD_RIGHT"; break;
+				case MU_KEYBOARD_DOWN: return "MU_KEYBOARD_DOWN"; break;
+				case MU_KEYBOARD_SELECT: return "MU_KEYBOARD_SELECT"; break;
+				case MU_KEYBOARD_PRINT: return "MU_KEYBOARD_PRINT"; break;
+				case MU_KEYBOARD_EXECUTE: return "MU_KEYBOARD_EXECUTE"; break;
+				case MU_KEYBOARD_INSERT: return "MU_KEYBOARD_INSERT"; break;
+				case MU_KEYBOARD_DELETE: return "MU_KEYBOARD_DELETE"; break;
+				case MU_KEYBOARD_HELP: return "MU_KEYBOARD_HELP"; break;
+				case MU_KEYBOARD_0: return "MU_KEYBOARD_0"; break;
+				case MU_KEYBOARD_1: return "MU_KEYBOARD_1"; break;
+				case MU_KEYBOARD_2: return "MU_KEYBOARD_2"; break;
+				case MU_KEYBOARD_3: return "MU_KEYBOARD_3"; break;
+				case MU_KEYBOARD_4: return "MU_KEYBOARD_4"; break;
+				case MU_KEYBOARD_5: return "MU_KEYBOARD_5"; break;
+				case MU_KEYBOARD_6: return "MU_KEYBOARD_6"; break;
+				case MU_KEYBOARD_7: return "MU_KEYBOARD_7"; break;
+				case MU_KEYBOARD_8: return "MU_KEYBOARD_8"; break;
+				case MU_KEYBOARD_9: return "MU_KEYBOARD_9"; break;
+				case MU_KEYBOARD_A: return "MU_KEYBOARD_A"; break;
+				case MU_KEYBOARD_B: return "MU_KEYBOARD_B"; break;
+				case MU_KEYBOARD_C: return "MU_KEYBOARD_C"; break;
+				case MU_KEYBOARD_D: return "MU_KEYBOARD_D"; break;
+				case MU_KEYBOARD_E: return "MU_KEYBOARD_E"; break;
+				case MU_KEYBOARD_F: return "MU_KEYBOARD_F"; break;
+				case MU_KEYBOARD_G: return "MU_KEYBOARD_G"; break;
+				case MU_KEYBOARD_H: return "MU_KEYBOARD_H"; break;
+				case MU_KEYBOARD_I: return "MU_KEYBOARD_I"; break;
+				case MU_KEYBOARD_J: return "MU_KEYBOARD_J"; break;
+				case MU_KEYBOARD_K: return "MU_KEYBOARD_K"; break;
+				case MU_KEYBOARD_L: return "MU_KEYBOARD_L"; break;
+				case MU_KEYBOARD_M: return "MU_KEYBOARD_M"; break;
+				case MU_KEYBOARD_N: return "MU_KEYBOARD_N"; break;
+				case MU_KEYBOARD_O: return "MU_KEYBOARD_O"; break;
+				case MU_KEYBOARD_P: return "MU_KEYBOARD_P"; break;
+				case MU_KEYBOARD_Q: return "MU_KEYBOARD_Q"; break;
+				case MU_KEYBOARD_R: return "MU_KEYBOARD_R"; break;
+				case MU_KEYBOARD_S: return "MU_KEYBOARD_S"; break;
+				case MU_KEYBOARD_T: return "MU_KEYBOARD_T"; break;
+				case MU_KEYBOARD_U: return "MU_KEYBOARD_U"; break;
+				case MU_KEYBOARD_V: return "MU_KEYBOARD_V"; break;
+				case MU_KEYBOARD_W: return "MU_KEYBOARD_W"; break;
+				case MU_KEYBOARD_X: return "MU_KEYBOARD_X"; break;
+				case MU_KEYBOARD_Y: return "MU_KEYBOARD_Y"; break;
+				case MU_KEYBOARD_Z: return "MU_KEYBOARD_Z"; break;
+				case MU_KEYBOARD_LEFT_WINDOWS: return "MU_KEYBOARD_LEFT_WINDOWS"; break;
+				case MU_KEYBOARD_RIGHT_WINDOWS: return "MU_KEYBOARD_RIGHT_WINDOWS"; break;
+				case MU_KEYBOARD_NUMPAD_0: return "MU_KEYBOARD_NUMPAD_0"; break;
+				case MU_KEYBOARD_NUMPAD_1: return "MU_KEYBOARD_NUMPAD_1"; break;
+				case MU_KEYBOARD_NUMPAD_2: return "MU_KEYBOARD_NUMPAD_2"; break;
+				case MU_KEYBOARD_NUMPAD_3: return "MU_KEYBOARD_NUMPAD_3"; break;
+				case MU_KEYBOARD_NUMPAD_4: return "MU_KEYBOARD_NUMPAD_4"; break;
+				case MU_KEYBOARD_NUMPAD_5: return "MU_KEYBOARD_NUMPAD_5"; break;
+				case MU_KEYBOARD_NUMPAD_6: return "MU_KEYBOARD_NUMPAD_6"; break;
+				case MU_KEYBOARD_NUMPAD_7: return "MU_KEYBOARD_NUMPAD_7"; break;
+				case MU_KEYBOARD_NUMPAD_8: return "MU_KEYBOARD_NUMPAD_8"; break;
+				case MU_KEYBOARD_NUMPAD_9: return "MU_KEYBOARD_NUMPAD_9"; break;
+				case MU_KEYBOARD_ADD: return "MU_KEYBOARD_ADD"; break;
+				case MU_KEYBOARD_SUBTRACT: return "MU_KEYBOARD_SUBTRACT"; break;
+				case MU_KEYBOARD_MULTIPLY: return "MU_KEYBOARD_MULTIPLY"; break;
+				case MU_KEYBOARD_DIVIDE: return "MU_KEYBOARD_DIVIDE"; break;
+				case MU_KEYBOARD_SEPARATOR: return "MU_KEYBOARD_SEPARATOR"; break;
+				case MU_KEYBOARD_DECIMAL: return "MU_KEYBOARD_DECIMAL"; break;
+				case MU_KEYBOARD_F1: return "MU_KEYBOARD_F1"; break;
+				case MU_KEYBOARD_F2: return "MU_KEYBOARD_F2"; break;
+				case MU_KEYBOARD_F3: return "MU_KEYBOARD_F3"; break;
+				case MU_KEYBOARD_F4: return "MU_KEYBOARD_F4"; break;
+				case MU_KEYBOARD_F5: return "MU_KEYBOARD_F5"; break;
+				case MU_KEYBOARD_F6: return "MU_KEYBOARD_F6"; break;
+				case MU_KEYBOARD_F7: return "MU_KEYBOARD_F7"; break;
+				case MU_KEYBOARD_F8: return "MU_KEYBOARD_F8"; break;
+				case MU_KEYBOARD_F9: return "MU_KEYBOARD_F9"; break;
+				case MU_KEYBOARD_F10: return "MU_KEYBOARD_F10"; break;
+				case MU_KEYBOARD_F11: return "MU_KEYBOARD_F11"; break;
+				case MU_KEYBOARD_F12: return "MU_KEYBOARD_F12"; break;
+				case MU_KEYBOARD_F13: return "MU_KEYBOARD_F13"; break;
+				case MU_KEYBOARD_F14: return "MU_KEYBOARD_F14"; break;
+				case MU_KEYBOARD_F15: return "MU_KEYBOARD_F15"; break;
+				case MU_KEYBOARD_F16: return "MU_KEYBOARD_F16"; break;
+				case MU_KEYBOARD_F17: return "MU_KEYBOARD_F17"; break;
+				case MU_KEYBOARD_F18: return "MU_KEYBOARD_F18"; break;
+				case MU_KEYBOARD_F19: return "MU_KEYBOARD_F19"; break;
+				case MU_KEYBOARD_F20: return "MU_KEYBOARD_F20"; break;
+				case MU_KEYBOARD_F21: return "MU_KEYBOARD_F21"; break;
+				case MU_KEYBOARD_F22: return "MU_KEYBOARD_F22"; break;
+				case MU_KEYBOARD_F23: return "MU_KEYBOARD_F23"; break;
+				case MU_KEYBOARD_F24: return "MU_KEYBOARD_F24"; break;
+				case MU_KEYBOARD_NUMLOCK: return "MU_KEYBOARD_NUMLOCK"; break;
+				case MU_KEYBOARD_SCROLL: return "MU_KEYBOARD_SCROLL"; break;
+				case MU_KEYBOARD_LEFT_SHIFT: return "MU_KEYBOARD_LEFT_SHIFT"; break;
+				case MU_KEYBOARD_RIGHT_SHIFT: return "MU_KEYBOARD_RIGHT_SHIFT"; break;
+				case MU_KEYBOARD_LEFT_CONTROL: return "MU_KEYBOARD_LEFT_CONTROL"; break;
+				case MU_KEYBOARD_RIGHT_CONTROL: return "MU_KEYBOARD_RIGHT_CONTROL"; break;
+				case MU_KEYBOARD_LEFT_MENU: return "MU_KEYBOARD_LEFT_MENU"; break;
+				case MU_KEYBOARD_RIGHT_MENU: return "MU_KEYBOARD_RIGHT_MENU"; break;
+				case MU_KEYBOARD_ATTN: return "MU_KEYBOARD_ATTN"; break;
+				case MU_KEYBOARD_CRSEL: return "MU_KEYBOARD_CRSEL"; break;
+				case MU_KEYBOARD_EXSEL: return "MU_KEYBOARD_EXSEL"; break;
+				case MU_KEYBOARD_EREOF: return "MU_KEYBOARD_EREOF"; break;
+				case MU_KEYBOARD_PLAY: return "MU_KEYBOARD_PLAY"; break;
+				case MU_KEYBOARD_PA1: return "MU_KEYBOARD_PA1"; break;
+			}
+		}
+
+		MUDEF const char* mu_keyboard_key_get_nice_name(muKeyboardKey key) {
+			switch (key) {
+				default: return "Unknown"; break;
+				case MU_KEYBOARD_UNKNOWN: return "Unknown"; break;
+				case MU_KEYBOARD_BACKSPACE: return "Baskspace"; break;
+				case MU_KEYBOARD_TAB: return "Tab"; break;
+				case MU_KEYBOARD_CLEAR: return "Clear"; break;
+				case MU_KEYBOARD_RETURN: return "Return"; break;
+				case MU_KEYBOARD_PAUSE: return "Pause"; break;
+				case MU_KEYBOARD_ESCAPE: return "Escape"; break;
+				case MU_KEYBOARD_MODECHANGE: return "Mode change"; break;
+				case MU_KEYBOARD_SPACE: return "Space"; break;
+				case MU_KEYBOARD_PRIOR: return "Prior"; break;
+				case MU_KEYBOARD_NEXT: return "Next"; break;
+				case MU_KEYBOARD_END: return "End"; break;
+				case MU_KEYBOARD_HOME: return "Home"; break;
+				case MU_KEYBOARD_LEFT: return "Left"; break;
+				case MU_KEYBOARD_UP: return "Up"; break;
+				case MU_KEYBOARD_RIGHT: return "Right"; break;
+				case MU_KEYBOARD_DOWN: return "Down"; break;
+				case MU_KEYBOARD_SELECT: return "Select"; break;
+				case MU_KEYBOARD_PRINT: return "Print"; break;
+				case MU_KEYBOARD_EXECUTE: return "Execute"; break;
+				case MU_KEYBOARD_INSERT: return "Insert"; break;
+				case MU_KEYBOARD_DELETE: return "Delete"; break;
+				case MU_KEYBOARD_HELP: return "Help"; break;
+				case MU_KEYBOARD_0: return "0"; break;
+				case MU_KEYBOARD_1: return "1"; break;
+				case MU_KEYBOARD_2: return "2"; break;
+				case MU_KEYBOARD_3: return "3"; break;
+				case MU_KEYBOARD_4: return "4"; break;
+				case MU_KEYBOARD_5: return "5"; break;
+				case MU_KEYBOARD_6: return "6"; break;
+				case MU_KEYBOARD_7: return "7"; break;
+				case MU_KEYBOARD_8: return "8"; break;
+				case MU_KEYBOARD_9: return "9"; break;
+				case MU_KEYBOARD_A: return "A"; break;
+				case MU_KEYBOARD_B: return "B"; break;
+				case MU_KEYBOARD_C: return "C"; break;
+				case MU_KEYBOARD_D: return "D"; break;
+				case MU_KEYBOARD_E: return "E"; break;
+				case MU_KEYBOARD_F: return "F"; break;
+				case MU_KEYBOARD_G: return "G"; break;
+				case MU_KEYBOARD_H: return "H"; break;
+				case MU_KEYBOARD_I: return "I"; break;
+				case MU_KEYBOARD_J: return "J"; break;
+				case MU_KEYBOARD_K: return "K"; break;
+				case MU_KEYBOARD_L: return "L"; break;
+				case MU_KEYBOARD_M: return "M"; break;
+				case MU_KEYBOARD_N: return "N"; break;
+				case MU_KEYBOARD_O: return "O"; break;
+				case MU_KEYBOARD_P: return "P"; break;
+				case MU_KEYBOARD_Q: return "Q"; break;
+				case MU_KEYBOARD_R: return "R"; break;
+				case MU_KEYBOARD_S: return "S"; break;
+				case MU_KEYBOARD_T: return "T"; break;
+				case MU_KEYBOARD_U: return "U"; break;
+				case MU_KEYBOARD_V: return "V"; break;
+				case MU_KEYBOARD_W: return "W"; break;
+				case MU_KEYBOARD_X: return "X"; break;
+				case MU_KEYBOARD_Y: return "Y"; break;
+				case MU_KEYBOARD_Z: return "Z"; break;
+				case MU_KEYBOARD_LEFT_WINDOWS: return "Left Windows/Super/Command"; break;
+				case MU_KEYBOARD_RIGHT_WINDOWS: return "Right Windows/Super/Command"; break;
+				case MU_KEYBOARD_NUMPAD_0: return "Numpad 0"; break;
+				case MU_KEYBOARD_NUMPAD_1: return "Numpad 1"; break;
+				case MU_KEYBOARD_NUMPAD_2: return "Numpad 2"; break;
+				case MU_KEYBOARD_NUMPAD_3: return "Numpad 3"; break;
+				case MU_KEYBOARD_NUMPAD_4: return "Numpad 4"; break;
+				case MU_KEYBOARD_NUMPAD_5: return "Numpad 5"; break;
+				case MU_KEYBOARD_NUMPAD_6: return "Numpad 6"; break;
+				case MU_KEYBOARD_NUMPAD_7: return "Numpad 7"; break;
+				case MU_KEYBOARD_NUMPAD_8: return "Numpad 8"; break;
+				case MU_KEYBOARD_NUMPAD_9: return "Numpad 9"; break;
+				case MU_KEYBOARD_ADD: return "Add"; break;
+				case MU_KEYBOARD_SUBTRACT: return "Subtract"; break;
+				case MU_KEYBOARD_MULTIPLY: return "Multiply"; break;
+				case MU_KEYBOARD_DIVIDE: return "Divide"; break;
+				case MU_KEYBOARD_SEPARATOR: return "Separator"; break;
+				case MU_KEYBOARD_DECIMAL: return "Decimal"; break;
+				case MU_KEYBOARD_F1: return "F1"; break;
+				case MU_KEYBOARD_F2: return "F2"; break;
+				case MU_KEYBOARD_F3: return "F3"; break;
+				case MU_KEYBOARD_F4: return "F4"; break;
+				case MU_KEYBOARD_F5: return "F5"; break;
+				case MU_KEYBOARD_F6: return "F6"; break;
+				case MU_KEYBOARD_F7: return "F7"; break;
+				case MU_KEYBOARD_F8: return "F8"; break;
+				case MU_KEYBOARD_F9: return "F9"; break;
+				case MU_KEYBOARD_F10: return "F10"; break;
+				case MU_KEYBOARD_F11: return "F11"; break;
+				case MU_KEYBOARD_F12: return "F12"; break;
+				case MU_KEYBOARD_F13: return "F13"; break;
+				case MU_KEYBOARD_F14: return "F14"; break;
+				case MU_KEYBOARD_F15: return "F15"; break;
+				case MU_KEYBOARD_F16: return "F16"; break;
+				case MU_KEYBOARD_F17: return "F17"; break;
+				case MU_KEYBOARD_F18: return "F18"; break;
+				case MU_KEYBOARD_F19: return "F19"; break;
+				case MU_KEYBOARD_F20: return "F20"; break;
+				case MU_KEYBOARD_F21: return "F21"; break;
+				case MU_KEYBOARD_F22: return "F22"; break;
+				case MU_KEYBOARD_F23: return "F23"; break;
+				case MU_KEYBOARD_F24: return "F24"; break;
+				case MU_KEYBOARD_NUMLOCK: return "Num Lock"; break;
+				case MU_KEYBOARD_SCROLL: return "Scroll"; break;
+				case MU_KEYBOARD_LEFT_SHIFT: return "Left shift"; break;
+				case MU_KEYBOARD_RIGHT_SHIFT: return "Right shift"; break;
+				case MU_KEYBOARD_LEFT_CONTROL: return "Left control"; break;
+				case MU_KEYBOARD_RIGHT_CONTROL: return "Right control"; break;
+				case MU_KEYBOARD_LEFT_MENU: return "Left menu"; break;
+				case MU_KEYBOARD_RIGHT_MENU: return "Right menu"; break;
+				case MU_KEYBOARD_ATTN: return "Attn"; break;
+				case MU_KEYBOARD_CRSEL: return "CrSel"; break;
+				case MU_KEYBOARD_EXSEL: return "ExSel"; break;
+				case MU_KEYBOARD_EREOF: return "EreOf"; break;
+				case MU_KEYBOARD_PLAY: return "Play"; break;
+				case MU_KEYBOARD_PA1: return "PA1"; break;
+			}
+		}
+
+		MUDEF const char* mu_keystate_get_name(muKeystate state) {
+			switch (state) {
+				default: return "MU_UNKNOWN"; break;
+				case MU_KEYSTATE_UNKNOWN: return "MU_KEYSTATE_UNKNOWN"; break;
+				case MU_KEYSTATE_CAPS_LOCK: return "MU_KEYSTATE_CAPS_LOCK"; break;
+				case MU_KEYSTATE_SCROLL_LOCK: return "MU_KEYSTATE_SCROLL_LOCK"; break;
+				case MU_KEYSTATE_NUM_LOCK: return "MU_KEYSTATE_NUM_LOCK"; break;
+			}
+		}
+
+		MUDEF const char* mu_keystate_get_nice_name(muKeystate state) {
+			switch (state) {
+				default: return "Unknown"; break;
+				case MU_KEYSTATE_UNKNOWN: return "Unknown"; break;
+				case MU_KEYSTATE_CAPS_LOCK: return "Caps Lock"; break;
+				case MU_KEYSTATE_SCROLL_LOCK: return "Scroll Lock"; break;
+				case MU_KEYSTATE_NUM_LOCK: return "Num Lock"; break;
+			}
+		}
+
+		MUDEF const char* mu_mouse_key_get_name(muMouseKey key) {
+			switch (key) {
+				default: return "MU_UNKNOWN"; break;
+				case MU_MOUSE_UNKNOWN: return "MU_MOUSE_UNKNOWN"; break;
+				case MU_MOUSE_LEFT: return "MU_MOUSE_LEFT"; break;
+				case MU_MOUSE_RIGHT: return "MU_MOUSE_RIGHT"; break;
+				case MU_MOUSE_MIDDLE: return "MU_MOUSE_MIDDLE"; break;
+			}
+		}
+
+		MUDEF const char* mu_mouse_key_get_nice_name(muMouseKey key) {
+			switch (key) {
+				default: return "Unknown"; break;
+				case MU_MOUSE_UNKNOWN: return "Unknown"; break;
+				case MU_MOUSE_LEFT: return "Left"; break;
+				case MU_MOUSE_RIGHT: return "Right"; break;
+				case MU_MOUSE_MIDDLE: return "Middle"; break;
+			}
+		}
+
+		MUDEF const char* mu_cursor_style_get_name(muCursorStyle style) {
+			switch (style) {
+				default: return "MU_UNKNOWN"; break;
+				case MU_CURSOR_UNKNOWN: return "MU_CURSOR_UNKNOWN"; break;
+				case MU_CURSOR_ARROW: return "MU_CURSOR_ARROW"; break;
+				case MU_CURSOR_IBEAM: return "MU_CURSOR_IBEAM"; break;
+				case MU_CURSOR_WAIT: return "MU_CURSOR_WAIT"; break;
+				case MU_CURSOR_WAIT_ARROW: return "MU_CURSOR_WAIT_ARROW"; break;
+				case MU_CURSOR_CROSSHAIR: return "MU_CURSOR_CROSSHAIR"; break;
+				case MU_CURSOR_HAND: return "MU_CURSOR_HAND"; break;
+				case MU_CURSOR_SIZE_LR: return "MU_CURSOR_SIZE_LR"; break;
+				case MU_CURSOR_SIZE_TB: return "MU_CURSOR_SIZE_TB"; break;
+				case MU_CURSOR_SIZE_TL_BR: return "MU_CURSOR_SIZE_TL_BR"; break;
+				case MU_CURSOR_SIZE_TR_BL: return "MU_CURSOR_SIZE_TR_BL"; break;
+				case MU_CURSOR_SIZE_ALL: return "MU_CURSOR_SIZE_ALL"; break;
+				case MU_CURSOR_NO: return "MU_CURSOR_NO"; break;
+			}
+		}
+
+		MUDEF const char* mu_cursor_style_get_nice_name(muCursorStyle style) {
+			switch (style) {
+				default: return "Unknown"; break;
+				case MU_CURSOR_UNKNOWN: return "Unknown"; break;
+				case MU_CURSOR_ARROW: return "Arrow"; break;
+				case MU_CURSOR_IBEAM: return "I-Beam"; break;
+				case MU_CURSOR_WAIT: return "Wait"; break;
+				case MU_CURSOR_WAIT_ARROW: return "Wait (Arrow)"; break;
+				case MU_CURSOR_CROSSHAIR: return "Crosshair"; break;
+				case MU_CURSOR_HAND: return "Hand"; break;
+				case MU_CURSOR_SIZE_LR: return "Resize (Left to right)"; break;
+				case MU_CURSOR_SIZE_TB: return "Resize (Top to bottom)"; break;
+				case MU_CURSOR_SIZE_TL_BR: return "Resize (Top-left to bottom-right)"; break;
+				case MU_CURSOR_SIZE_TR_BL: return "Resize (Top-right to bottom-left)"; break;
+				case MU_CURSOR_SIZE_ALL: return "Resize (All 4 directions)"; break;
+				case MU_CURSOR_NO: return "No/Error"; break;
+			}
+		}
+
+		MUDEF const char* mu_graphics_api_get_name(muGraphicsAPI api) {
+			switch (api) {
+				default: return "MU_UNKNOWN"; break;
+				case MU_NULL_GRAPHICS_API: return "MU_NULL_GRAPHICS_API"; break;
+				case MU_OPENGL_1_0: return "MU_OPENGL_1_0"; break;
+				case MU_OPENGL_1_1: return "MU_OPENGL_1_1"; break;
+				case MU_OPENGL_1_2: return "MU_OPENGL_1_2"; break;
+				case MU_OPENGL_1_2_1: return "MU_OPENGL_1_2_1"; break;
+				case MU_OPENGL_1_3: return "MU_OPENGL_1_3"; break;
+				case MU_OPENGL_1_4: return "MU_OPENGL_1_4"; break;
+				case MU_OPENGL_1_5: return "MU_OPENGL_1_5"; break;
+				case MU_OPENGL_2_0: return "MU_OPENGL_2_0"; break;
+				case MU_OPENGL_2_1: return "MU_OPENGL_2_1"; break;
+				case MU_OPENGL_3_0: return "MU_OPENGL_3_0"; break;
+				case MU_OPENGL_3_1: return "MU_OPENGL_3_1"; break;
+				case MU_OPENGL_3_2_CORE: return "MU_OPENGL_3_2_CORE"; break;
+				case MU_OPENGL_3_2_COMPATIBILITY: return "MU_OPENGL_3_2_COMPATIBILITY"; break;
+				case MU_OPENGL_3_3_CORE: return "MU_OPENGL_3_3_CORE"; break;
+				case MU_OPENGL_3_3_COMPATIBILITY: return "MU_OPENGL_3_3_COMPATIBILITY"; break;
+				case MU_OPENGL_4_0_CORE: return "MU_OPENGL_4_0_CORE"; break;
+				case MU_OPENGL_4_0_COMPATIBILITY: return "MU_OPENGL_4_0_COMPATIBILITY"; break;
+				case MU_OPENGL_4_1_CORE: return "MU_OPENGL_4_1_CORE"; break;
+				case MU_OPENGL_4_1_COMPATIBILITY: return "MU_OPENGL_4_1_COMPATIBILITY"; break;
+				case MU_OPENGL_4_2_CORE: return "MU_OPENGL_4_2_CORE"; break;
+				case MU_OPENGL_4_2_COMPATIBILITY: return "MU_OPENGL_4_2_COMPATIBILITY"; break;
+				case MU_OPENGL_4_3_CORE: return "MU_OPENGL_4_3_CORE"; break;
+				case MU_OPENGL_4_3_COMPATIBILITY: return "MU_OPENGL_4_3_COMPATIBILITY"; break;
+				case MU_OPENGL_4_4_CORE: return "MU_OPENGL_4_4_CORE"; break;
+				case MU_OPENGL_4_4_COMPATIBILITY: return "MU_OPENGL_4_4_COMPATIBILITY"; break;
+				case MU_OPENGL_4_5_CORE: return "MU_OPENGL_4_5_CORE"; break;
+				case MU_OPENGL_4_5_COMPATIBILITY: return "MU_OPENGL_4_5_COMPATIBILITY"; break;
+				case MU_OPENGL_4_6_CORE: return "MU_OPENGL_4_6_CORE"; break;
+				case MU_OPENGL_4_6_COMPATIBILITY: return "MU_OPENGL_4_6_COMPATIBILITY"; break;
+			}
+		}
+
+		MUDEF const char* mu_graphics_api_get_nice_name(muGraphicsAPI api) {
+			switch (api) {
+				default: return "Unknown"; break;
+				case MU_NULL_GRAPHICS_API: return "Unknown"; break;
+				case MU_OPENGL_1_0: return "OpenGL 1.0"; break;
+				case MU_OPENGL_1_1: return "OpenGL 1.1"; break;
+				case MU_OPENGL_1_2: return "OpenGL 1.2"; break;
+				case MU_OPENGL_1_2_1: return "OpenGL 1.2.1"; break;
+				case MU_OPENGL_1_3: return "OpenGL 1.3"; break;
+				case MU_OPENGL_1_4: return "OpenGL 1.4"; break;
+				case MU_OPENGL_1_5: return "OpenGL 1.5"; break;
+				case MU_OPENGL_2_0: return "OpenGL 2.0"; break;
+				case MU_OPENGL_2_1: return "OpenGL 2.1"; break;
+				case MU_OPENGL_3_0: return "OpenGL 3.0"; break;
+				case MU_OPENGL_3_1: return "OpenGL 3.1"; break;
+				case MU_OPENGL_3_2_CORE: return "OpenGL 3.2 (Core Profile)"; break;
+				case MU_OPENGL_3_2_COMPATIBILITY: return "OpenGL 3.2 (Compatibility Profile)"; break;
+				case MU_OPENGL_3_3_CORE: return "OpenGL 3.3 (Core Profile)"; break;
+				case MU_OPENGL_3_3_COMPATIBILITY: return "OpenGL 3.3 (Compatibility Profile)"; break;
+				case MU_OPENGL_4_0_CORE: return "OpenGL 4.0 (Core Profile)"; break;
+				case MU_OPENGL_4_0_COMPATIBILITY: return "OpenGL 4.0 (Compatibility Profile)"; break;
+				case MU_OPENGL_4_1_CORE: return "OpenGL 4.1 (Core Profile)"; break;
+				case MU_OPENGL_4_1_COMPATIBILITY: return "OpenGL 4.1 (Compatibility Profile)"; break;
+				case MU_OPENGL_4_2_CORE: return "OpenGL 4.2 (Core Profile)"; break;
+				case MU_OPENGL_4_2_COMPATIBILITY: return "OpenGL 4.2 (Compatibility Profile)"; break;
+				case MU_OPENGL_4_3_CORE: return "OpenGL 4.3 (Core Profile)"; break;
+				case MU_OPENGL_4_3_COMPATIBILITY: return "OpenGL 4.3 (Compatibility Profile)"; break;
+				case MU_OPENGL_4_4_CORE: return "OpenGL 4.4 (Core Profile)"; break;
+				case MU_OPENGL_4_4_COMPATIBILITY: return "OpenGL 4.4 (Compatibility Profile)"; break;
+				case MU_OPENGL_4_5_CORE: return "OpenGL 4.5 (Core Profile)"; break;
+				case MU_OPENGL_4_5_COMPATIBILITY: return "OpenGL 4.5 (Compatibility Profile)"; break;
+				case MU_OPENGL_4_6_CORE: return "OpenGL 4.6 (Core Profile)"; break;
+				case MU_OPENGL_4_6_COMPATIBILITY: return "OpenGL 4.6 (Compatibility Profile)"; break;
 			}
 		}
 	)
