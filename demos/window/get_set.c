@@ -21,6 +21,9 @@ The window should be moveable by holding down the left-click
 mouse button on the window's surface, dragging it with the
 mouse.
 The cursor style can be changed via the J and L keys.
+The window's y-position can be moved up and down by
+scrolling.
+The window can be closed via pressing escape.
 
 ============================================================
                         LICENSE INFO
@@ -65,6 +68,10 @@ More explicit license information at the end of file.
 		(char*)"Window",
 		// Resolution (width & height)
 		800, 600,
+		// Minimum resolution
+		400, 300,
+		// Maximum resolution
+		1600, 1200,
 		// Coordinates (x and y)
 		50, 50,
 		// Pixel format (default)
@@ -107,11 +114,14 @@ int main(void)
 	printf("WASD to move window, arrow keys to resize\n");
 	printf("Hold down left-click on the window's surface to drag it\n");
 	printf("Use J/L keys to change cursor style\n");
+	printf("Scroll to move window\n");
+	printf("Press escape to close window\n");
 
 /* Main loop */
 
-	// Initialize position, dimension, cursor, and key trackers
+	// Initialize position, scroll, dimension, cursor, and key trackers
 	int32_m pos[2] = { wininfo.x, wininfo.y };
+	int32_m scroll = 0;
 	uint32_m dim[2] = { wininfo.width, wininfo.height };
 	int32_m cur[2];
 	muBool prevcur = MU_FALSE; // (last state of left button being down)
@@ -131,9 +141,18 @@ int main(void)
 	// Loop while window isn't closed:
 	while (!mu_window_get_closed(win))
 	{
+		// Close if escape is pressed
+		if (keyboard[MU_KEYBOARD_ESCAPE]) {
+			mu_window_close(win);
+			continue;
+		}
+
 		// Get window position
 		int32_m new_pos[2];
 		mu_window_get(win, MU_WINDOW_POSITION, new_pos);
+		// Get scroll
+		int32_m new_scroll;
+		mu_window_get(win, MU_WINDOW_SCROLL_LEVEL, &new_scroll);
 		// Get window dimensions
 		uint32_m new_dim[2];
 		mu_window_get(win, MU_WINDOW_DIMENSIONS, new_dim);
@@ -145,6 +164,19 @@ int main(void)
 		// - Left/Right
 		new_pos[0] += ppf*keyboard[MU_KEYBOARD_D];
 		new_pos[0] -= ppf*keyboard[MU_KEYBOARD_A];
+
+		// Move window based on scroll
+		int32_m scroll_add = (new_scroll-scroll)/24;
+		// - Add/Remove at least one if too small
+		if (new_scroll < scroll && scroll_add == 0) {
+			new_pos[1] += 1;
+		} else if (new_scroll > scroll && scroll_add == 0) {
+			new_pos[1] -= 1;
+		}
+		// - Subtract if just a normal amount
+		else {
+			new_pos[1] -= scroll_add;
+		}
 
 		// Resize window based on arrow keys
 		// - Width
@@ -192,6 +224,12 @@ int main(void)
 			printf("Position: (%" PRIi32 ", %" PRIi32 ")\n", new_pos[0], new_pos[1]);
 			pos[0] = new_pos[0];
 			pos[1] = new_pos[1];
+		}
+
+		// Print scroll if it has changed
+		if (scroll != new_scroll) {
+			printf("Scroll level: %" PRIi32 "\n", new_scroll);
+			scroll = new_scroll;
 		}
 
 		// Print if dimensions have changed

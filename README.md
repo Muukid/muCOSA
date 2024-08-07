@@ -66,7 +66,7 @@ This section covers all of the known bugs and limitations with muCOSA.
 
 ## Limited support for most stuff
 
-This version of muCOSA is intended to be very basic, meaning that it only supports Windows and OpenGL, and is not thoroughly tested on other devices. This, if not abandoned, will change in the future, as more support is added, but for now, this library's reach will be fairly limited.
+This version of muCOSA is intended to be very basic, meaning that it only supports Windows and OpenGL, and is not thoroughly tested on other devices. Additionally, many features that might be needed on certain programs are absent. This, if not abandoned, will change in the future, as more support is added, but for now, this library's reach will be fairly limited.
 
 ## Minimal overhead attribute management
 
@@ -94,6 +94,10 @@ muCOSA has a dependency on:
 * [muUtility v2.0.1](https://github.com/Muukid/muUtility/releases/tag/v2.0.1).
 
 > Note that mu libraries store their dependencies within their files, so you don't need to import these dependencies yourself; this section is purely to give more information about the contents that this file defines. The libraries listed may also have other dependencies that they also include that aren't explicitly listed here.
+
+# Version
+
+The macros `MUCOSA_VERSION_MAJOR`, `MUCOSA_VERSION_MINOR`, and `MUCOSA_VERSION_PATCH` are defined to match its respective release version, following the formatting of `MAJOR.MINOR.PATCH`.
 
 # Window systems
 
@@ -232,13 +236,21 @@ The struct `muWindowInfo` represents information about a window. It has the foll
 
 * `uint32_m height` - the height of the window's surface, in pixels.
 
+* `uint32_m min_width` - the minimum width of the window's surface, in pixels; a value of 0 implies no minimum.
+
+* `uint32_m min_height` - the minimum height of the window's surface, in pixels; a value of 0 implies no minimum.
+
+* `uint32_m max_width` - the maximum width of the window's surface, in pixels; a value of 0 implies no maximum.
+
+* `uint32_m max_height` - the maximum height of the window's surface, in pixels; a value of 0 implies no maximum.
+
 * `int32_m x` - the x-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
 
 * `int32_m y` - the y-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
 
 * `muPixelFormat* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will throw a non-fatal error and default on a compatible pixel format.
 
-> Note that due to the way certain window systems work, negative coordiantes may not function properly for a given window in regards to setting them to that value, and should not be relied upon for functionality.
+> Due to restrictions on certain operating systems, the minimum width that will work on all operating systems is 120 pixels, and the minimum height that will surely work is 1 pixel. Additionally, negative coordiantes may not function properly for a given window in regards to setting them to that value, and should not be relied upon for functionality.
 
 ## Window creation and destruction
 
@@ -314,6 +326,19 @@ Once this function returns `MU_FALSE`, it is no longer usable in all circumstanc
 
 > The macro `mu_window_get_closed` is the non-result-checking equivalent, and the macro `mu_window_get_closed_` is the result-checking equivalent.
 
+### Close window
+
+The function `muCOSA_window_close` closes a given window, defined below: 
+
+```c
+MUDEF void muCOSA_window_close(muCOSAContext* context, muWindow win);
+```
+
+
+This function cannot if given a valid unclosed window and a valid context corresponding to the window, and thus, has no result parameter.
+
+> The macro `mu_window_close` is the non-result-checking equivalent.
+
 ### Update
 
 The function `muCOSA_window_update` updates/refreshes a window and triggers all relevant callbacks, presenting the contents of the surface, defined below: 
@@ -362,6 +387,10 @@ The window is described by several attributes, with each attribute represented b
 * `MU_WINDOW_KEYSTATE_MAP` - the [keystate keymap](#keystate-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of all keyboard states (such as caps lock, for example). This can be "get" but not "set".
 
 * `MU_WINDOW_MOUSE_MAP` - the [mouse keymap](#mouse-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable mouse key. This can be "get", but not "set".
+
+* `MU_WINDOW_SCROLL_LEVEL` - the scroll level of the cursor associated with the window, represented by a single `int32_m` value representing how far it is scrolled up (positive) or down (negative). This can be "get" and "set".
+
+> One full scroll up/down on a mouse wheel is worth 120 units.
 
 * `MU_WINDOW_CURSOR` - the x- and y-coordinates of the visual cursor relative to the position of the window's surface, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
 
@@ -814,6 +843,19 @@ This function must be called with a valid OpenGL context binded. On failure, thi
 
 > The macro `mu_gl_get_proc_address` is the non-result-checking equivalent.
 
+### Swap interval
+
+The function `muCOSA_gl_swap_interval` acts as a call to `wglSwapIntervalEXT`, defined below: 
+
+```c
+MUDEF muBool muCOSA_gl_swap_interval(muCOSAContext* context, muCOSAResult* result, int interval);
+```
+
+
+On Win32, this function returns the return value of `wglSwapIntervalEXT` if `result` is set to a non-fatal value, and 0 if otherwise.
+
+> The macro `mu_gl_swap_interval` is the non-result-checking equivalent, and the macro `mu_gl_swap_interval_` is the result-checking equivalent.
+
 # Time
 
 Every muCOSA context has a "fixed time", which refers to the amount of seconds it has been since the context was first created, stored internally as a double. The "fixed time" is different than the "time", which is usually equal to the fixed time, unless it is manually overwritten by the user, which is available in the muCOSA API.
@@ -941,6 +983,8 @@ The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task
 * `MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT` - the function `wglMakeCurrent` returned a failure value when binding the OpenGL context; this is exclusive to Win32.
 
 * `MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS` - the function `SwapBuffers` returned a failure value when swapping the buffers; this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION` - the corresponding OpenGL function could not be located; this is exclusive to Win32.
 
 All non-success values (unless explicitly stated otherwise) mean that the function fully failed, AKA it was "fatal", and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function fatally failed, nothing was allocated.
 

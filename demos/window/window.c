@@ -5,7 +5,7 @@
 DEMO NAME:          window.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-08-03
-LAST UPDATED:       2024-08-05
+LAST UPDATED:       2024-08-07
 
 ============================================================
                         DEMO PURPOSE
@@ -56,8 +56,12 @@ More explicit license information at the end of file.
 		(char*)"Window",
 		// Resolution (width & height)
 		800, 600,
+		// Min/Max resolution (none)
+		0, 0, 0, 0,
 		// Coordinates (x and y)
-		50, 50
+		50, 50,
+		// Pixel format (default)
+		0
 	};
 
 int main(void)

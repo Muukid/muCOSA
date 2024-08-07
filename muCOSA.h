@@ -78,7 +78,7 @@ This section covers all of the known bugs and limitations with muCOSA.
 
 ## Limited support for most stuff
 
-This version of muCOSA is intended to be very basic, meaning that it only supports Windows and OpenGL, and is not thoroughly tested on other devices. This, if not abandoned, will change in the future, as more support is added, but for now, this library's reach will be fairly limited.
+This version of muCOSA is intended to be very basic, meaning that it only supports Windows and OpenGL, and is not thoroughly tested on other devices. Additionally, many features that might be needed on certain programs are absent. This, if not abandoned, will change in the future, as more support is added, but for now, this library's reach will be fairly limited.
 
 ## Minimal overhead attribute management
 
@@ -871,6 +871,14 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 	// Types elaborated later on
 	typedef uint16_m muCOSAResult; // (65,536 error results including success)
 
+	// @DOCLINE # Version
+
+		// @DOCLINE The macros `MUCOSA_VERSION_MAJOR`, `MUCOSA_VERSION_MINOR`, and `MUCOSA_VERSION_PATCH` are defined to match its respective release version, following the formatting of `MAJOR.MINOR.PATCH`.
+
+		#define MUCOSA_VERSION_MAJOR 2
+		#define MUCOSA_VERSION_MINOR 0
+		#define MUCOSA_VERSION_PATCH 0
+
 	MU_CPP_EXTERN_START
 
 	// @DOCLINE # Window systems
@@ -1004,6 +1012,14 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				uint32_m width;
 				// @DOCLINE * `@NLFT height` - the height of the window's surface, in pixels.
 				uint32_m height;
+				// @DOCLINE * `@NLFT min_width` - the minimum width of the window's surface, in pixels; a value of 0 implies no minimum.
+				uint32_m min_width;
+				// @DOCLINE * `@NLFT min_height` - the minimum height of the window's surface, in pixels; a value of 0 implies no minimum.
+				uint32_m min_height;
+				// @DOCLINE * `@NLFT max_width` - the maximum width of the window's surface, in pixels; a value of 0 implies no maximum.
+				uint32_m max_width;
+				// @DOCLINE * `@NLFT max_height` - the maximum height of the window's surface, in pixels; a value of 0 implies no maximum.
+				uint32_m max_height;
 				// @DOCLINE * `@NLFT x` - the x-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
 				int32_m x;
 				// @DOCLINE * `@NLFT y` - the y-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
@@ -1013,7 +1029,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			};
 			typedef struct muWindowInfo muWindowInfo;
 
-			// @DOCLINE > Note that due to the way certain window systems work, negative coordiantes may not function properly for a given window in regards to setting them to that value, and should not be relied upon for functionality.
+			// @DOCLINE > Due to restrictions on certain operating systems, the minimum width that will work on all operating systems is 120 pixels, and the minimum height that will surely work is 1 pixel. Additionally, negative coordiantes may not function properly for a given window in regards to setting them to that value, and should not be relied upon for functionality.
 
 		// @DOCLINE ## Window creation and destruction
 
@@ -1086,6 +1102,16 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			#define mu_window_get_closed(...) muCOSA_window_get_closed(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
 			#define mu_window_get_closed_(result, ...) muCOSA_window_get_closed(muCOSA_global_context, result, __VA_ARGS__)
 
+			// @DOCLINE ### Close window
+
+			// @DOCLINE The function `muCOSA_window_close` closes a given window, defined below: @NLNT
+			MUDEF void muCOSA_window_close(muCOSAContext* context, muWindow win);
+
+			// @DOCLINE This function cannot if given a valid unclosed window and a valid context corresponding to the window, and thus, has no result parameter.
+
+			// @DOCLINE > The macro `mu_window_close` is the non-result-checking equivalent.
+			#define mu_window_close(...) muCOSA_window_close(muCOSA_global_context, __VA_ARGS__)
+
 			// @DOCLINE ### Update
 
 			// @DOCLINE The function `muCOSA_window_update` updates/refreshes a window and triggers all relevant callbacks, presenting the contents of the surface, defined below: @NLNT
@@ -1144,11 +1170,15 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE * `MU_WINDOW_MOUSE_MAP` - the [mouse keymap](#mouse-keymap), represented by a pointer to an array of booleans (type `muBool`) representing the state of each readable mouse key. This can be "get", but not "set".
 			#define MU_WINDOW_MOUSE_MAP 5
 
+			// @DOCLINE * `MU_WINDOW_SCROLL_LEVEL` - the scroll level of the cursor associated with the window, represented by a single `int32_m` value representing how far it is scrolled up (positive) or down (negative). This can be "get" and "set".
+			#define MU_WINDOW_SCROLL_LEVEL 6
+			// @DOCLINE > One full scroll up/down on a mouse wheel is worth 120 units.
+
 			// @DOCLINE * `MU_WINDOW_CURSOR` - the x- and y-coordinates of the visual cursor relative to the position of the window's surface, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
-			#define MU_WINDOW_CURSOR 6
+			#define MU_WINDOW_CURSOR 7
 
 			// @DOCLINE * `MU_WINDOW_CURSOR_STYLE` - the [style of the cursor](#cursor-style), represented by a single value `muCursorStyle`. This can be "get" and "set".
-			#define MU_WINDOW_CURSOR_STYLE 7
+			#define MU_WINDOW_CURSOR_STYLE 8
 
 			// @DOCLINE A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
 
@@ -1641,6 +1671,17 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE > The macro `mu_gl_get_proc_address` is the non-result-checking equivalent.
 			#define mu_gl_get_proc_address(...) muCOSA_gl_get_proc_address(muCOSA_global_context, __VA_ARGS__)
 
+			// @DOCLINE ### Swap interval
+
+			// @DOCLINE The function `muCOSA_gl_swap_interval` acts as a call to `wglSwapIntervalEXT`, defined below: @NLNT
+			MUDEF muBool muCOSA_gl_swap_interval(muCOSAContext* context, muCOSAResult* result, int interval);
+
+			// @DOCLINE On Win32, this function returns the return value of `wglSwapIntervalEXT` if `result` is set to a non-fatal value, and 0 if otherwise.
+
+			// @DOCLINE > The macro `mu_gl_swap_interval` is the non-result-checking equivalent, and the macro `mu_gl_swap_interval_` is the result-checking equivalent.
+			#define mu_gl_swap_interval(...) muCOSA_gl_swap_interval(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_gl_swap_interval_(result, ...) muCOSA_gl_swap_interval(muCOSA_global_context, result, __VA_ARGS__)
+
 	// @DOCLINE # Time
 
 		// @DOCLINE Every muCOSA context has a "fixed time", which refers to the amount of seconds it has been since the context was first created, stored internally as a double. The "fixed time" is different than the "time", which is usually equal to the fixed time, unless it is manually overwritten by the user, which is available in the muCOSA API.
@@ -1781,6 +1822,9 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		// @DOCLINE * `MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS` - the function `SwapBuffers` returned a failure value when swapping the buffers; this is exclusive to Win32.
 		#define MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS 4116
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION` - the corresponding OpenGL function could not be located; this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION 4117
 
 		// @DOCLINE All non-success values (unless explicitly stated otherwise) mean that the function fully failed, AKA it was "fatal", and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function fatally failed, nothing was allocated.
 
@@ -2089,11 +2133,14 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				typedef HGLRC WINAPI muCOSAW32_wglCreateContextAttribsARB_type(HDC hdc, HGLRC hShareContext, const int* attribList);
 				// - wglChoosePixelFormat; needed for choosing a more thorough pixel format when creating context
 				typedef BOOL WINAPI muCOSAW32_wglChoosePixelFormatARB_type(HDC hdc, const int* piAttribIList, const FLOAT* pfAttribFList, UINT uMaxFormats, int* piFormats, UINT* nNumFormats);
+				// - wglSwapInterval; not needed in context creation, but used for swap interval later
+				typedef BOOL WINAPI muCOSAW32_wglSwapIntervalEXT_type(int interval);
 
 				// Struct to hold WGL functions needed for context creation
 				struct muCOSAW32_WGL {
 					muCOSAW32_wglCreateContextAttribsARB_type* CreateContextAttribs;
 					muCOSAW32_wglChoosePixelFormatARB_type* ChoosePixelFormat;
+					muCOSAW32_wglSwapIntervalEXT_type* SwapInterval;
 				};
 				typedef struct muCOSAW32_WGL muCOSAW32_WGL;
 
@@ -2246,6 +2293,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					// Find necessary functions
 					PROC wglCreateContextAttribsARB_proc = wglGetProcAddress("wglCreateContextAttribsARB");
 					PROC wglChoosePixelFormatARB_proc    = wglGetProcAddress("wglChoosePixelFormatARB");
+					// Find helpful functions
+					PROC wglSwapIntervalEXT_proc         = wglGetProcAddress("wglSwapIntervalEXT");
 
 					// Destroy resources
 					wglMakeCurrent(dc, 0);
@@ -2254,7 +2303,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					DestroyWindow(win);
 					UnregisterClassA(wclass.lpszClassName, wclass.hInstance);
 
-					// Detect if any functions went unfound
+					// Detect if any required functions went unfound
 					if (!wglCreateContextAttribsARB_proc) {
 						return MUCOSA_WIN32_FAILED_FIND_WGL_CREATE_CONTEXT_ATTRIBS;
 					}
@@ -2265,6 +2314,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					// Copy over functions
 					mu_memcpy(&wgl->CreateContextAttribs, &wglCreateContextAttribsARB_proc, sizeof(PROC));
 					mu_memcpy(&wgl->ChoosePixelFormat,    &wglChoosePixelFormatARB_proc,    sizeof(PROC));
+					mu_memcpy(&wgl->SwapInterval,         &wglSwapIntervalEXT_proc,         sizeof(PROC));
 					return MUCOSA_SUCCESS;
 				}
 
@@ -2611,6 +2661,15 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				muBool format_set;
 				// Default pixel format value
 				int pixel_format;
+
+				// Min/Max dimensions
+				uint32_m min_width;
+				uint32_m min_height;
+				uint32_m max_width;
+				uint32_m max_height;
+
+				// Scroll level
+				int32_m scroll_level;
 			};
 			typedef struct muCOSAW32_WindowProperties muCOSAW32_WindowProperties;
 
@@ -2905,6 +2964,27 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				return 0;
 			}
 
+			// Handling for WM_GETMINMAXINFO
+			LRESULT CALLBACK muCOSAW32_GETMINMAXINFO(muCOSAW32_ProcMsg msg) {
+				LPMINMAXINFO lp = (LPMINMAXINFO)msg.lParam;
+				// I have no idea why 16 and 39 need to be added here. Can't be borders
+				// because these numbers don't even nearly match the border values.
+				// If it works, it works :P
+				lp->ptMinTrackSize.x = msg.win->props.min_width + 16;
+				lp->ptMinTrackSize.y = msg.win->props.min_height + 39;
+				lp->ptMaxTrackSize.x = msg.win->props.max_width + 16;
+				lp->ptMaxTrackSize.y = msg.win->props.max_height + 39;
+				return 0;
+			}
+
+			// Handling for WM_MOUSEWHEEL
+			LRESULT CALLBACK muCOSAW32_MOUSEWHEEL(muCOSAW32_ProcMsg msg) {
+				// Add scroll level from wParam
+				msg.win->props.scroll_level += GET_WHEEL_DELTA_WPARAM(msg.wParam);
+
+				return 0;
+			}
+
 			// Handles a proc message
 			LRESULT muCOSAW32_procmsg(muCOSAW32_ProcMsg msg) {
 				// Do things based on the message code
@@ -2927,6 +3007,10 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					case WM_RBUTTONDOWN: return muCOSAW32_MBUTTON(msg, MU_MOUSE_RIGHT, MU_TRUE); break;
 					// Cursor style changing
 					case WM_SETCURSOR: return muCOSAW32_SETCURSOR(msg); break;
+					// Windows asking for min/max dimensions
+					case WM_GETMINMAXINFO: return muCOSAW32_GETMINMAXINFO(msg); break;
+					// Scrolling
+					case WM_MOUSEWHEEL: return muCOSAW32_MOUSEWHEEL(msg); break;
 				}
 
 				// Default handling
@@ -2967,10 +3051,17 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 				/* Default attributes */
 
+					// Zero-ing-out
 					mu_memset(&win->handles, 0, sizeof(win->handles));
 					mu_memset(&win->keymaps, 0, sizeof(win->keymaps));
+
+					// Closed
 					win->states.closed = MU_FALSE;
+
+					// Cursor style
 					win->states.cursor_style = MU_CURSOR_ARROW;
+
+					// Pixel format
 					if (info->pixel_format) {
 						win->props.use_format = MU_TRUE;
 						win->props.format = *info->pixel_format;
@@ -2978,6 +3069,28 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 						win->props.use_format = MU_FALSE;
 					}
 					win->props.format_set = MU_FALSE;
+
+					// Min/Max dimensions
+					win->props.min_width = info->min_width;
+					win->props.min_height = info->min_height;
+					win->props.max_width = info->max_width;
+					win->props.max_height = info->max_height;
+					// - (Fix 0 defaults)
+					if (win->props.min_width == 0) {
+						win->props.min_width = 120;
+					}
+					if (win->props.min_height == 0) {
+						win->props.min_height = 1;
+					}
+					if (win->props.max_width == 0) {
+						win->props.max_width = 0x0FFFFFFF;
+					}
+					if (win->props.max_height == 0) {
+						win->props.max_height = 0x0FFFFFFF;
+					}
+
+					// Scroll level
+					win->props.scroll_level = 0;
 
 				/* Class */
 
@@ -3136,6 +3249,11 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			muBool muCOSAW32_window_get_closed(muCOSAW32_Window* win) {
 				return win->states.closed;
+			}
+
+			void muCOSAW32_window_close(muCOSAW32_Window* win) {
+				// Set closed flag
+				win->states.closed = MU_TRUE;
 			}
 
 			// Checks all keystates and updates accordingly
@@ -3378,6 +3496,18 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				return MUCOSA_SUCCESS;
 			}
 
+		/* Scroll */
+
+			void muCOSAW32_window_get_scroll(muCOSAW32_Window* win, int32_m* data) {
+				// Give scroll level
+				*data = win->props.scroll_level;
+			}
+
+			void muCOSAW32_window_set_scroll(muCOSAW32_Window* win, int32_m* data) {
+				// Overwrite scroll level
+				win->props.scroll_level = *data;
+			}
+
 		/* OpenGL */
 
 		#ifdef MU_SUPPORT_OPENGL
@@ -3452,6 +3582,17 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				void* vptr = 0;
 				mu_memcpy(&vptr, &p, sizeof(void*));
 				return vptr;
+			}
+
+			muBool muCOSAW32_gl_swap_interval(muCOSAW32_Context* context, muCOSAResult* result, int interval) {
+				// If the swap interval function was not found when loading, quit
+				if (!context->wgl.SwapInterval) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION)
+					return 0;
+				}
+
+				// Return a call to it if we've found it
+				return context->wgl.SwapInterval(interval);
 			}
 
 		#endif /* MU_SUPPORT_OPENGL */
@@ -3656,6 +3797,25 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				if (result) {} if (win) {}
 			}
 
+			MUDEF void muCOSA_window_close(muCOSAContext* context, muWindow win) {
+				// Get inner from context
+				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+				// Do things based on window system
+				switch (inner->system) {
+					default: return; break;
+
+					// Win32
+					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+						muCOSAW32_window_close((muCOSAW32_Window*)win);
+						return;
+					} break;)
+				}
+
+				// To avoid unused parameter warnings in some cases
+				if (win) {}
+			}
+
 			MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, muWindow win) {
 				// Get inner from context
 				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
@@ -3667,6 +3827,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					// Win32
 					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
 						muCOSAW32_window_update((muCOSAW32_Window*)win);
+						return;
 					} break;)
 				}
 
@@ -3686,7 +3847,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 					// Win32
 					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
-						muCOSAResult res;
+						muCOSAResult res = MUCOSA_SUCCESS;
 						muCOSAW32_Window* w32_win = (muCOSAW32_Window*)win;
 
 						// Do things based on attribute
@@ -3703,6 +3864,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 							case MU_WINDOW_KEYSTATE_MAP: res = muCOSAW32_window_get_keystate_map(w32_win, (muBool**)data); break;
 							// Mouse keymap
 							case MU_WINDOW_MOUSE_MAP: res = muCOSAW32_window_get_mouse_map(w32_win, (muBool**)data); break;
+							// Scroll
+							case MU_WINDOW_SCROLL_LEVEL: muCOSAW32_window_get_scroll(w32_win, (int32_m*)data); return; break;
 							// Cursor
 							case MU_WINDOW_CURSOR: res = muCOSAW32_window_get_cursor_pos(w32_win, (int32_m*)data); break;
 							// Cursor style
@@ -3743,6 +3906,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 							case MU_WINDOW_DIMENSIONS: res = muCOSAW32_window_set_dimensions(w32_win, (uint32_m*)data); break;
 							// Position
 							case MU_WINDOW_POSITION: res = muCOSAW32_window_set_position(w32_win, (int32_m*)data); break;
+							// Scroll
+							case MU_WINDOW_SCROLL_LEVEL: muCOSAW32_window_set_scroll(w32_win, (int32_m*)data); return; break;
 							// Cursor
 							case MU_WINDOW_CURSOR: res = muCOSAW32_window_set_cursor_pos(w32_win, (int32_m*)data); break;
 							// Cursor style
@@ -3902,6 +4067,29 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				#endif
 			}
 
+			MUDEF muBool muCOSA_gl_swap_interval(muCOSAContext* context, muCOSAResult* result, int interval) {
+				#ifdef MU_SUPPORT_OPENGL
+				// Get inner from context
+				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+				// Do things based on window system
+				switch (inner->system) {
+					default: return 0; break;
+
+					// Win32
+					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+						return muCOSAW32_gl_swap_interval((muCOSAW32_Context*)inner->context, result, interval);
+					} break;)
+				}
+
+				// Fallback for non-OpenGL support
+				#else
+				MU_SET_RESULT(result, MUCOSA_FAILED_UNSUPPORTED_GRAPHICS_API)
+				return 0;
+				if (context) {} if (result) {} if (interval) {}
+				#endif
+			}
+
 	/* Time */
 
 		MUDEF double muCOSA_fixed_time_get(muCOSAContext* context) {
@@ -4034,6 +4222,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				case MUCOSA_WIN32_FAILED_CREATE_WGL_CONTEXT: return "MUCOSA_WIN32_FAILED_CREATE_WGL_CONTEXT"; break;
 				case MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT: return "MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT"; break;
 				case MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS: return "MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS"; break;
+				case MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION: return "MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION"; break;
 			}
 		}
 
@@ -4064,6 +4253,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				case MU_WINDOW_KEYBOARD_MAP: return "MU_WINDOW_KEYBOARD_MAP"; break;
 				case MU_WINDOW_KEYSTATE_MAP: return "MU_WINDOW_KEYSTATE_MAP"; break;
 				case MU_WINDOW_MOUSE_MAP: return "MU_WINDOW_MOUSE_MAP"; break;
+				case MU_WINDOW_SCROLL_LEVEL: return "MU_WINDOW_SCROLL_LEVEL"; break;
 				case MU_WINDOW_CURSOR: return "MU_WINDOW_CURSOR"; break;
 				case MU_WINDOW_CURSOR_STYLE: return "MU_WINDOW_CURSOR_STYLE"; break;
 			}
@@ -4078,6 +4268,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				case MU_WINDOW_KEYBOARD_MAP: return "Keyboard map"; break;
 				case MU_WINDOW_KEYSTATE_MAP: return "Keystate map"; break;
 				case MU_WINDOW_MOUSE_MAP: return "Mouse map"; break;
+				case MU_WINDOW_SCROLL_LEVEL: return "Scroll level"; break;
 				case MU_WINDOW_CURSOR: return "Cursor"; break;
 				case MU_WINDOW_CURSOR_STYLE: return "Cursor style"; break;
 			}
