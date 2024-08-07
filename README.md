@@ -250,6 +250,8 @@ The struct `muWindowInfo` represents information about a window. It has the foll
 
 * `muPixelFormat* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will throw a non-fatal error and default on a compatible pixel format.
 
+* `muWindowCallbacks* callbacks` - the [callback functions](#window-callbacks) for various attributes of the window. If this member is equal to 0, no callbacks are specified. If this member is not equal to 0, it should be a valid pointer to a `muWindowCallbacks` struct specifying callbacks for the window.
+
 > Due to restrictions on certain operating systems, the minimum width that will work on all operating systems is 120 pixels, and the minimum height that will surely work is 1 pixel. Additionally, negative coordiantes may not function properly for a given window in regards to setting them to that value, and should not be relied upon for functionality.
 
 ## Window creation and destruction
@@ -350,26 +352,6 @@ MUDEF void muCOSA_window_update(muCOSAContext* context, muCOSAResult* result, mu
 
 > The macro `mu_window_update` is the non-result-checking equivalent, and the macro `mu_window_update_` is the result-checking equivalent.
 
-## Pixel format
-
-A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
-
-* `uint16_m red_bits` - the amount of bits used for the red channel.
-
-* `uint16_m green_bits` - the amount of bits used for the green channel.
-
-* `uint16_m blue_bits` - the amount of bits used for the blue channel.
-
-* `uint16_m alpha_bits` - the amount of bits used for the alpha channel.
-
-* `uint16_m depth_bits` - the amount of bits used for the depth channel.
-
-* `uint16_m stencil_bits` - the amount of bits used for the stencil channel.
-
-* `uint8_m samples` - the amount of samples used for each pixel. A value of 1 means no multi-sampling is performed. Any value other than 1 indicates multi-sampling, and must be a power of 2.
-
-0 bits means that the data does not include it; for example, if `depth_bits` is equal to 0, then no depth data is defined in the pixel format.
-
 ## Window attributes
 
 The window is described by several attributes, with each attribute represented by the type `muWindowAttrib` (typedef for `uint16_m`). It has the following values:
@@ -395,6 +377,24 @@ The window is described by several attributes, with each attribute represented b
 * `MU_WINDOW_CURSOR` - the x- and y-coordinates of the visual cursor relative to the position of the window's surface, represented by an array of two `int32_m`s, where the first element is the x-coordinate, and the second element is the y-coordinate. This can be "get" and "set".
 
 * `MU_WINDOW_CURSOR_STYLE` - the [style of the cursor](#cursor-style), represented by a single value `muCursorStyle`. This can be "get" and "set".
+
+* `MU_WINDOW_..._CALLBACK` - the callback attributes. These all cannot be "get", but can be "set".
+
+   * `MU_WINDOW_DIMENSIONS_CALLBACK` - the dimensions callback.
+
+   * `MU_WINDOW_POSITION_CALLBACK` - the position callback.
+
+   * `MU_WINDOW_KEYBOARD_CALLBACK` - the keyboard callback.
+
+   * `MU_WINDOW_KEYSTATE_CALLBACK` - the keystate callback.
+
+   * `MU_WINDOW_MOUSE_KEY_CALLBACK` - the mouse key callback.
+
+   * `MU_WINDOW_CURSOR_CALLBACK` - the cursor callback.
+
+   * `MU_WINDOW_SCROLL_CALLBACK` - the scroll callback.
+
+   > When callbacks are being set via `muCOSA_window_set`, note that they are pointers *to* the function pointers; function "`fun`" would be set via `muCOSA_window_set(..., &fun)`. For more information about the callbacks, see the (callbacks section)(#window-callbacks). The types listed in the `muWindowCallbacks` struct match the types expected for the callback window attributes.
 
 A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
 
@@ -441,6 +441,69 @@ MUDEF void muCOSA_window_set(muCOSAContext* context, muCOSAResult* result, muWin
 For both functions, `data` is a pointer to data dictated by the value of `attrib`. In the case of `muCOOSA_window_get`, the data is derefenced and filled in corresponding to the window's requested attribute (if successful); in the case of `muCOSA_window_set`, the data is dereferenced and read, and the requested window attribute is changed to the given value(s) (if successful).
 
 > `mu_window_set` will only read from `data` and never modify it. Likewise, `mu_window_get` will only dereference `data` and never read from it.
+
+## Window callbacks
+
+A window callback is a function that is called whenever the window registers that a certain attribute has changed. Every callback function is called while the window is being updated via the function `muCOSA_window_update`.
+
+Window callbacks are specified in the struct `muWindowCallbacks`, which has the following members:
+
+* `void (*dimensions)` - the dimensions callback, called every time that the window's dimensions are modified, defined below: 
+
+```c
+void (*dimensions)(muWindow win, uint32_m width, uint32_m height);
+```
+
+
+* `void (*position)` - the position callback, called every time that the window's position is modified, defined below: 
+
+```c
+void (*position)(muWindow win, int32_m x, int32_m y);
+```
+
+
+* `void (*keyboard)` - the keyboard callback, called every time that the status of a keyboard key on the [keyboard keymap](#keyboard-keymap) changes, defined below: 
+
+```c
+void (*keyboard)(muWindow win, muKeyboardKey key, muBool status);
+```
+
+
+* `void (*keystate)` - the keystate callback, called every time that the status of a keystate on the [keystate keymap](#keystate-keymap) changes, defined below: 
+
+```c
+void (*keystate)(muWindow win, muKeystate state, muBool status);
+```
+
+
+* `void (*mouse_key)` - the mouse key callback, called every time that the status of a mouse key on the [mouse keymap](#mouse-keymap) changes, defined below: 
+
+```c
+void (*mouse_key)(muWindow win, muMouseKey key, muBool status);
+```
+
+
+* `void (*cursor)` - the cursor position callback, called every time that the cursor position changes, defined below: 
+
+```c
+void (*cursor)(muWindow win, int32_m x, int32_m y);
+```
+
+
+* `void (*scroll)` - the scroll callback, called every time that the scroll level changes, defined below: 
+
+```c
+void (*scroll)(muWindow win, int32_m add);
+```
+
+
+Setting the value of any member to 0 dictates no callback function. Changes to an attribute made via the program (such as a `mu_window_set` call) are not guaranteed to generate corresponding callbacks.
+
+Initial callbacks, AKA callbacks involving the window's attributes being set upon creation, are not guaranteed to be called. Additionally, duplicate callbacks (ie callbacks issuing the same value, such a keyboard callback issuing a key status that already matched the previous key status, AKA a key being pressed/released twice) can occur; in fact, duplicate key presses are used to represent a key being held down for a long time, and the rate of repetition varies between window systems and their settings.
+
+Callbacks involving queryable attributes of a window are called after their attribute has been updated. For example, if a keyboard callback is triggered, the keyboard keymap for the corresponding window has already been updated for the key in question.
+
+Users should also avoid possible callback loops, such as a position callback that changes the position, which can theoretically trigger an infinite loop and cause a nasty crash.
 
 ## Keymaps
 
@@ -681,6 +744,26 @@ MUDEF const char* mu_cursor_style_get_nice_name(muCursorStyle style);
 It will return "Unknown" in the case that `style` is an invalid cursor style value.
 
 > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
+
+## Pixel format
+
+A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
+
+* `uint16_m red_bits` - the amount of bits used for the red channel.
+
+* `uint16_m green_bits` - the amount of bits used for the green channel.
+
+* `uint16_m blue_bits` - the amount of bits used for the blue channel.
+
+* `uint16_m alpha_bits` - the amount of bits used for the alpha channel.
+
+* `uint16_m depth_bits` - the amount of bits used for the depth channel.
+
+* `uint16_m stencil_bits` - the amount of bits used for the stencil channel.
+
+* `uint8_m samples` - the amount of samples used for each pixel. A value of 1 means no multi-sampling is performed. Any value other than 1 indicates multi-sampling, and must be a power of 2.
+
+0 bits means that the data does not include it; for example, if `depth_bits` is equal to 0, then no depth data is defined in the pixel format.
 
 ## Graphics APIs
 

@@ -14,7 +14,8 @@ This demo shows how loading and using OpenGL in muCOSA
 works.
 
 Program should display a spinning cube with multiple colors
-on each side.
+on each side. Holding down W should display the cube in
+wireframe mode.
 
 ============================================================
                         LICENSE INFO
@@ -84,11 +85,24 @@ More explicit license information at the end of file.
 		// Coordinates (x and y)
 		50, 50,
 		// Pixel format
-		&format
+		&format,
+		// Callbacks (set later after OpenGL is binded)
+		0
 	};
 
 	// Window keyboard map
 	muBool* keyboard;
+
+/* Callbacks */
+
+	// Dimensions callback; used for glViewport
+	void dimensions_callback(muWindow win, uint32_m width, uint32_m height) {
+		// Update OpenGL viewport dimensions
+		glViewport(0, 0, width, height);
+
+		// Reference 'win' to avoid unused parameter warnings
+		return; if (win) {}
+	}
 
 /* OpenGL functions */
 
@@ -445,6 +459,27 @@ More explicit license information at the end of file.
 		mu_gl_swap_buffers(win);
 	}
 
+/* Delta-time logic */
+
+	// Desired FPS (should go above the HZ rate of your monitor optimally)
+	const double FPS = 100.0;
+	// Inverse desired FPS (aka how much time each frame is)
+	const double invFPS = 1.0 / FPS;
+	// Current time (used for calculating delta-time)
+	double current_time = 0.0;
+
+	// Sleeps for enough time to achieve desired FPS
+	void wait_for_fps(void) {
+		// Calcualte delta time
+		double delta_time = mu_time_get() - current_time;
+		current_time = mu_time_get();
+
+		// Sleep for desired frame time
+		if (delta_time < invFPS) {
+			mu_sleep(invFPS-delta_time);
+		}
+	}
+
 int main(void)
 {
 
@@ -465,12 +500,17 @@ int main(void)
 	gl = mu_gl_context_create(win, MU_OPENGL_3_3_CORE);
 	mu_gl_bind(win, gl);
 
+	// Set dimensions callback for glViewport
+	size_m p_dim_callback = (size_m)dimensions_callback;
+	mu_window_set(win, MU_WINDOW_DIMENSIONS_CALLBACK, &p_dim_callback);
+
 	// Get keyboard map
 	mu_window_get(win, MU_WINDOW_KEYBOARD_MAP, &keyboard);
 
 /* Print explanation */
 
-	// ...
+	printf("Spinning cube OpenGL demo\n");
+	printf("Hold down W for wireframe view\n");
 
 /* OpenGL setup */
 
@@ -504,6 +544,9 @@ int main(void)
 
 		// Update window (which refreshes input and such)
 		mu_window_update(win);
+
+		// Sleep to get desired FPS
+		wait_for_fps();
 	}
 
 /* Termination */

@@ -2,22 +2,16 @@
 ============================================================
                         DEMO INFO
 
-DEMO NAME:          window.c
+DEMO NAME:          callbacks.c
 DEMO WRITTEN BY:    Muukid
-CREATION DATE:      2024-08-03
+CREATION DATE:      2024-08-07
 LAST UPDATED:       2024-08-07
 
 ============================================================
                         DEMO PURPOSE
 
-This demo shows the basics behind creating a default, empty
-window in muCOSA.
-
-Program should pop up a window on screen named "Window". 
-Note that since no graphics API is being used, there is no
-easy way to clear the screen with a color, and in muCOSA, a
-screen that doesn't get cleared has undefined contents,
-meaning that it can look different depending on the OS.
+This demo tests the callback functions for a window in
+muCOSA.
 
 ============================================================
                         LICENSE INFO
@@ -39,8 +33,102 @@ More explicit license information at the end of file.
 	// Include stdio for print functions
 	#include <stdio.h>
 
-/* Variables */
+	// Include inttypes for printing certain types
+	#include <inttypes.h>
+
+/* Callback */
 	
+	// Dimensions callback; called every time the dimensions change
+	void dimensions_callback(muWindow win, uint32_m width, uint32_m height) {
+		// Print dimensions
+		printf("[Dimensions] (%" PRIu32 ", %" PRIu32 ")\n", width, height);
+
+		// Reference "win" to avoid unused parameter warnings
+		return; if (win) {}
+	}
+
+	// Position callback; called every time the position changes
+	void position_callback(muWindow win, int32_m x, int32_m y) {
+		// Print position
+		printf("[Position] (%" PRIi32 ", %" PRIi32 ")\n", x, y);
+
+		// Reference "win" to avoid unused parameter warnings
+		return; if (win) {}
+	}
+
+	// Keyboard callback; called every time a key is pressed/released
+	void keyboard_callback(muWindow win, muKeyboardKey key, muBool status) {
+		// Print keyboard key
+		printf("[Keyboard] %s - ", mu_keyboard_key_get_nice_name(key));
+		// Print if held down or released
+		if (status) {
+			printf("Held down\n");
+		} else {
+			printf("Released\n");
+		}
+
+		// Reference "win" to avoid unused parameter warnings
+		return; if (win) {}
+	}
+
+	// Keystate callback; called every time a keyboard state changes
+	void keystate_callback(muWindow win, muKeystate state, muBool status) {
+		// Print keystate
+		printf("[Keystate] %s - ", mu_keystate_get_nice_name(state));
+		// Print if on or off
+		if (status) {
+			printf("On\n");
+		} else {
+			printf("Off\n");
+		}
+
+		// Reference "win" to avoid unused parameter warnings
+		return; if (win) {}
+	}
+
+	// Mouse key callback; called every time a mouse key is pressed/released
+	void mouse_key_callback(muWindow win, muMouseKey key, muBool status) {
+		// Print mouse key
+		printf("[Mouse key] %s - ", mu_mouse_key_get_nice_name(key));
+		// Print if pressed/released
+		if (status) {
+			printf("Pressed\n");
+		} else {
+			printf("Released\n");
+		}
+
+		// Reference "win" to avoid unused parameter warnings
+		return; if (win) {}
+	}
+
+	// Cursor callback; called every time the cursor position changes
+	void cursor_callback(muWindow win, int32_m x, int32_m y) {
+		// Print cursor position
+		printf("[Cursor] (%" PRIi32 ", %" PRIi32 ")\n", x, y);
+
+		// Reference "win" to avoid unused parameter warnings
+		if (win) {}
+	}
+
+	// Scroll callback; called every time the user scrolls
+	void scroll_callback(muWindow win, int32_m add) {
+		// Print scroll amount
+		printf("[Scroll] ");
+		// - Positive/Negative sign
+		if (add > 0) {
+			printf("+");
+		}
+		// - Actual number
+		printf("%" PRIi32 "", add);
+
+		// Print total scroll
+		int32_m total;
+		mu_window_get(win, MU_WINDOW_SCROLL_LEVEL, &total);
+		printf(" (%" PRIi32 " total)\n", total);
+	}
+
+/* Variables */
+
 	// Global context
 	muCOSAContext muCOSA;
 
@@ -50,10 +138,21 @@ More explicit license information at the end of file.
 	// Window handle
 	muWindow win;
 
+	// Callbacks
+	muWindowCallbacks callbacks = {
+		dimensions_callback,
+		position_callback,
+		keyboard_callback,
+		keystate_callback,
+		mouse_key_callback,
+		cursor_callback,
+		scroll_callback
+	};
+
 	// Window information
 	muWindowInfo wininfo = {
 		// Title
-		(char*)"Window",
+		(char*)"Callbacks",
 		// Resolution (width & height)
 		800, 600,
 		// Min/Max resolution (none)
@@ -62,8 +161,8 @@ More explicit license information at the end of file.
 		50, 50,
 		// Pixel format (default)
 		0,
-		// Callbacks (none)
-		0
+		// Callbacks
+		&callbacks
 	};
 
 int main(void)
@@ -84,13 +183,10 @@ int main(void)
 
 /* Main loop */
 
-	// Set up a loop that continues as long as the window isn't closed
-
+	// Loop while window isn't closed:
 	while (!mu_window_get_closed(win))
 	{
-		// ... This is where we would do our frame-by-frame logic
-
-		// Update window (which refreshes input and such)
+		// Update window (which refreshes input, calls callbacks, etc.)
 		mu_window_update(win);
 	}
 
@@ -104,7 +200,7 @@ int main(void)
 
 	// Print possible error
 	if (muCOSA.result != MUCOSA_SUCCESS) {
-		printf("Something went wrong during the program's lifespan; result: %s\n", 
+		printf("Something went wrong during the program's lifespan; result: %s\n",
 			muCOSA_result_get_name(muCOSA.result)
 		);
 	} else {

@@ -35,12 +35,9 @@ More explicit license information at the end of file.
 ============================================================
 */
 
-#include <stdio.h>
-
 /* Inclusion */
 
 	// Include muCOSA
-	#define MU_SUPPORT_OPENGL
 	#define MUCOSA_NAMES // For name functions
 	#define MUCOSA_IMPLEMENTATION // For source code
 	#include "muCOSA.h"
@@ -75,6 +72,8 @@ More explicit license information at the end of file.
 		// Coordinates (x and y)
 		50, 50,
 		// Pixel format (default)
+		0,
+		// Callbacks (none)
 		0
 	};
 

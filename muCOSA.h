@@ -870,6 +870,9 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 	// Types elaborated later on
 	typedef uint16_m muCOSAResult; // (65,536 error results including success)
+	typedef uint16_m muKeyboardKey;
+	typedef uint8_m muKeystate;
+	typedef uint16_m muMouseKey;
 
 	// @DOCLINE # Version
 
@@ -1005,6 +1008,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE The struct `muWindowInfo` represents information about a window. It has the following members:
 
 			typedef struct muPixelFormat muPixelFormat;
+			typedef struct muWindowCallbacks muWindowCallbacks;
 			struct muWindowInfo {
 				// @DOCLINE * `@NLFT* title` - the title of the window shown to the user in most interfaces (primarily the title bar).
 				char* title;
@@ -1026,6 +1030,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				int32_m y;
 				// @DOCLINE * `@NLFT* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will throw a non-fatal error and default on a compatible pixel format.
 				muPixelFormat* pixel_format;
+				// @DOCLINE * `@NLFT* callbacks` - the [callback functions](#window-callbacks) for various attributes of the window. If this member is equal to 0, no callbacks are specified. If this member is not equal to 0, it should be a valid pointer to a `muWindowCallbacks` struct specifying callbacks for the window.
+				muWindowCallbacks* callbacks;
 			};
 			typedef struct muWindowInfo muWindowInfo;
 
@@ -1121,31 +1127,6 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			#define mu_window_update(...) muCOSA_window_update(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
 			#define mu_window_update_(result, ...) muCOSA_window_update(muCOSA_global_context, result, __VA_ARGS__)
 
-		// @DOCLINE ## Pixel format
-
-			// @DOCLINE A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
-
-			struct muPixelFormat {
-				// @DOCLINE * `@NLFT red_bits` - the amount of bits used for the red channel.
-				uint16_m red_bits;
-				// @DOCLINE * `@NLFT green_bits` - the amount of bits used for the green channel.
-				uint16_m green_bits;
-				// @DOCLINE * `@NLFT blue_bits` - the amount of bits used for the blue channel.
-				uint16_m blue_bits;
-				// @DOCLINE * `@NLFT alpha_bits` - the amount of bits used for the alpha channel.
-				uint16_m alpha_bits;
-
-				// @DOCLINE * `@NLFT depth_bits` - the amount of bits used for the depth channel.
-				uint16_m depth_bits;
-				// @DOCLINE * `@NLFT stencil_bits` - the amount of bits used for the stencil channel.
-				uint16_m stencil_bits;
-
-				// @DOCLINE * `@NLFT samples` - the amount of samples used for each pixel. A value of 1 means no multi-sampling is performed. Any value other than 1 indicates multi-sampling, and must be a power of 2.
-				uint8_m samples;
-			};
-
-			// @DOCLINE 0 bits means that the data does not include it; for example, if `depth_bits` is equal to 0, then no depth data is defined in the pixel format.
-
 		// @DOCLINE ## Window attributes
 
 			typedef uint16_m muWindowAttrib;
@@ -1180,6 +1161,23 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE * `MU_WINDOW_CURSOR_STYLE` - the [style of the cursor](#cursor-style), represented by a single value `muCursorStyle`. This can be "get" and "set".
 			#define MU_WINDOW_CURSOR_STYLE 8
 
+			// @DOCLINE * `MU_WINDOW_..._CALLBACK` - the callback attributes. These all cannot be "get", but can be "set".
+			// @DOCLINE    * `MU_WINDOW_DIMENSIONS_CALLBACK` - the dimensions callback.
+			#define MU_WINDOW_DIMENSIONS_CALLBACK 9
+			// @DOCLINE    * `MU_WINDOW_POSITION_CALLBACK` - the position callback.
+			#define MU_WINDOW_POSITION_CALLBACK 10
+			// @DOCLINE    * `MU_WINDOW_KEYBOARD_CALLBACK` - the keyboard callback.
+			#define MU_WINDOW_KEYBOARD_CALLBACK 11
+			// @DOCLINE    * `MU_WINDOW_KEYSTATE_CALLBACK` - the keystate callback.
+			#define MU_WINDOW_KEYSTATE_CALLBACK 12
+			// @DOCLINE    * `MU_WINDOW_MOUSE_KEY_CALLBACK` - the mouse key callback.
+			#define MU_WINDOW_MOUSE_KEY_CALLBACK 13
+			// @DOCLINE    * `MU_WINDOW_CURSOR_CALLBACK` - the cursor callback.
+			#define MU_WINDOW_CURSOR_CALLBACK 14
+			// @DOCLINE    * `MU_WINDOW_SCROLL_CALLBACK` - the scroll callback.
+			#define MU_WINDOW_SCROLL_CALLBACK 15
+			// @DOCLINE    > When callbacks are being set via `muCOSA_window_set`, note that they are pointers *to* the function pointers; function "`fun`" would be set via `muCOSA_window_set(..., &fun)`. For more information about the callbacks, see the (callbacks section)(#window-callbacks). The types listed in the `muWindowCallbacks` struct match the types expected for the callback window attributes.
+
 			// @DOCLINE A value is "get" if calling `muCOSA_window_get` with it is valid, and a value is "set" if calling `muCOSA_window_set` with it is valid.
 
 			// @DOCLINE ### Names
@@ -1194,7 +1192,6 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			MUDEF const char* mu_window_attrib_get_nice_name(muWindowAttrib attrib);
 
 			// @DOCLINE > This function returns "Unknown" if the value of `attrib` is unrecognized.
-
 			#endif
 
 			// @DOCLINE ### Get and set window attributes
@@ -1217,6 +1214,37 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// @DOCLINE > `mu_window_set` will only read from `data` and never modify it. Likewise, `mu_window_get` will only dereference `data` and never read from it.
 
+		// @DOCLINE ## Window callbacks
+
+			// @DOCLINE A window callback is a function that is called whenever the window registers that a certain attribute has changed. Every callback function is called while the window is being updated via the function `muCOSA_window_update`.
+
+			// @DOCLINE Window callbacks are specified in the struct `muWindowCallbacks`, which has the following members:
+
+			struct muWindowCallbacks {
+				// @DOCLINE * `void (*dimensions)` - the dimensions callback, called every time that the window's dimensions are modified, defined below: @NLNT
+				void (*dimensions)(muWindow win, uint32_m width, uint32_m height);
+				// @DOCLINE * `void (*position)` - the position callback, called every time that the window's position is modified, defined below: @NLNT
+				void (*position)(muWindow win, int32_m x, int32_m y);
+				// @DOCLINE * `void (*keyboard)` - the keyboard callback, called every time that the status of a keyboard key on the [keyboard keymap](#keyboard-keymap) changes, defined below: @NLNT
+				void (*keyboard)(muWindow win, muKeyboardKey key, muBool status);
+				// @DOCLINE * `void (*keystate)` - the keystate callback, called every time that the status of a keystate on the [keystate keymap](#keystate-keymap) changes, defined below: @NLNT
+				void (*keystate)(muWindow win, muKeystate state, muBool status);
+				// @DOCLINE * `void (*mouse_key)` - the mouse key callback, called every time that the status of a mouse key on the [mouse keymap](#mouse-keymap) changes, defined below: @NLNT
+				void (*mouse_key)(muWindow win, muMouseKey key, muBool status);
+				// @DOCLINE * `void (*cursor)` - the cursor position callback, called every time that the cursor position changes, defined below: @NLNT
+				void (*cursor)(muWindow win, int32_m x, int32_m y);
+				// @DOCLINE * `void (*scroll)` - the scroll callback, called every time that the scroll level changes, defined below: @NLNT
+				void (*scroll)(muWindow win, int32_m add);
+			};
+
+			// @DOCLINE Setting the value of any member to 0 dictates no callback function. Changes to an attribute made via the program (such as a `mu_window_set` call) are not guaranteed to generate corresponding callbacks.
+
+			// @DOCLINE Initial callbacks, AKA callbacks involving the window's attributes being set upon creation, are not guaranteed to be called. Additionally, duplicate callbacks (ie callbacks issuing the same value, such a keyboard callback issuing a key status that already matched the previous key status, AKA a key being pressed/released twice) can occur; in fact, duplicate key presses are used to represent a key being held down for a long time, and the rate of repetition varies between window systems and their settings.
+
+			// @DOCLINE Callbacks involving queryable attributes of a window are called after their attribute has been updated. For example, if a keyboard callback is triggered, the keyboard keymap for the corresponding window has already been updated for the key in question.
+
+			// @DOCLINE Users should also avoid possible callback loops, such as a position callback that changes the position, which can theoretically trigger an infinite loop and cause a nasty crash.
+
 		// @DOCLINE ## Keymaps
 
 			// @DOCLINE In order to make input require as minimal overhead as possible, muCOSA allows the user to read key input using "keymaps". A keymap is an array of booleans (type `muBool`) that dictate the state of each key. Therefore, if a user wanted to check a particular key's state, they would retrieve the keymap, and index into it based on what key they want to check. This array is stored internally somewhere in the API, and, when retrieved (via a "get" function call), a pointer to this array is given. Since the keymap is stored as a pointer to inner memory used by muCOSA, it is automatically updated every call to `muCOSA_window_update`.
@@ -1228,8 +1256,6 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE > Note that keymaps are only meant to be read, not modified. Changing any value within a keymap array will result in undefined behavior.
 
 			// @DOCLINE ### Keyboard keymap
-
-			typedef uint16_m muKeyboardKey;
 
 			// @DOCLINE The keyboard keymap represents keys on the keyboard readable by muCOSA, using type `muKeyboardKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_KEYBOARD_LENGTH`. It has the following indexes:
 
@@ -1409,8 +1435,6 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// @DOCLINE ### Keystate keymap
 
-			typedef uint8_m muKeystate;
-
 			// @DOCLINE The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeystate` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
 
 			// @DOCLINE * `MU_KEYSTATE_UNKNOWN` - unknown keystate.
@@ -1442,8 +1466,6 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			#endif
 
 			// @DOCLINE ### Mouse keymap
-
-			typedef uint16_m muMouseKey;
 
 			// @DOCLINE The mouse keymap represents the keys on a common computer mouse readable by muCOSA, using type `muMouseKey` (typedef for `uint16_m`) as index. The length of the keymap is `MU_MOUSE_LENGTH`. It has the following indexes:
 
@@ -1521,6 +1543,31 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
 			#endif
+
+		// @DOCLINE ## Pixel format
+
+			// @DOCLINE A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
+
+			struct muPixelFormat {
+				// @DOCLINE * `@NLFT red_bits` - the amount of bits used for the red channel.
+				uint16_m red_bits;
+				// @DOCLINE * `@NLFT green_bits` - the amount of bits used for the green channel.
+				uint16_m green_bits;
+				// @DOCLINE * `@NLFT blue_bits` - the amount of bits used for the blue channel.
+				uint16_m blue_bits;
+				// @DOCLINE * `@NLFT alpha_bits` - the amount of bits used for the alpha channel.
+				uint16_m alpha_bits;
+
+				// @DOCLINE * `@NLFT depth_bits` - the amount of bits used for the depth channel.
+				uint16_m depth_bits;
+				// @DOCLINE * `@NLFT stencil_bits` - the amount of bits used for the stencil channel.
+				uint16_m stencil_bits;
+
+				// @DOCLINE * `@NLFT samples` - the amount of samples used for each pixel. A value of 1 means no multi-sampling is performed. Any value other than 1 indicates multi-sampling, and must be a power of 2.
+				uint8_m samples;
+			};
+
+			// @DOCLINE 0 bits means that the data does not include it; for example, if `depth_bits` is equal to 0, then no depth data is defined in the pixel format.
 
 		// @DOCLINE ## Graphics APIs
 
@@ -2670,6 +2717,10 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 				// Scroll level
 				int32_m scroll_level;
+
+				// Cursor position
+				int32_m cursor_x;
+				int32_m cursor_y;
 			};
 			typedef struct muCOSAW32_WindowProperties muCOSAW32_WindowProperties;
 
@@ -2678,6 +2729,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				muCOSAW32_Keymaps keymaps;
 				muCOSAW32_WindowStates states;
 				muCOSAW32_WindowProperties props;
+				muWindowCallbacks callbacks;
 			};
 			typedef struct muCOSAW32_Window muCOSAW32_Window;
 
@@ -2936,6 +2988,10 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 				// Set key state
 				msg.win->keymaps.keyboard[key] = up;
+				// Call keyboard callback
+				if (msg.win->callbacks.keyboard) {
+					msg.win->callbacks.keyboard(msg.win, key, up);
+				}
 
 				// Exit
 				return 0;
@@ -2943,7 +2999,12 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// Handling for WM_LBUTTONDOWN, WM_RBUTTONDOWN, WM_LBUTTONUP, and WM_RBUTTONDOWN
 			LRESULT CALLBACK muCOSAW32_MBUTTON(muCOSAW32_ProcMsg msg, muMouseKey key, muBool up) {
+				// Update keymap
 				msg.win->keymaps.mouse[key] = up;
+				// + Callback
+				if (msg.win->callbacks.mouse_key) {
+					msg.win->callbacks.mouse_key(msg.win, key, up);
+				}
 				return 0;
 			}
 
@@ -2980,7 +3041,44 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// Handling for WM_MOUSEWHEEL
 			LRESULT CALLBACK muCOSAW32_MOUSEWHEEL(muCOSAW32_ProcMsg msg) {
 				// Add scroll level from wParam
-				msg.win->props.scroll_level += GET_WHEEL_DELTA_WPARAM(msg.wParam);
+				int32_m add = GET_WHEEL_DELTA_WPARAM(msg.wParam);
+				msg.win->props.scroll_level += add;
+				// + Callback
+				if (msg.win->callbacks.scroll) {
+					msg.win->callbacks.scroll(msg.win, add);
+				}
+
+				return 0;
+			}
+
+			// Handling for WM_SIZE
+			LRESULT CALLBACK muCOSAW32_SIZE(muCOSAW32_ProcMsg msg) {
+				// Call dimensions callback
+				if (msg.win->callbacks.dimensions) {
+					msg.win->callbacks.dimensions(msg.win,
+						(uint32_m)(LOWORD(msg.lParam)),
+						(uint32_m)(HIWORD(msg.lParam))
+					);
+				}
+
+				// Not sure why we're calling this
+				// I think I vaguely remember this fixing some issue, but idk
+				PostMessage(msg.win->handles.hwnd, WM_PAINT, 0, 0);
+				return 0;
+			}
+
+			// Handling for WM_MOVE
+			LRESULT CALLBACK muCOSAW32_MOVE(muCOSAW32_ProcMsg msg) {
+				// Call position callback
+				if (msg.win->callbacks.position) {
+					// https://www.autohotkey.com/boards/viewtopic.php?t=27857
+					// I would KISS Bill on the mouth if I ever met him...
+					msg.win->callbacks.position(
+						msg.win,
+						(int32_m)( msg.lParam      & 0x8000 ? - ((~msg.lParam    ) & 0x7FFF)+1 : msg.lParam       & 0x7FFF),
+						(int32_m)((msg.lParam>>16) & 0x8000 ? - ((~msg.lParam>>16) & 0X7FFF)+1 : (msg.lParam>>16) & 0x7FFF)
+					);
+				}
 
 				return 0;
 			}
@@ -3005,12 +3103,20 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					case WM_RBUTTONUP: return muCOSAW32_MBUTTON(msg, MU_MOUSE_RIGHT, MU_FALSE); break;
 					// Right mouse down
 					case WM_RBUTTONDOWN: return muCOSAW32_MBUTTON(msg, MU_MOUSE_RIGHT, MU_TRUE); break;
+					// Middle mouse up
+					case WM_MBUTTONUP: return muCOSAW32_MBUTTON(msg, MU_MOUSE_MIDDLE, MU_FALSE); break;
+					// Middle mouse down
+					case WM_MBUTTONDOWN: return muCOSAW32_MBUTTON(msg, MU_MOUSE_MIDDLE, MU_TRUE); break;
 					// Cursor style changing
 					case WM_SETCURSOR: return muCOSAW32_SETCURSOR(msg); break;
 					// Windows asking for min/max dimensions
 					case WM_GETMINMAXINFO: return muCOSAW32_GETMINMAXINFO(msg); break;
 					// Scrolling
 					case WM_MOUSEWHEEL: return muCOSAW32_MOUSEWHEEL(msg); break;
+					// Resizing
+					case WM_SIZE: return muCOSAW32_SIZE(msg); break;
+					// Movement
+					case WM_MOVE: return muCOSAW32_MOVE(msg); break;
 				}
 
 				// Default handling
@@ -3091,6 +3197,19 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 					// Scroll level
 					win->props.scroll_level = 0;
+
+					// Cursor position
+					win->props.cursor_x = win->props.cursor_y = 0;
+
+					// Callbacks
+					// - Zero-out if no callbacks specified
+					if (!info->callbacks) {
+						mu_memset(&win->callbacks, 0, sizeof(win->callbacks));
+					}
+					// - Set all callbacks if specified
+					else {
+						win->callbacks = *info->callbacks;
+					}
 
 				/* Class */
 
@@ -3268,11 +3387,38 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					if (s_w32 == VK_NONAME) {
 						continue;
 					}
+
 					// Set boolean to if it's on or off
 					b = (GetKeyState(s_w32) & 0x0001) != 0;
 					// Change value if different
 					if (b != win->keymaps.keystates[s]) {
-						b = win->keymaps.keystates[s];
+						win->keymaps.keystates[s] = b;
+
+						// + Callback
+						if (win->callbacks.keystate) {
+							win->callbacks.keystate(win, s, b);
+						}
+					}
+				}
+			}
+
+			// Handles the cursor changing position every frame;
+			// no corresponding Win32 proc for this as far as I'm aware :L
+			muCOSAResult muCOSAW32_window_get_cursor_pos(muCOSAW32_Window* win, int32_m* data);
+			void muCOSAW32_update_cursor(muCOSAW32_Window* win) {
+				// Get cursor position
+				int32_m c[2];
+				if (muCOSA_result_is_fatal(muCOSAW32_window_get_cursor_pos(win, c))) {
+					return;
+				}
+
+				// Update cursor position if changed
+				if (win->props.cursor_x != c[0] || win->props.cursor_y != c[1]) {
+					win->props.cursor_x = c[0];
+					win->props.cursor_y = c[1];
+					// + Callback
+					if (win->callbacks.cursor) {
+						win->callbacks.cursor(win, c[0], c[1]);
 					}
 				}
 			}
@@ -3287,6 +3433,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 				// Update keystates
 				muCOSAW32_update_keystate(win);
+				// Update cursor position
+				muCOSAW32_update_cursor(win);
 			}
 
 		/* Title */
@@ -3506,6 +3654,34 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			void muCOSAW32_window_set_scroll(muCOSAW32_Window* win, int32_m* data) {
 				// Overwrite scroll level
 				win->props.scroll_level = *data;
+			}
+
+		/* Callbacks */
+
+			void muCOSAW32_window_set_callback(muCOSAW32_Window* win, muWindowAttrib attrib, void* fun) {
+				switch (attrib) {
+					case MU_WINDOW_DIMENSIONS_CALLBACK: {
+						mu_memcpy(&win->callbacks.dimensions, fun, sizeof(win->callbacks.dimensions));
+					} break;
+					case MU_WINDOW_POSITION_CALLBACK: {
+						mu_memcpy(&win->callbacks.position, fun, sizeof(win->callbacks.position));
+					} break;
+					case MU_WINDOW_KEYBOARD_CALLBACK: {
+						mu_memcpy(&win->callbacks.keyboard, fun, sizeof(win->callbacks.keyboard));
+					} break;
+					case MU_WINDOW_KEYSTATE_CALLBACK: {
+						mu_memcpy(&win->callbacks.keystate, fun, sizeof(win->callbacks.keystate));
+					} break;
+					case MU_WINDOW_MOUSE_KEY_CALLBACK: {
+						mu_memcpy(&win->callbacks.mouse_key, fun, sizeof(win->callbacks.mouse_key));
+					} break;
+					case MU_WINDOW_CURSOR_CALLBACK: {
+						mu_memcpy(&win->callbacks.cursor, fun, sizeof(win->callbacks.cursor));
+					} break;
+					case MU_WINDOW_SCROLL_CALLBACK: {
+						mu_memcpy(&win->callbacks.scroll, fun, sizeof(win->callbacks.scroll));
+					} break;
+				}
 			}
 
 		/* OpenGL */
@@ -3893,7 +4069,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 					// Win32
 					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
-						muCOSAResult res;
+						muCOSAResult res = MUCOSA_SUCCESS;
 						muCOSAW32_Window* w32_win = (muCOSAW32_Window*)win;
 
 						// Do things based on attribute
@@ -3912,6 +4088,11 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 							case MU_WINDOW_CURSOR: res = muCOSAW32_window_set_cursor_pos(w32_win, (int32_m*)data); break;
 							// Cursor style
 							case MU_WINDOW_CURSOR_STYLE: res = muCOSAW32_window_set_cursor_style(w32_win, (muCursorStyle*)data); break;
+							// Callbacks
+							case MU_WINDOW_DIMENSIONS_CALLBACK: case MU_WINDOW_POSITION_CALLBACK:
+							case MU_WINDOW_KEYBOARD_CALLBACK: case MU_WINDOW_KEYSTATE_CALLBACK:
+							case MU_WINDOW_MOUSE_KEY_CALLBACK: case MU_WINDOW_CURSOR_CALLBACK:
+							case MU_WINDOW_SCROLL_CALLBACK: muCOSAW32_window_set_callback(w32_win, attrib, data); return; break;
 						}
 
 						if (res != MUCOSA_SUCCESS) {
@@ -4256,6 +4437,13 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				case MU_WINDOW_SCROLL_LEVEL: return "MU_WINDOW_SCROLL_LEVEL"; break;
 				case MU_WINDOW_CURSOR: return "MU_WINDOW_CURSOR"; break;
 				case MU_WINDOW_CURSOR_STYLE: return "MU_WINDOW_CURSOR_STYLE"; break;
+				case MU_WINDOW_DIMENSIONS_CALLBACK: return "MU_WINDOW_DIMENSIONS_CALLBACK"; break;
+				case MU_WINDOW_POSITION_CALLBACK: return "MU_WINDOW_POSITION_CALLBACK"; break;
+				case MU_WINDOW_KEYBOARD_CALLBACK: return "MU_WINDOW_KEYBOARD_CALLBACK"; break;
+				case MU_WINDOW_KEYSTATE_CALLBACK: return "MU_WINDOW_KEYSTATE_CALLBACK"; break;
+				case MU_WINDOW_MOUSE_KEY_CALLBACK: return "MU_WINDOW_MOUSE_KEY_CALLBACK"; break;
+				case MU_WINDOW_CURSOR_CALLBACK: return "MU_WINDOW_CURSOR_CALLBACK"; break;
+				case MU_WINDOW_SCROLL_CALLBACK: return "MU_WINDOW_SCROLL_CALLBACK"; break;
 			}
 		}
 
@@ -4271,6 +4459,13 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				case MU_WINDOW_SCROLL_LEVEL: return "Scroll level"; break;
 				case MU_WINDOW_CURSOR: return "Cursor"; break;
 				case MU_WINDOW_CURSOR_STYLE: return "Cursor style"; break;
+				case MU_WINDOW_DIMENSIONS_CALLBACK: return "Dimensions callback"; break;
+				case MU_WINDOW_POSITION_CALLBACK: return "Position callback"; break;
+				case MU_WINDOW_KEYBOARD_CALLBACK: return "Keyboard callback"; break;
+				case MU_WINDOW_KEYSTATE_CALLBACK: return "Keystate callback"; break;
+				case MU_WINDOW_MOUSE_KEY_CALLBACK: return "Mouse key callback"; break;
+				case MU_WINDOW_CURSOR_CALLBACK: return "Cursor callback"; break;
+				case MU_WINDOW_SCROLL_CALLBACK: return "Scroll callback"; break;
 			}
 		}
 
