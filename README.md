@@ -64,6 +64,10 @@ If `MU_SUPPORT_OPENGL` is defined, two contexts cannot be created at the same ti
 
 Due to limitations with the handling of messages on Win32, no more than one window can be updated safely at any given time across threads.
 
+## Window resizing/moving
+
+Due to the way that Win32 handles messages when the window is being resized or moved, a call to `muCOSA_window_update` will hang for the entire duration of the window being dragged/moved. Handling implemented by users of muCOSA should expect this, and handle vital functionality that needs to be executed over this time on a separate thread.
+
 # Known bugs and limitations
 
 This section covers all of the known bugs and limitations with muCOSA.
