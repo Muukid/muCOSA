@@ -72,6 +72,10 @@ muCOSA does not directly support thread safety, and must be implemented by the u
 
 If `MU_SUPPORT_OPENGL` is defined, two contexts cannot be created at the same time. This is technically a limitation, as it has to do with the generation of unique class names for a dummy WGL-loading window.
 
+## Window updating
+
+Due to limitations with the handling of messages on Win32, no more than one window can be updated safely at any given time across threads.
+
 # Known bugs and limitations
 
 This section covers all of the known bugs and limitations with muCOSA.
@@ -1544,6 +1548,46 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
 			#endif
 
+		// @DOCLINE ## Text input
+
+			// @DOCLINE muCOSA is able to get text input from a window, which uses a callback to give Unicode character codepoints based on what the user is typing. This system is recommended over trying to emulate text input via keyboard callbacks, as it automatically handles variables such as key states and input method managers.
+
+			// @DOCLINE muCOSA needs to know where the text input is being taken visually on the window's surface; for this, the "text cursor" exists, whose position dictates where features like virtual keyboards render their preview characters, and is relative to the top-leftest pixel on the window's surface, and whose coordinates should always be within the window's surface (AKA less than the window's dimensions).
+
+			// @DOCLINE ### Get text input focus
+
+			// @DOCLINE The function `muCOSA_window_get_text_input` gets text input from a window, defined below: @NLNT
+			MUDEF void muCOSA_window_get_text_input(muCOSAContext* context, muCOSAResult* result, muWindow win, uint32_m text_cursor_x, uint32_m text_cursor_y, void (*callback)(muWindow window, uint8_m* data));
+
+			// @DOCLINE The callback will be called with a UTF-8-encoded character representing what character has been input by the user. This callback will only be called while the given window is updating (AKA while `muCOSA_window_update` is being called on it), just like all other window callbacks.
+
+			// @DOCLINE Once text input is successfully retrieved for a window, it should be manually let go of by the user at some point before the window is destroyed and before this function is called on another window. Text input stops being sent to the window while it's unfocused, but text input focus is still retained, and does not need to be called again one the window is refocused.
+
+			// @DOCLINE > The macro `mu_window_get_text_input` is the non-result-checking equivalent, and the macro `mu_window_get_text_input_focus_` is the result-checking equivalent.
+			#define mu_window_get_text_input(...) muCOSA_window_get_text_input(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_window_get_text_input_(result, ...) muCOSA_window_get_text_input(muCOSA_global_context, result, __VA_ARGS__)
+
+			// @DOCLINE ### Let go of text input focus
+
+			// @DOCLINE The function `muCOSA_window_let_text_input` lets go of text input focus for the given window that has text input focus, defined below: @NLNT
+			MUDEF void muCOSA_window_let_text_input(muCOSAContext* context, muWindow win);
+
+			// @DOCLINE The given window must have text input focus before this function is called. If the parameters are valid, this function cannot fail, and thus, has no `result` parameter.
+
+			// @DOCLINE > The macro `mu_window_destroy` is the non-result-checking equivalent.
+			#define mu_window_let_text_input(...) muCOSA_window_let_text_input(muCOSA_global_context, __VA_ARGS__)
+
+			// @DOCLINE ### Update text cursor position
+
+			// @DOCLINE The function `muCOSA_window_update_text_cursor` updates the position of a text cursor for a window that has text input focus, defined below: @NLNT
+			MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow win, uint32_m x, uint32_m y);
+
+			// @DOCLINE The given window must have text input focus before this function is called.
+
+			// @DOCLINE > The macro `mu_window_update_text_cursor` is the non-result-checking equivalent, and the macro `mu_window_update_text_cursor_` is the result-checking equivalent.
+			#define mu_window_update_text_cursor(...) muCOSA_window_update_text_cursor(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+			#define mu_window_update_text_cursor_(result, ...) muCOSA_window_update_text_cursor(muCOSA_global_context, result, __VA_ARGS__)
+
 		// @DOCLINE ## Pixel format
 
 			// @DOCLINE A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
@@ -1681,7 +1725,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// @DOCLINE The destruction function cannot fail if given a proper context and window, and thus, there is no `result` parameter.
 
-			// @DOCLINE > The macro `mu_window_destroy` is the non-result-checking equivalent.
+			// @DOCLINE > The macro `mu_gl_context_destroy` is the non-result-checking equivalent.
 			#define mu_gl_context_destroy(...) muCOSA_gl_context_destroy(muCOSA_global_context, __VA_ARGS__)
 
 			// @DOCLINE ### Bind OpenGL context
@@ -1770,6 +1814,33 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		// @DOCLINE > The macro `mu_sleep` is the non-result-checking equivalent.
 		#define mu_sleep(...) muCOSA_sleep(muCOSA_global_context, __VA_ARGS__)
+
+	// @DOCLINE # Clipboard
+
+		// @DOCLINE muCOSA offers functionality for getting and setting the current text clipboard.
+
+		// @DOCLINE ## Get clipboard
+
+		// @DOCLINE The function `muCOSA_clipboard_get` retrieves the current text clipboard, defined below: @NLNT
+		MUDEF uint8_m* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
+
+		// @DOCLINE On success, this function rather returns 0 (implying that there is no text clipboard set), or a pointer to data manually allocated by muCOSA; in the latter circumstance, it must be freed by the user manually when they are finished using the data.
+		// @DOCLINE On failure, this function returns 0, and `result` is set to the failure value.
+
+		// @DOCLINE > The macro `mu_clipboard_get` is the non-result-checking equivalent, and the macro `mu_clipboard_get_` is the result-checking equivalent.
+		#define mu_clipboard_get() muCOSA_clipboard_get(muCOSA_global_context, &muCOSA_global_context->result)
+		#define mu_clipboard_get_(result) muCOSA_clipboard_get(muCOSA_global_context, result)
+
+		// @DOCLINE ## Set clipboard
+
+		// @DOCLINE The function `muCOSA_clipboard_set` sets the current text clipboard, defined below: @NLNT
+		MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, uint8_m* data, size_m datalen);
+
+		// @DOCLINE On success, this function sets the current text clipboard to the given UTF-8 text data, of length `datalen` (including null-terminating character).
+
+		// @DOCLINE > The macro `mu_clipboard_set` is the non-result-checking equivalent, and the macro `mu_clipboard_set_` is the result-checking equivalent.
+		#define mu_clipboard_set(...) muCOSA_clipboard_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+		#define mu_clipboard_set_(result, ...) muCOSA_clipboard_set(muCOSA_global_context, result, __VA_ARGS__)
 
 	// @DOCLINE # Result
 
@@ -1872,6 +1943,27 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION` - the corresponding OpenGL function could not be located; this is exclusive to Win32.
 		#define MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION 4117
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_ASSOCIATE_IMM` - the function `ImmAssociateContextEx` returned a failure value when getting text input focus; this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_ASSOCIATE_IMM 4118
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION` - the function `ImmSetCompositionWindow` returned a failure value when attempting to move it to the current text cursor position; this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION 4119
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD` - the function `OpenClipboard` returned a failure value when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`) or overwrite it (`muCOSA_clipboard_set`); this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD 4120
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA` - the function `GlobalLock` returned a failure value when attempting to retrieve a pointer to the clipboard data when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`); this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA 4121
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT` - the conversion between UTF-16 wide-character data and UTF-8 `uint8_m*` data (rather converting from UTF-8 to UTF-16 when setting the clipboard data (`muCOSA_clipboard_set`), or converting from UTF-16 to UTF-8 when getting the clipboard data (`muCOSA_clipboard_get`)) failed, rather due to allocation or to the data itself being invalid; this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT 4122
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA` - rather the function `GlobalAlloc` or `GlobalLock` failed when attempting to allocate and get a pointer to the global data for the clipboard when setting the clipboard (`muCOSA_clipboard_set`); this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA 4123
+
+		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA` - the function `SetClipboardData` failed when attempting to set the clipboard data; this is exclusive to Win32.
+		#define MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA 4124
 
 		// @DOCLINE All non-success values (unless explicitly stated otherwise) mean that the function fully failed, AKA it was "fatal", and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function fatally failed, nothing was allocated.
 
@@ -1985,25 +2077,52 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				return ((HINSTANCE)&__ImageBase);
 			}
 
-			// UTF-8 -> wchar_t
+			// UTF-8 -> wchar_t (UTF-16)
 			wchar_t* muCOSAW32_utf8_to_wchar(char* str) {
+				// Get length needed for conversion
 				// Note: we can use -1 here, since it's expected for it to be null-terminated
 				int len = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
 				if (len == 0) {
 					return 0;
 				}
 
+				// Allocate data
 				wchar_t* wstr = (wchar_t*)mu_malloc(len * sizeof(wchar_t));
 				if (wstr == 0) {
 					return 0;
 				}
 
+				// Perform conversion
 				if (MultiByteToWideChar(CP_UTF8, 0, str, -1, (LPWSTR)wstr, len) == 0) {
 					mu_free(wstr);
 					return 0;
 				}
 
+				// Return converted data
 				return wstr;
+			}
+
+			// wchar_t (UTF-16) -> UTF-8
+			uint8_m* muCOSAW32_wchar_to_utf8(wchar_t* wstr) {
+				// Get length needed
+				int len = WideCharToMultiByte(CP_UTF8, 0, wstr, -1, NULL, 0, NULL, NULL);
+				if (!len) {
+					return 0;
+				}
+
+				// Allocate data needed for conversion
+				uint8_m* str = (uint8_m*)mu_malloc(len);
+				if (!str) {
+					return 0;
+				}
+
+				// Perform conversion
+				if (!WideCharToMultiByte(CP_UTF8, 0, wstr, -1, (LPSTR)str, len, NULL, NULL)) {
+					mu_free(str);
+					return 0;
+				}
+
+				return str;
 			}
 
 			// Win32 virtual key code to muCOSA key code
@@ -2609,6 +2728,106 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				time->orig_time = time->fixed_time = muCOSAW32_get_current_time();
 			}
 
+		/* Clipboard */
+
+			uint8_m* muCOSAW32_clipboard_get(muCOSAResult* result) {
+				// Hold clipboard
+				if (!OpenClipboard(NULL)) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD)
+					return 0;
+				}
+
+				// Get handle to clipboard data (UTF-16)
+				HANDLE data = GetClipboardData(CF_UNICODETEXT);
+				if (!data) {
+					// I'm pretty sure this can happen if no clipboard is available, so I'm not
+					// throwing an error here
+					CloseClipboard();
+					return 0;
+				}
+
+				// Get clipboard data (UTF-16)
+				wchar_t* utf16 = (wchar_t*)GlobalLock(data);
+				if (!utf16) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA)
+					CloseClipboard();
+					return 0;
+				}
+
+				// Convert UTF-16 to UTF-8
+				uint8_m* utf8 = muCOSAW32_wchar_to_utf8(utf16);
+				if (!utf8) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT)
+					GlobalUnlock(data);
+					CloseClipboard();
+					return 0;
+				}
+
+				// Close and return data
+				GlobalUnlock(data);
+				CloseClipboard();
+				return utf8;
+			}
+
+			void muCOSAW32_clipboard_set(muCOSAResult* result, uint8_m* data, size_m datalen) {
+				// Get length of UTF-16 equivalent
+				int wlen = MultiByteToWideChar(CP_UTF8, 0, (LPCCH)data, datalen, NULL, 0);
+				if (!wlen) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT)
+					return;
+				}
+
+				// Allocate global memory for UTF-16 string
+				HGLOBAL g_mem = GlobalAlloc(GMEM_MOVEABLE, (SIZE_T)(wlen)*sizeof(wchar_t));
+				if (!g_mem) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA)
+					return;
+				}
+
+				// Get memory pointer
+				LPVOID p_mem = GlobalLock(g_mem);
+				if (!p_mem) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA)
+					GlobalFree(g_mem);
+					return;
+				}
+
+				// Perform conversion
+				if (!MultiByteToWideChar(CP_UTF8, 0, (LPCCH)data, datalen, (LPWSTR)p_mem, wlen)) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT)
+					GlobalUnlock(g_mem);
+					GlobalFree(g_mem);
+					return;
+				}
+
+				// Release memory pointer
+				GlobalUnlock(g_mem);
+
+				// Hold clipboard
+				if (!OpenClipboard(NULL)) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD)
+					GlobalFree(g_mem);
+					return;
+				}
+
+				// Empty pre-existing clipboard data
+				if (!EmptyClipboard()) {
+					// Assuming this can get triggered if the clipboard was already empty,
+					// so no error thrown here.
+				}
+
+				// Set clipboard data
+				if (!SetClipboardData(CF_UNICODETEXT, g_mem)) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA)
+					GlobalFree(g_mem);
+					CloseClipboard();
+					return;
+				}
+
+				// Close clipboard and we're done
+				CloseClipboard();
+			}
+
 		/* Context */
 
 			struct muCOSAW32_Context {
@@ -2689,6 +2908,8 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				HDC dc;
 				// Cursor handle
 				HCURSOR hcursor;
+				// IMM context handle
+				HIMC imc;
 			};
 			typedef struct muCOSAW32_WindowHandles muCOSAW32_WindowHandles;
 
@@ -2721,8 +2942,19 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				// Cursor position
 				int32_m cursor_x;
 				int32_m cursor_y;
+
+				// Text input
+				void (*text_input_callback)(muWindow window, uint8_m* data);
+				uint32_m text_cursor_x;
+				uint32_m text_cursor_y;
 			};
 			typedef struct muCOSAW32_WindowProperties muCOSAW32_WindowProperties;
+
+			struct muCOSAW32_WindowTemp {
+				// High surrogate for cross-WM_CHAR messages
+				WCHAR high_surrogate;
+			};
+			typedef struct muCOSAW32_WindowTemp muCOSAW32_WindowTemp;
 
 			struct muCOSAW32_Window {
 				muCOSAW32_WindowHandles handles;
@@ -2730,6 +2962,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				muCOSAW32_WindowStates states;
 				muCOSAW32_WindowProperties props;
 				muWindowCallbacks callbacks;
+				muCOSAW32_WindowTemp temp;
 			};
 			typedef struct muCOSAW32_Window muCOSAW32_Window;
 
@@ -3083,6 +3316,83 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				return 0;
 			}
 
+			uint8_m muCOSAW32_UTF8_codepoint_size(uint32_m codepoint) {
+				// Storable in 7 bits = 1 byte
+				if (codepoint < 128) {
+					return 1;
+				}
+				// Storable in 11 bits = 2 bytes
+				if (codepoint < 2048) {
+					return 2;
+				}
+				// Storable in 16 bits = 3 bytes
+				if (codepoint < 65536) {
+					return 3;
+				}
+				return 4;
+			}
+
+			// Handling for WM_CHAR
+			LRESULT CALLBACK muCOSAW32_CHAR(muCOSAW32_ProcMsg msg) {
+				// Hold onto high surrogate if it is one
+				if (IS_HIGH_SURROGATE(msg.wParam)) {
+					msg.win->temp.high_surrogate = (WCHAR)msg.wParam;
+					return 0;
+				}
+
+				// Return if we aren't taking text input
+				if (!msg.win->props.text_input_callback) {
+					return DefWindowProcW(msg.win->handles.hwnd, msg.uMsg, msg.wParam, msg.lParam);
+				}
+
+				// Convert UTF-16 wParam to wchar_t* UTF-16 string
+				WCHAR wstr[3];
+				// - Surrogate pair
+				if (msg.win->temp.high_surrogate) {
+					wstr[0] = msg.win->temp.high_surrogate;
+					wstr[1] = (WCHAR)msg.wParam;
+					wstr[2] = 0;
+					// (Reset high surrogate)
+					msg.win->temp.high_surrogate = 0;
+				}
+				// - Non-surrogate pair
+				else {
+					wstr[0] = (WCHAR)msg.wParam;
+					wstr[1] = 0;
+				}
+
+				// Convert wchar_t* UTF-16 string to UTF-8 string
+				uint8_m buf[5];
+				if (!WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wstr, -1, (LPSTR)buf, sizeof(buf), NULL, NULL)) {
+					return 0;
+				}
+
+				// Callback
+				msg.win->props.text_input_callback(msg.win, buf);
+				return 0;
+			}
+
+			// Handling for WM_IME_STARTCOMPOSITION
+			LRESULT CALLBACK muCOSAW32_IME_STARTCOMPOSITION(muCOSAW32_ProcMsg msg) {
+				// Get IMM context handle
+				HIMC imc = ImmGetContext(msg.win->handles.hwnd);
+
+				// Fill out composition form
+				COMPOSITIONFORM cf = MU_ZERO_STRUCT(COMPOSITIONFORM);
+				cf.dwStyle = CFS_FORCE_POSITION;
+				cf.ptCurrentPos.x = msg.win->props.text_cursor_x;
+				cf.ptCurrentPos.y = msg.win->props.text_cursor_y;
+
+				// Send composition form
+				if (!ImmSetCompositionWindow(imc, &cf)) {
+					return 0;
+				}
+
+				// Release IMM context handle
+				ImmReleaseContext(msg.win->handles.hwnd, imc);
+				return 0;
+			}
+
 			// Handles a proc message
 			LRESULT muCOSAW32_procmsg(muCOSAW32_ProcMsg msg) {
 				// Do things based on the message code
@@ -3117,6 +3427,10 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					case WM_SIZE: return muCOSAW32_SIZE(msg); break;
 					// Movement
 					case WM_MOVE: return muCOSAW32_MOVE(msg); break;
+					// Character input
+					case WM_CHAR: return muCOSAW32_CHAR(msg); break;
+					// IME composition position
+					case WM_IME_STARTCOMPOSITION: return muCOSAW32_IME_STARTCOMPOSITION(msg); break;
 				}
 
 				// Default handling
@@ -3125,6 +3439,11 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// Proc function for Win32
 			LRESULT CALLBACK muCOSAW32_winproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+				// Return default if hwnd is NULL
+				if (!hwnd) {
+					return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+				}
+
 				// Start getting info about the proc
 				muCOSAW32_ProcMsg msg;
 
@@ -3210,6 +3529,13 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					else {
 						win->callbacks = *info->callbacks;
 					}
+
+					// Text focus
+					win->props.text_input_callback = 0;
+					win->props.text_cursor_x = win->props.text_cursor_y = 0;
+
+					// High surrogate for WM_CHAR messages
+					win->temp.high_surrogate = 0;
 
 				/* Class */
 
@@ -3426,7 +3752,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			void muCOSAW32_window_update(muCOSAW32_Window* win) {
 				// Process messages
 				MSG msg = MU_ZERO_STRUCT(MSG);
-				while (PeekMessageW(&msg, win->handles.hwnd, 0, 0, PM_REMOVE)) {
+				while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE)) {
 					TranslateMessage(&msg);
 					DispatchMessage(&msg);
 				}
@@ -3682,6 +4008,57 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 						mu_memcpy(&win->callbacks.scroll, fun, sizeof(win->callbacks.scroll));
 					} break;
 				}
+			}
+
+		/* Text input */
+
+			void muCOSAW32_window_update_text_cursor(muCOSAResult* result, muCOSAW32_Window* win, uint32_m cx, uint32_m cy);
+			void muCOSAW32_window_get_text_input(muCOSAResult* result, muCOSAW32_Window* win, uint32_m cx, uint32_m cy, void (*callback)(muWindow, uint8_m*)) {
+				// Associate IMM context with this window
+				if (!ImmAssociateContextEx(win->handles.hwnd, NULL, IACE_DEFAULT)) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_ASSOCIATE_IMM)
+					return;
+				}
+
+				// Set callback
+				win->props.text_input_callback = callback;
+				// Update text cursor position
+				muCOSAW32_window_update_text_cursor(0, win, cx, cy);
+			}
+
+			void muCOSAW32_window_let_text_input(muCOSAW32_Window* win) {
+				// Set callback to nothing
+				win->props.text_input_callback = 0;
+				// Deassociate IMM context
+				ImmAssociateContextEx(win->handles.hwnd, NULL, 0);
+			}
+
+			void muCOSAW32_window_update_text_cursor(muCOSAResult* result, muCOSAW32_Window* win, uint32_m cx, uint32_m cy) {
+				// Do nothing if text input isn't being taken
+				if (!win->props.text_input_callback) {
+					return;
+				}
+
+				// Might not be a good idea to keep grabbing an releasing IMM context,
+				// but the entire IMM is so fragile that the smallest change makes it
+				// not function at all. So, I'm keeping it like this :L
+
+				// Get IMM context handle
+				win->handles.imc = ImmGetContext(win->handles.hwnd);
+
+				// Fill out composition form
+				COMPOSITIONFORM cf = MU_ZERO_STRUCT(COMPOSITIONFORM);
+				cf.dwStyle = CFS_FORCE_POSITION;
+				cf.ptCurrentPos.x = cx;
+				cf.ptCurrentPos.y = cy;
+
+				// Send composition form
+				if (!ImmSetCompositionWindow(win->handles.imc, &cf)) {
+					MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION)
+				}
+
+				// Release IMM context handle
+				ImmReleaseContext(win->handles.hwnd, win->handles.imc);
 			}
 
 		/* OpenGL */
@@ -4106,6 +4483,65 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				if (result) {} if (win) {} if (attrib) {} if (data) {}
 			}
 
+		/* Text input */
+
+			MUDEF void muCOSA_window_get_text_input(muCOSAContext* context, muCOSAResult* result, muWindow win, uint32_m text_cursor_x, uint32_m text_cursor_y, void (*callback)(muWindow window, uint8_m* data)) {
+				// Get inner from context
+				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+				// Do things based on window system
+				switch (inner->system) {
+					default: return; break;
+
+					// Win32
+					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+						muCOSAW32_window_get_text_input(result, (muCOSAW32_Window*)win, text_cursor_x, text_cursor_y, callback);
+						return;
+					} break;)
+				}
+
+				// To avoid unused parameter warnings in some cases
+				if (result) {} if (win) {} if (text_cursor_x) {} if (text_cursor_y) {} if (callback) {}
+			}
+
+			MUDEF void muCOSA_window_let_text_input(muCOSAContext* context, muWindow win) {
+				// Get inner from context
+				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+				// Do things based on window system
+				switch (inner->system) {
+					default: return; break;
+
+					// Win32
+					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+						muCOSAW32_window_let_text_input((muCOSAW32_Window*)win);
+						return;
+					} break;)
+				}
+
+				// To avoid unused parameter warnings in some cases
+				if (win) {}
+			}
+
+			MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow win, uint32_m x, uint32_m y) {
+				// Get inner from context
+				muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+				// Do things based on window system
+				switch (inner->system) {
+					default: return; break;
+
+					// Win32
+					MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+						muCOSAW32_window_update_text_cursor(result, (muCOSAW32_Window*)win, x, y);
+						return;
+					} break;)
+				}
+
+				// To avoid unused parameter warnings in some cases
+				if (result) {} if (win) {} if (x) {} if (y) {}
+			}
+
 		/* OpenGL */
 
 			MUDEF muGLContext muCOSA_gl_context_create(muCOSAContext* context, muCOSAResult* result, muWindow win, muGraphicsAPI api) {
@@ -4343,6 +4779,45 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			if (time) {}
 		}
 
+	/* Clipboard */
+
+		MUDEF uint8_m* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return 0; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					return muCOSAW32_clipboard_get(result);
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (result) {}
+		}
+
+		MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, uint8_m* data, size_m datalen) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					muCOSAW32_clipboard_set(result, data, datalen);
+					return;
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (result) {} if (data) {} if (datalen) {}
+		}
+
 	/* Result */
 
 		MUDEF muBool muCOSA_result_is_fatal(muCOSAResult result) {
@@ -4404,6 +4879,13 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				case MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT: return "MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT"; break;
 				case MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS: return "MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS"; break;
 				case MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION: return "MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION"; break;
+				case MUCOSA_WIN32_FAILED_ASSOCIATE_IMM: return "MUCOSA_WIN32_FAILED_ASSOCIATE_IMM"; break;
+				case MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION: return "MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION"; break;
+				case MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD: return "MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD"; break;
+				case MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA: return "MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA"; break;
+				case MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT: return "MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT"; break;
+				case MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA: return "MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA"; break;
+				case MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA: return "MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA"; break;
 			}
 		}
 

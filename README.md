@@ -60,6 +60,10 @@ muCOSA does not directly support thread safety, and must be implemented by the u
 
 If `MU_SUPPORT_OPENGL` is defined, two contexts cannot be created at the same time. This is technically a limitation, as it has to do with the generation of unique class names for a dummy WGL-loading window.
 
+## Window updating
+
+Due to limitations with the handling of messages on Win32, no more than one window can be updated safely at any given time across threads.
+
 # Known bugs and limitations
 
 This section covers all of the known bugs and limitations with muCOSA.
@@ -745,6 +749,53 @@ It will return "Unknown" in the case that `style` is an invalid cursor style val
 
 > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
 
+## Text input
+
+muCOSA is able to get text input from a window, which uses a callback to give Unicode character codepoints based on what the user is typing. This system is recommended over trying to emulate text input via keyboard callbacks, as it automatically handles variables such as key states and input method managers.
+
+muCOSA needs to know where the text input is being taken visually on the window's surface; for this, the "text cursor" exists, whose position dictates where features like virtual keyboards render their preview characters, and is relative to the top-leftest pixel on the window's surface, and whose coordinates should always be within the window's surface (AKA less than the window's dimensions).
+
+### Get text input focus
+
+The function `muCOSA_window_get_text_input` gets text input from a window, defined below: 
+
+```c
+MUDEF void muCOSA_window_get_text_input(muCOSAContext* context, muCOSAResult* result, muWindow win, uint32_m text_cursor_x, uint32_m text_cursor_y, void (*callback)(muWindow window, uint8_m* data));
+```
+
+
+The callback will be called with a UTF-8-encoded character representing what character has been input by the user. This callback will only be called while the given window is updating (AKA while `muCOSA_window_update` is being called on it), just like all other window callbacks.
+
+Once text input is successfully retrieved for a window, it should be manually let go of by the user at some point before the window is destroyed and before this function is called on another window. Text input stops being sent to the window while it's unfocused, but text input focus is still retained, and does not need to be called again one the window is refocused.
+
+> The macro `mu_window_get_text_input` is the non-result-checking equivalent, and the macro `mu_window_get_text_input_focus_` is the result-checking equivalent.
+
+### Let go of text input focus
+
+The function `muCOSA_window_let_text_input` lets go of text input focus for the given window that has text input focus, defined below: 
+
+```c
+MUDEF void muCOSA_window_let_text_input(muCOSAContext* context, muWindow win);
+```
+
+
+The given window must have text input focus before this function is called. If the parameters are valid, this function cannot fail, and thus, has no `result` parameter.
+
+> The macro `mu_window_destroy` is the non-result-checking equivalent.
+
+### Update text cursor position
+
+The function `muCOSA_window_update_text_cursor` updates the position of a text cursor for a window that has text input focus, defined below: 
+
+```c
+MUDEF void muCOSA_window_update_text_cursor(muCOSAContext* context, muCOSAResult* result, muWindow win, uint32_m x, uint32_m y);
+```
+
+
+The given window must have text input focus before this function is called.
+
+> The macro `mu_window_update_text_cursor` is the non-result-checking equivalent, and the macro `mu_window_update_text_cursor_` is the result-checking equivalent.
+
 ## Pixel format
 
 A window's pixel format is used to define what data will be used when representing the window's surface. Its respective type is `muPixelFormat`, and has the following members:
@@ -883,7 +934,7 @@ MUDEF muGLContext muCOSA_gl_context_destroy(muCOSAContext* context, muWindow win
 
 The destruction function cannot fail if given a proper context and window, and thus, there is no `result` parameter.
 
-> The macro `mu_window_destroy` is the non-result-checking equivalent.
+> The macro `mu_gl_context_destroy` is the non-result-checking equivalent.
 
 ### Bind OpenGL context
 
@@ -993,6 +1044,38 @@ This function cannot fail if the parameter(s) are valid.
 
 > The macro `mu_sleep` is the non-result-checking equivalent.
 
+# Clipboard
+
+muCOSA offers functionality for getting and setting the current text clipboard.
+
+## Get clipboard
+
+The function `muCOSA_clipboard_get` retrieves the current text clipboard, defined below: 
+
+```c
+MUDEF uint8_m* muCOSA_clipboard_get(muCOSAContext* context, muCOSAResult* result);
+```
+
+
+On success, this function rather returns 0 (implying that there is no text clipboard set), or a pointer to data manually allocated by muCOSA; in the latter circumstance, it must be freed by the user manually when they are finished using the data.
+
+On failure, this function returns 0, and `result` is set to the failure value.
+
+> The macro `mu_clipboard_get` is the non-result-checking equivalent, and the macro `mu_clipboard_get_` is the result-checking equivalent.
+
+## Set clipboard
+
+The function `muCOSA_clipboard_set` sets the current text clipboard, defined below: 
+
+```c
+MUDEF void muCOSA_clipboard_set(muCOSAContext* context, muCOSAResult* result, uint8_m* data, size_m datalen);
+```
+
+
+On success, this function sets the current text clipboard to the given UTF-8 text data, of length `datalen` (including null-terminating character).
+
+> The macro `mu_clipboard_set` is the non-result-checking equivalent, and the macro `mu_clipboard_set_` is the result-checking equivalent.
+
 # Result
 
 The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
@@ -1068,6 +1151,20 @@ The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task
 * `MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS` - the function `SwapBuffers` returned a failure value when swapping the buffers; this is exclusive to Win32.
 
 * `MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION` - the corresponding OpenGL function could not be located; this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_ASSOCIATE_IMM` - the function `ImmAssociateContextEx` returned a failure value when getting text input focus; this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION` - the function `ImmSetCompositionWindow` returned a failure value when attempting to move it to the current text cursor position; this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD` - the function `OpenClipboard` returned a failure value when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`) or overwrite it (`muCOSA_clipboard_set`); this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA` - the function `GlobalLock` returned a failure value when attempting to retrieve a pointer to the clipboard data when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`); this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT` - the conversion between UTF-16 wide-character data and UTF-8 `uint8_m*` data (rather converting from UTF-8 to UTF-16 when setting the clipboard data (`muCOSA_clipboard_set`), or converting from UTF-16 to UTF-8 when getting the clipboard data (`muCOSA_clipboard_get`)) failed, rather due to allocation or to the data itself being invalid; this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA` - rather the function `GlobalAlloc` or `GlobalLock` failed when attempting to allocate and get a pointer to the global data for the clipboard when setting the clipboard (`muCOSA_clipboard_set`); this is exclusive to Win32.
+
+* `MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA` - the function `SetClipboardData` failed when attempting to set the clipboard data; this is exclusive to Win32.
 
 All non-success values (unless explicitly stated otherwise) mean that the function fully failed, AKA it was "fatal", and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function fatally failed, nothing was allocated.
 
