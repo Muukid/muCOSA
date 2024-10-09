@@ -1,6 +1,7 @@
 /*
 muCOSA.h - Muukid
 Public domain single-file C library for interacting with operating systems using a cross-platform API.
+https://github.com/Muukid/muCOSA
 Currently only supports Windows.
 No warranty implied; use at your own risk.
 
@@ -12,9 +13,9 @@ More explicit license information at the end of file.
 
 /* @DOCBEGIN
 
-# muCOSA v2.0.0
+# muCOSA v2.1.0
 
-muCOSA (COSA standing for cross operating-system API) is a public domain single-file C library for interacting with operating systems with a cross-platform API. Its header is automatically defined upon inclusion if not already included (`MUCOSA_H`), and the source code is defined if `MUCOSA_IMPLEMENTATION` is defined, following the interal structure of:
+muCOSA (COSA standing for cross operating-system API) is a public domain single-file C library for interacting with operating systems with a cross-platform API. Its header is automatically defined upon inclusion if not already included (`MUCOSA_H`), and the source code is defined if `MUCOSA_IMPLEMENTATION` is defined, following the internal structure of:
 
 ```c
 #ifndef MUCOSA_H
@@ -42,7 +43,7 @@ Demos are designed for muCOSA to both test its functionality and allow users to 
 
 ## Demo dependencies
 
-Since the demos test the functionality of OpenGL, [glad](https://github.com/Dav1dde/glad) is used as an OpenGL loader in the demos (with [these settings](http://glad.sh/#api=gl%3Acore%3D3.3&extensions=&generator=c&options=HEADER_ONLY%2CLOADER) if you're interested), and therefore needs to be included when compiling the demos. Include dependencies are stored in the `include` folder within demos, and all files within this folder should be in the user's include directory when compiling them.
+Since the demos test the functionality of OpenGL, [glad](https://github.com/Dav1dde/glad) is used as an OpenGL loader in the demos (with [these settings](http://glad.sh/#api=gl%3Acore%3D3.3&extensions=&generator=c&options=HEADER_ONLY%2CLOADER) if you're interested), and therefore needs to be included when compiling the demos. Include dependencies are stored in the `include` folder within `demos`, and all files within this folder should be in the user's include directory when compiling them.
 
 > Note that the inclusion of glad changes the conditions of the licensing due to Khronos's Apache 2.0 license for OpenGL specifications; more information is given in the [licensing](#licensing) section of this documentation.
 
@@ -90,7 +91,7 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 ## Minimal overhead attribute management
 
-Currently, muCOSA gets/sets attributes using a single function that requires at least one get/set call for every attribute being modified. Theoretically, more overhead could be abolished by allowing to get/set multiple attributes in one function call, perhaps using the `muWindowInfo` struct and a flag system. This has not been outruled as an option, and muCOSA may stand to gain via this being implemented at some point.
+Currently, muCOSA gets/sets attributes using a single function that requires at least one get/set call for every attribute being modified. Theoretically, more overhead could be abolished by allowing the user to get/set multiple attributes in one function call, perhaps using the `muWindowInfo` struct and a flag system. This has not been outruled as an option, and muCOSA may stand to gain via this being implemented at some point.
 
 ## Unique class name generation
 
@@ -887,7 +888,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 		// @DOCLINE The macros `MUCOSA_VERSION_MAJOR`, `MUCOSA_VERSION_MINOR`, and `MUCOSA_VERSION_PATCH` are defined to match its respective release version, following the formatting of `MAJOR.MINOR.PATCH`.
 
 		#define MUCOSA_VERSION_MAJOR 2
-		#define MUCOSA_VERSION_MINOR 0
+		#define MUCOSA_VERSION_MINOR 1
 		#define MUCOSA_VERSION_PATCH 0
 
 	MU_CPP_EXTERN_START
@@ -974,7 +975,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 		/* @DOCBEGIN
 		If a function takes a `muCOSAContext` and `muCOSAResult` parameter, there will likely be two defined macros for calling the function without explicitly passing these parameters, with the current global context being assumed for both parameters.
 
-		Non-result-checking functions are functions that assume the `muCOSAContext` parameter to be the current global context, and assume that the `muCOSAResult` parameter to be the current global context's result member. These functions' parameters are simply the normal function's parameters but without the context or result paramter, instead being routed to the current global context. The name of these functions are simply the normal name but `muCOSA_...` being replaced with just `mu_...`.
+		Non-result-checking functions are functions that assume the `muCOSAContext` parameter to be the current global context, and assume the `muCOSAResult` parameter to be the current global context's result member. These functions' parameters are simply the normal function's parameters but without the context or result parameter, instead being routed to the current global context. The name of these functions are simply the normal name but `muCOSA_...` being replaced with just `mu_...`.
 
 		Result-checking functions are functions that also assume (and thus don't make you specify) the `muCOSAContext` parameter to be the current global context, but they still make you specify the `muCOSAResult` parameter, and the global context's result member goes unmodified. The name of these functions is the same as the non-result-checking functions, but with an underscore appended at the end.
 
@@ -1036,7 +1037,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				int32_m x;
 				// @DOCLINE * `@NLFT y` - the y-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
 				int32_m y;
-				// @DOCLINE * `@NLFT* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will throw a non-fatal error and default on a compatible pixel format.
+				// @DOCLINE * `@NLFT* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will signal a non-fatal error and default on a compatible pixel format.
 				muPixelFormat* pixel_format;
 				// @DOCLINE * `@NLFT* callbacks` - the [callback functions](#window-callbacks) for various attributes of the window. If this member is equal to 0, no callbacks are specified. If this member is not equal to 0, it should be a valid pointer to a `muWindowCallbacks` struct specifying callbacks for the window.
 				muWindowCallbacks* callbacks;
@@ -1846,128 +1847,357 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 		#define mu_clipboard_set(...) muCOSA_clipboard_set(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
 		#define mu_clipboard_set_(result, ...) muCOSA_clipboard_set(muCOSA_global_context, result, __VA_ARGS__)
 
+	// @DOCLINE # Terminal
+
+		// @DOCLINE muCOSA has an API for interfacting with an emulated terminal for the current operating system. This terminal is not graphically created; the terminal is fully emulated without anything graphically changing, and graphical information (primarily the screen buffer contents) must be manually queried by the user.
+
+		// @DOCLINE In Win32, muCOSA runs the 'cmd' process.
+
+		// @DOCLINE ## Create and destroy terminal
+
+			// @DOCLINE Every [created](#terminal-creation) terminal must be [destroyed](#terminal-destruction) before its corresponding muCOSA context is destroyed.
+
+			typedef uint32_m muTerminal;
+
+			// @DOCLINE ### Terminal creation
+
+				// @DOCLINE The function `muCOSA_terminal_create` creates a terminal, defined below: @NLNT
+				MUDEF muTerminal muCOSA_terminal_create(muCOSAContext* context, muCOSAResult* result, uint32_m column_width, uint32_m row_height);
+
+				// @DOCLINE Upon failure (marked by the value of `result`), the creation function returns 0.
+
+				// @DOCLINE `column_width` and `row_height` specify the width and height of [the terminal's screen buffer](#terminal-screen-buffer) in amount of columns and rows respectively. These values must be at least 1.
+
+				// @DOCLINE > The macro `mu_terminal_create` is the non-result-checking equivalent, and the macro `mu_terminal_create_` is the result-checking equivalent.
+				#define mu_terminal_create(...) muCOSA_terminal_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
+				#define mu_terminal_create_(result, ...) muCOSA_terminal_create(muCOSA_global_context, result, __VA_ARGS__)
+
+			// @DOCLINE ### Terminal destruction
+
+				// @DOCLINE The function `muCOSA_terminal_destroy` destroys a terminal, defined below: @NLNT
+				MUDEF muTerminal muCOSA_terminal_destroy(muCOSAContext* context, muTerminal ter);
+
+				// @DOCLINE This function must be called at some point on every successfully created terminal.
+
+				// @DOCLINE > The macro `mu_terminal_destroy` is the non-result-checking equivalent.
+				#define mu_terminal_destroy(...) muCOSA_terminal_destroy(muCOSA_global_context, __VA_ARGS__)
+
+		// @DOCLINE ## Terminal updating and information overview
+
+			// @DOCLINE Since a terminal in muCOSA acts as a running application, information about it can only be retrieved in snapshots. These snapshots are performed via [updating the terminal](#update-terminal), which refreshes all of the queried information about the terminal. Once the terminal has been updated, its corresponding [terminal information](#retrieve-terminal-information) is up to date at that moment.
+
+			// @DOCLINE ### Update terminal
+
+				// @DOCLINE The function `muCOSA_terminal_update` updates a terminal, refreshing all of the queryable information about the terminal, defined below: @NLNT
+				MUDEF void muCOSA_terminal_update(muCOSAContext* context, muTerminal ter);
+
+				// @DOCLINE > The macro `mu_terminal_update` is the non-result-checking equivalent.
+				#define mu_terminal_update(...) muCOSA_terminal_update(muCOSA_global_context, __VA_ARGS__)
+
+			// @DOCLINE ### Retrieve terminal information
+
+				typedef struct muTerminalInfo muTerminalInfo;
+
+				// @DOCLINE The function `muCOSA_terminal_info` retrieves the pointer used for storing all of the updated information about a terminal, defined below: @NLNT
+				MUDEF muTerminalInfo* muCOSA_terminal_info(muCOSAContext* context, muTerminal ter);
+
+				// @DOCLINE This pointer is valid for as long as the terminal is not destroyed via [`muCOSA_terminal_destroy`](#terminal-destruction), and the [information within it](#terminal-information) is refreshed upon every call to [`muCOSA_terminal_update`](#update-terminal).
+
+				// @DOCLINE > The macro `mu_terminal_update` is the non-result-checking equivalent.
+				#define mu_terminal_update(...) muCOSA_terminal_update(muCOSA_global_context, __VA_ARGS__)
+
+		// @DOCLINE ## Terminal information
+
+			// Note: this part of the docs is kind of messy, since the structs need to be defined beforehand. If you're updating a struct in this section, you need to go further down and update its documentation!
+
+			// Terminal buffer:
+			typedef struct muTerminalChar muTerminalChar;
+			struct muTerminalBuffer {
+				uint32_m column_width;
+				uint32_m row_height;
+				muTerminalChar* chars;
+				uint32_m scroll;
+			};
+			typedef struct muTerminalBuffer muTerminalBuffer;
+
+			// Cursor:
+			struct muTerminalCursor {
+				uint32_m column;
+				uint32_m row;
+			};
+			typedef struct muTerminalCursor muTerminalCursor;
+
+			// Selection:
+			struct muTerminalSelection {
+				char* text;
+			};
+			typedef struct muTerminalSelection muTerminalSelection;
+
+			// @DOCLINE The struct `muTerminalInfo` represents the information known about a terminal since it was last [updated](#update-terminal). It has the following members:
+
+			struct muTerminalInfo {
+				// @DOCLINE * `@NLFT alive` - whether or not the terminal is still alive. If this is true, all information within this struct is a valid snapshot of the terminal's information. If this is false upon the first call to [`muCOSA_terminal_update`](#update-terminal), all contents within this struct are undefined; if this is false, but the previous terminal update set this to true, the contents within this struct are simply the previous snapshot's information.
+				muBool alive;
+				// @DOCLINE * `@NLFT buffer` - the [terminal buffer](#terminal-buffer).
+				muTerminalBuffer buffer;
+				// @DOCLINE * `@NLFT cursor` - the [terminal cursor](#terminal-cursor).
+				muTerminalCursor cursor;
+				// @DOCLINE * `@NLFT selection` - the [terminal selection](#terminal-selection).
+				muTerminalSelection selection;
+			};
+
+			// @DOCLINE More information about how querying terminal information works is provided in the [terminal updating and information overview section](#terminal-updating-and-information-overview).
+
+		// @DOCLINE ## Terminal buffer
+
+			// @DOCLINE The terminal buffer represents what is visually being displayed on screen. Its respective struct is `muTerminalBuffer`, which has the following members:
+
+			// @DOCLINE * `uint32_m column_width` - the width of the terminal, in columns.
+			// @DOCLINE * `uint32_m row_height` - the height of the terminal, in rows.
+			// @DOCLINE * `muTerminalChar* chars` - each [terminal character](#terminal-character) within the terminal buffer, listed from left-to-right, top-to-bottom.
+			// @DOCLINE * `uint32_m scroll` - how far scrolled-down the terminal is from the top row. This does not affect how you index into the `chars` array, as the terminal buffer represents what is visually being shown, meaning that the `chars` array already takes the scroll amount into account.
+
+			// @DOCLINE ### Terminal character
+
+				// @DOCLINE A terminal character represents an individual character slot within the terminal buffer. Its respective struct is `muTerminalChar`, which has the following members:
+
+				typedef uint16_m muTerminalCharStyle;
+				struct muTerminalChar {
+					// @DOCLINE * `@NLFT codepoint` - the Unicode codepoint value of the character. For empty characters, this is usually 32 (the Unicode character value for space).
+					uint32_m codepoint;
+					// @DOCLINE * `@NLFT background_color[3]` - the background color for the character's slot, in RGB form.
+					muByte background_color[3];
+					// @DOCLINE * `@NLFT text_color[3]` - the color of the character, in RGB form.
+					muByte text_color[3];
+					// @DOCLINE * `@NLFT style` - the [style of the character](#terminal-character-style).
+					muTerminalCharStyle style;
+				};
+
+				// @DOCLINE #### Terminal character style
+
+					// @DOCLINE A terminal character style (respective type `muTerminalCharStyle`; typedef for `uint16_m`) is a value that represents a set of flags representing possible stylizations of a terminal character. It has the following defined bit flags:
+
+					// @DOCLINE * [0x0001] `MU_TERMINAL_UNDERSCORE` - whether or not an underscore appears below the character within its slot, acting as an underline.
+					#define MU_TERMINAL_UNDERSCORE 0x0001
+
+		// @DOCLINE ## Terminal cursor
+
+			// @DOCLINE The terminal cursor represents where text will start appearing once the user starts typing. Its respective struct is `muTerminalCursor`, which has the following members:
+
+			// @DOCLINE * `uint32_m column` - the column that the cursor is in, starting at 0 for the leftmost column.
+			// @DOCLINE * `uint32_m row` - the row that the cursor is in, starting at 0 for the topmost row.
+
+			// @DOCLINE The values given for the column and row are relative to the [terminal buffer](#terminal-buffer).
+
+		// @DOCLINE ## Terminal selection
+
+			// @DOCLINE The terminal selection represents the text that is selected/highlighted by the user. Its respective struct is `muTerminalSelection`, which has the following member:
+
+			// @DOCLINE * `char* text` - the text currently selected/highlighted by the user, encoded in UTF-8. The value of this member is 0 if no text is currently selected/highlighted.
+
+		// @DOCLINE ## Terminal input
+
+			// @DOCLINE Since the terminal acts as its own application, it must be sent input via a dedicated part of the API. Input is [sent to a terminal](#send-terminal-input), to which the application takes an undefined amount of time to process it. The user can manually wait for all of the input to be processed via [syncing the terminal input](#sync-terminal-input).
+
+			// @DOCLINE ### Send terminal input
+
+				typedef uint16_m muTerminalInput;
+
+				// @DOCLINE The function `muCOSA_terminal_input` sends input to a given terminal, defined below: @NLNT
+				MUDEF void muCOSA_terminal_input(muCOSAContext* context, muTerminal ter, muTerminalInput input_type, void* input);
+
+				// @DOCLINE `input_type` is the [type of input being sent](#terminal-input-types). What data (and corresponding type) that `input` is pointing to depends on the value of `input_type` to indicate such. This is similar to the way [`mu_window_get` and `mu_window_set`](get-and-set-window-attributes) are structured.
+
+				// @DOCLINE > The macro `mu_terminal_input` is the non-result-checking equivalent.
+				#define mu_terminal_input(...) muCOSA_terminal_input(muCOSA_global_context, __VA_ARGS__)
+
+				// @DOCLINE #### Terminal input types
+
+					// @DOCLINE The type of input being sent to a terminal in the function [`muCOSA_terminal_input`](#send-terminal-input) is represented by the type `muTerminalInput` (typedef for `uint16_m`). It has the following defined values:
+
+					// @DOCLINE * `MU_TERMINAL_INPUT_DIMENSIONS` - the [terminal dimensions input](#terminal-dimensions-input) type.
+					#define MU_TERMINAL_INPUT_DIMENSIONS 1
+					// @DOCLINE * `MU_TERMINAL_INPUT_SCROLL` - the [terminal scroll input](#terminal-scroll-input) type.
+					#define MU_TERMINAL_INPUT_SCROLL 2
+					// @DOCLINE * `MU_TERMINAL_INPUT_CURSOR` - the [terminal cursor input](#terminal-cursor-input) type.
+					#define MU_TERMINAL_INPUT_CURSOR 3
+					// @DOCLINE * `MU_TERMINAL_INPUT_TEXT` - the [terminal text input](#terminal-text-input) type.
+					#define MU_TERMINAL_INPUT_TEXT 4
+					// @DOCLINE * `MU_TERMINAL_INPUT_SELECT` - the [terminal select input](#terminal-select-input) type.
+					#define MU_TERMINAL_INPUT_SELECT 5
+
+			// @DOCLINE ### Sync terminal input
+
+				// @DOCLINE The function `muCOSA_terminal_input_sync` blocks the calling thread until all input sent to the given terminal is processed by it, defined below: @NLNT
+				MUDEF void muCOSA_terminal_input_sync(muCOSAContext* context, muTerminal ter);
+
+				// @DOCLINE This function has no maximum time-out safety built in, meaning that it's safest to execute this function from a separate thread with such safety measures.
+
+				// @DOCLINE > The macro `mu_terminal_input_sync` is the non-result-checking equivalent.
+				#define mu_terminal_input_sync(...) muCOSA_terminal_input_sync(muCOSA_global_context, __VA_ARGS__)
+
+			// @DOCLINE ### Terminal dimensions input
+
+				// @DOCLINE The [dimensions of a terminal buffer](#terminal-buffer) are changed via dimensions input (respective value [`MU_TERMINAL_INPUT_DIMENSIONS`](#terminal-input-types)).
+
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_DIMENSIONS`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
+
+				// @DOCLINE an array of two `uint32_m` values representing the new dimensions of the terminal, in column amount (array index 0) and row amount (array index 1). These values must be at least 1.
+
+			// @DOCLINE ### Terminal scroll input
+
+				// @DOCLINE The [scroll amount of a terminal buffer](#terminal-buffer) is changed via scroll input (respective value [`MU_TERMINAL_INPUT_SCROLL`](#terminal-input-types)).
+
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_SCROLL`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
+
+				// @DOCLINE a pointer to a `uint32_m` value representing the new scroll amount.
+
+			// @DOCLINE ### Terminal cursor input
+
+				// @DOCLINE The [cursor position of a terminal](#terminal-cursor) is changed via cursor input (respective value [`MU_TERMINAL_INPUT_CURSOR`](#terminal-input-types)).
+
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_CURSOR`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
+
+				// @DOCLINE an array of two `uint32_m` values representing the new position of the cursor; array index 0 corresponds to the column, and array index 1 corresponds to the row.
+
+			// @DOCLINE ### Terminal text input
+
+				// @DOCLINE Text can be sent to a terminal (as if it were typed out) via text input (respective value [`MU_TERMINAL_INPUT_TEXT`](#terminal-input-types)).
+
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_TEXT`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
+
+				// @DOCLINE a `char*` pointer pointing to UTF-8-encoded text to be typed into the terminal.
+
+			// @DOCLINE ### Terminal select input
+
+				// @DOCLINE Text can be selected in a terminal via select input (respective value [`MU_TERMINAL_INPUT_SELECT`](#terminal-input-types)).
+
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_SELECT`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
+
+				// @DOCLINE an array of four `uint32_m` values representing the beginning and end column and row selection range. Array index 0 and index 1 correspond to the first column and row (respectively) to be selected, and array index 2 and 3 correspond to the last column and row (respectively) to be selected.
+
 	// @DOCLINE # Result
 
 		// @DOCLINE The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
 
 		// == MUCOSA_... 0-4095 ==
 
-		// @DOCLINE * `MUCOSA_SUCCESS` - the task succeeded; real value 0.
-		#define MUCOSA_SUCCESS 0
+			// @DOCLINE * `MUCOSA_SUCCESS` - the task succeeded; real value 0.
+			#define MUCOSA_SUCCESS 0
 
-		// @DOCLINE * `MUCOSA_FAILED_NULL_WINDOW_SYSTEM` - rather an invalid window system value was given by the user, the window system value given by the user was unsupported, or no supported window system could be found.
-		#define MUCOSA_FAILED_NULL_WINDOW_SYSTEM 1
+			// @DOCLINE * `MUCOSA_FAILED_NULL_WINDOW_SYSTEM` - rather an invalid window system value was given by the user, the window system value given by the user was unsupported, or no supported window system could be found.
+			#define MUCOSA_FAILED_NULL_WINDOW_SYSTEM 1
 
-		// @DOCLINE * `MUCOSA_FAILED_MALLOC` - a call to `mu_malloc` failed, meaning that there is insufficient memory available to perform the task.
-		#define MUCOSA_FAILED_MALLOC 2
+			// @DOCLINE * `MUCOSA_FAILED_MALLOC` - a call to `mu_malloc` failed, meaning that there is insufficient memory available to perform the task.
+			#define MUCOSA_FAILED_MALLOC 2
 
-		// @DOCLINE * `MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB` - an invalid `muWindowAttrib` value was given by the user.
-		#define MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB 3
+			// @DOCLINE * `MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB` - an invalid `muWindowAttrib` value was given by the user.
+			#define MUCOSA_FAILED_UNKNOWN_WINDOW_ATTRIB 3
 
-		// @DOCLINE * `MUCOSA_FAILED_REALLOC` - a call to `mu_realloc` failed, meaning that there is insufficient memory available to perform the task.
-		#define MUCOSA_FAILED_REALLOC 4
+			// @DOCLINE * `MUCOSA_FAILED_REALLOC` - a call to `mu_realloc` failed, meaning that there is insufficient memory available to perform the task.
+			#define MUCOSA_FAILED_REALLOC 4
 
-		// @DOCLINE * `MUCOSA_FAILED_UNKNOWN_GRAPHICS_API` - an invalid `muGraphicsAPI` value was given by the user.
-		#define MUCOSA_FAILED_UNKNOWN_GRAPHICS_API 5
+			// @DOCLINE * `MUCOSA_FAILED_UNKNOWN_GRAPHICS_API` - an invalid `muGraphicsAPI` value was given by the user.
+			#define MUCOSA_FAILED_UNKNOWN_GRAPHICS_API 5
 
-		// @DOCLINE * `MUCOSA_FAILED_UNSUPPORTED_GRAPHICS_API` - a function relating to a graphics API was called despite the fact that support for the graphics API was not enabled.
-		#define MUCOSA_FAILED_UNSUPPORTED_GRAPHICS_API 6
+			// @DOCLINE * `MUCOSA_FAILED_UNSUPPORTED_GRAPHICS_API` - a function relating to a graphics API was called despite the fact that support for the graphics API was not enabled.
+			#define MUCOSA_FAILED_UNSUPPORTED_GRAPHICS_API 6
 
 		// == MUCOSA_WIN32_... 4096-8191 ==
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR` - a conversion from a UTF-8 string to a wide character string failed, rather due to the conversion itself failing or the allocation of memory required for the conversion; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR 4096
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR` - a conversion from a UTF-8 string to a wide character string failed, rather due to the conversion itself failing or the allocation of memory required for the conversion; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_CONVERT_UTF8_TO_WCHAR 4096
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_REGISTER_WINDOW_CLASS` - a call to `RegisterClassExW` failed, meaning that the window class needed to create the window could not be created; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_REGISTER_WINDOW_CLASS 4097
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_REGISTER_WINDOW_CLASS` - a call to `RegisterClassExW` failed, meaning that the window class needed to create the window could not be created; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_REGISTER_WINDOW_CLASS 4097
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_WINDOW` - a call to `CreateWindowExW` failed, meaning that the window could not be created; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_CREATE_WINDOW 4098
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_WINDOW` - a call to `CreateWindowExW` failed, meaning that the window could not be created; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_CREATE_WINDOW 4098
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB` - whatever function needed to retrieve the requested window attribute returned a non-success value; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB 4099
-		// @DOCLINE    * In the case of dimensions, `GetClientRect` failed.
-		// @DOCLINE    * In the case of position, `GetWindowRect` failed.
-		// @DOCLINE    * In the case of cursor, rather `GetCursorPos` or `muCOSA_window_get(...MU_WINDOW_POSITION)` failed.
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB` - whatever function needed to retrieve the requested window attribute returned a non-success value; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_GET_WINDOW_ATTRIB 4099
+			// @DOCLINE    * In the case of dimensions, `GetClientRect` failed.
+			// @DOCLINE    * In the case of position, `GetWindowRect` failed.
+			// @DOCLINE    * In the case of cursor, rather `GetCursorPos` or `muCOSA_window_get(...MU_WINDOW_POSITION)` failed.
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB` - whatever function needed to modify the requested window attribute returned a non-success value; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB 4100
-		// @DOCLINE    * In the case of title, `SetWindowTextW` failed.
-		// @DOCLINE    * In the case of dimensions, rather `GetWindowInfo`, `AdjustWindowRect`, or `SetWindowPos` failed.
-		// @DOCLINE    * In the case of position, `SetWindowPos` failed.
-		// @DOCLINE    * In the case of cursor, rather `SetCursorPos` or `muCOSA_window_get(...MU_WINDOW_POSITION)` failed.
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB` - whatever function needed to modify the requested window attribute returned a non-success value; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_SET_WINDOW_ATTRIB 4100
+			// @DOCLINE    * In the case of title, `SetWindowTextW` failed.
+			// @DOCLINE    * In the case of dimensions, rather `GetWindowInfo`, `AdjustWindowRect`, or `SetWindowPos` failed.
+			// @DOCLINE    * In the case of position, `SetWindowPos` failed.
+			// @DOCLINE    * In the case of cursor, rather `SetCursorPos` or `muCOSA_window_get(...MU_WINDOW_POSITION)` failed.
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS` - a call to `RegisterClassA` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS 4101
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS` - a call to `RegisterClassA` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_REGISTER_DUMMY_WGL_WINDOW_CLASS 4101
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_WINDOW` - a call to `CreateWindowExA` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_WINDOW 4102
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_WINDOW` - a call to `CreateWindowExA` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_WINDOW 4102
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_DUMMY_WGL_PIXEL_FORMAT` - a call to `GetPixelFormat` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_GET_DUMMY_WGL_PIXEL_FORMAT 4103
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_DUMMY_WGL_PIXEL_FORMAT` - a call to `GetPixelFormat` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_GET_DUMMY_WGL_PIXEL_FORMAT 4103
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_DESCRIBE_DUMMY_WGL_PIXEL_FORMAT` - a call to `DescribePixelFormat` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_DESCRIBE_DUMMY_WGL_PIXEL_FORMAT 4104
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_DESCRIBE_DUMMY_WGL_PIXEL_FORMAT` - a call to `DescribePixelFormat` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_DESCRIBE_DUMMY_WGL_PIXEL_FORMAT 4104
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_DUMMY_WGL_PIXEL_FORMAT` - a call to `SetPixelFormat` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_SET_DUMMY_WGL_PIXEL_FORMAT 4105
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_DUMMY_WGL_PIXEL_FORMAT` - a call to `SetPixelFormat` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_SET_DUMMY_WGL_PIXEL_FORMAT 4105
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_CONTEXT` - a call to `wglCreateContext` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_CONTEXT 4106
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_CONTEXT` - a call to `wglCreateContext` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_CREATE_DUMMY_WGL_CONTEXT 4106
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_BIND_DUMMY_WGL_CONTEXT` - a call to `wglMakeCurrent` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_BIND_DUMMY_WGL_CONTEXT 4107
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_BIND_DUMMY_WGL_CONTEXT` - a call to `wglMakeCurrent` in the process of loading OpenGL functions failed; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_BIND_DUMMY_WGL_CONTEXT 4107
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_CREATE_CONTEXT_ATTRIBS` - the function `wglCreateContextAttribsARB` could not be found, which is necessary to creating OpenGL functions; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_FIND_WGL_CREATE_CONTEXT_ATTRIBS 4108
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_CREATE_CONTEXT_ATTRIBS` - the function `wglCreateContextAttribsARB` could not be found, which is necessary to creating OpenGL functions; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_FIND_WGL_CREATE_CONTEXT_ATTRIBS 4108
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_CHOOSE_PIXEL_FORMAT` - the function `wglChoosePixelFormatARB` could not be found, which is necessary to creating OpenGL functions; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
-		#define MUCOSA_WIN32_FAILED_FIND_WGL_CHOOSE_PIXEL_FORMAT 4109
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_CHOOSE_PIXEL_FORMAT` - the function `wglChoosePixelFormatARB` could not be found, which is necessary to creating OpenGL functions; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but any attempt to create an OpenGL context will fail.
+			#define MUCOSA_WIN32_FAILED_FIND_WGL_CHOOSE_PIXEL_FORMAT 4109
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_CHOOSE_WGL_PIXEL_FORMAT` - the function `wglChoosePixelFormatARB` returned a failure value when creating an OpenGL context; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but the pixel format will likely not be what the user requested.
-		#define MUCOSA_WIN32_FAILED_CHOOSE_WGL_PIXEL_FORMAT 4110
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CHOOSE_WGL_PIXEL_FORMAT` - the function `wglChoosePixelFormatARB` returned a failure value when creating an OpenGL context; this is exclusive to Win32. This result is non-fatal, and the context will still be created, but the pixel format will likely not be what the user requested.
+			#define MUCOSA_WIN32_FAILED_CHOOSE_WGL_PIXEL_FORMAT 4110
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_WGL_PIXEL_FORMAT` - the function `GetPixelFormat` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_GET_WGL_PIXEL_FORMAT 4111
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_WGL_PIXEL_FORMAT` - the function `GetPixelFormat` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_GET_WGL_PIXEL_FORMAT 4111
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_DESCRIBE_WGL_PIXEL_FORMAT` - the function `DescribePixelFormat` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_DESCRIBE_WGL_PIXEL_FORMAT 4112
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_DESCRIBE_WGL_PIXEL_FORMAT` - the function `DescribePixelFormat` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_DESCRIBE_WGL_PIXEL_FORMAT 4112
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WGL_PIXEL_FORMAT` - the function `SetPixelFormat` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_SET_WGL_PIXEL_FORMAT 4113
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WGL_PIXEL_FORMAT` - the function `SetPixelFormat` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_SET_WGL_PIXEL_FORMAT 4113
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_WGL_CONTEXT` - the function `wglCreateContextAttribsARB` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_CREATE_WGL_CONTEXT 4114
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_WGL_CONTEXT` - the function `wglCreateContextAttribsARB` returned a failure value when creating an OpenGL context; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_CREATE_WGL_CONTEXT 4114
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT` - the function `wglMakeCurrent` returned a failure value when binding the OpenGL context; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT 4115
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT` - the function `wglMakeCurrent` returned a failure value when binding the OpenGL context; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_SET_WGL_CONTEXT 4115
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS` - the function `SwapBuffers` returned a failure value when swapping the buffers; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS 4116
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS` - the function `SwapBuffers` returned a failure value when swapping the buffers; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_SWAP_WGL_BUFFERS 4116
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION` - the corresponding OpenGL function could not be located; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION 4117
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION` - the corresponding OpenGL function could not be located; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_FIND_WGL_FUNCTION 4117
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_ASSOCIATE_IMM` - the function `ImmAssociateContextEx` returned a failure value when getting text input focus; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_ASSOCIATE_IMM 4118
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_ASSOCIATE_IMM` - the function `ImmAssociateContextEx` returned a failure value when getting text input focus; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_ASSOCIATE_IMM 4118
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION` - the function `ImmSetCompositionWindow` returned a failure value when attempting to move it to the current text cursor position; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION 4119
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION` - the function `ImmSetCompositionWindow` returned a failure value when attempting to move it to the current text cursor position; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_SET_COMPOSITION_WINDOW_POSITION 4119
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD` - the function `OpenClipboard` returned a failure value when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`) or overwrite it (`muCOSA_clipboard_set`); this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD 4120
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD` - the function `OpenClipboard` returned a failure value when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`) or overwrite it (`muCOSA_clipboard_set`); this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_HOLD_CLIPBOARD 4120
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA` - the function `GlobalLock` returned a failure value when attempting to retrieve a pointer to the clipboard data when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`); this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA 4121
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA` - the function `GlobalLock` returned a failure value when attempting to retrieve a pointer to the clipboard data when attempting to retrieve the clipboard data (`muCOSA_clipboard_get`); this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_GET_CLIPBOARD_DATA 4121
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT` - the conversion between UTF-16 wide-character data and UTF-8 `uint8_m*` data (rather converting from UTF-8 to UTF-16 when setting the clipboard data (`muCOSA_clipboard_set`), or converting from UTF-16 to UTF-8 when getting the clipboard data (`muCOSA_clipboard_get`)) failed, rather due to allocation or to the data itself being invalid; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT 4122
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT` - the conversion between UTF-16 wide-character data and UTF-8 `uint8_m*` data (rather converting from UTF-8 to UTF-16 when setting the clipboard data (`muCOSA_clipboard_set`), or converting from UTF-16 to UTF-8 when getting the clipboard data (`muCOSA_clipboard_get`)) failed, rather due to allocation or to the data itself being invalid; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT 4122
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA` - rather the function `GlobalAlloc` or `GlobalLock` failed when attempting to allocate and get a pointer to the global data for the clipboard when setting the clipboard (`muCOSA_clipboard_set`); this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA 4123
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA` - rather the function `GlobalAlloc` or `GlobalLock` failed when attempting to allocate and get a pointer to the global data for the clipboard when setting the clipboard (`muCOSA_clipboard_set`); this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA 4123
 
-		// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA` - the function `SetClipboardData` failed when attempting to set the clipboard data; this is exclusive to Win32.
-		#define MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA 4124
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA` - the function `SetClipboardData` failed when attempting to set the clipboard data; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA 4124
 
 		// @DOCLINE All non-success values (unless explicitly stated otherwise) mean that the function fully failed, AKA it was "fatal", and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function fatally failed, nothing was allocated.
 
