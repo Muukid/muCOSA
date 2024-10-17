@@ -880,7 +880,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 	// Types elaborated later on
 	typedef uint16_m muCOSAResult; // (65,536 error results including success)
 	typedef uint16_m muKeyboardKey;
-	typedef uint8_m muKeystate;
+	typedef uint8_m muKeyboardState;
 	typedef uint16_m muMouseKey;
 
 	// @DOCLINE # Version
@@ -1237,7 +1237,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				// @DOCLINE * `void (*keyboard)` - the keyboard callback, called every time that the status of a keyboard key on the [keyboard keymap](#keyboard-keymap) changes, defined below: @NLNT
 				void (*keyboard)(muWindow win, muKeyboardKey key, muBool status);
 				// @DOCLINE * `void (*keystate)` - the keystate callback, called every time that the status of a keystate on the [keystate keymap](#keystate-keymap) changes, defined below: @NLNT
-				void (*keystate)(muWindow win, muKeystate state, muBool status);
+				void (*keystate)(muWindow win, muKeyboardState state, muBool status);
 				// @DOCLINE * `void (*mouse_key)` - the mouse key callback, called every time that the status of a mouse key on the [mouse keymap](#mouse-keymap) changes, defined below: @NLNT
 				void (*mouse_key)(muWindow win, muMouseKey key, muBool status);
 				// @DOCLINE * `void (*cursor)` - the cursor position callback, called every time that the cursor position changes, defined below: @NLNT
@@ -1444,7 +1444,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// @DOCLINE ### Keystate keymap
 
-			// @DOCLINE The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeystate` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
+			// @DOCLINE The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeyboardState` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
 
 			// @DOCLINE * `MU_KEYSTATE_UNKNOWN` - unknown keystate.
 			#define MU_KEYSTATE_UNKNOWN 0
@@ -1463,11 +1463,11 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE #### Keystate names
 
 			// @DOCLINE The name function `mu_keystate_get_name` returns a `const char*` representation of the given keystate (for example, `MU_KEYSTATE_CAPS_LOCK` returns "MU_KEYSTATE_CAPS_LOCK"), defined below: @NLNT
-			MUDEF const char* mu_keystate_get_name(muKeystate state);
+			MUDEF const char* mu_keystate_get_name(muKeyboardState state);
 			// @DOCLINE It will return "MU_UNKNOWN" in the case that `state` is an invalid keystate value.
 
 			// @DOCLINE The name function `mu_keystate_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYSTATE_CAPS_LOCK` returns "Caps Lock"), defined below: @NLNT
-			MUDEF const char* mu_keystate_get_nice_name(muKeystate state);
+			MUDEF const char* mu_keystate_get_nice_name(muKeyboardState state);
 			// @DOCLINE It will return "Unknown" in the case that `state` is an invalid keystate value.
 
 			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
@@ -1849,15 +1849,15 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 	// @DOCLINE # Terminal
 
-		// @DOCLINE muCOSA has an API for interfacting with an emulated terminal for the current operating system. This terminal is not graphically created; the terminal is fully emulated without anything graphically changing, and graphical information (primarily the screen buffer contents) must be manually queried by the user.
+		// @DOCLINE muCOSA has an API for interfacing with an emulated terminal for the current operating system. This terminal is not graphically created; the terminal is fully emulated without anything graphically changing, and graphical information must be manually queried by the user.
 
-		// @DOCLINE In Win32, muCOSA runs the 'cmd' process.
+		// @DOCLINE In Win32, muCOSA runs the 'cmd' process for a terminal.
 
 		// @DOCLINE ## Create and destroy terminal
 
 			// @DOCLINE Every [created](#terminal-creation) terminal must be [destroyed](#terminal-destruction) before its corresponding muCOSA context is destroyed.
 
-			typedef uint32_m muTerminal;
+			typedef void* muTerminal;
 
 			// @DOCLINE ### Terminal creation
 
@@ -1866,7 +1866,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 				// @DOCLINE Upon failure (marked by the value of `result`), the creation function returns 0.
 
-				// @DOCLINE `column_width` and `row_height` specify the width and height of [the terminal's screen buffer](#terminal-screen-buffer) in amount of columns and rows respectively. These values must be at least 1.
+				// @DOCLINE `column_width` and `row_height` specify the width and height of [the terminal's buffer](#terminal-buffer) in amount of columns and rows respectively. These values must be at least 1.
 
 				// @DOCLINE > The macro `mu_terminal_create` is the non-result-checking equivalent, and the macro `mu_terminal_create_` is the result-checking equivalent.
 				#define mu_terminal_create(...) muCOSA_terminal_create(muCOSA_global_context, &muCOSA_global_context->result, __VA_ARGS__)
@@ -1884,7 +1884,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		// @DOCLINE ## Terminal updating and information overview
 
-			// @DOCLINE Since a terminal in muCOSA acts as a running application, information about it can only be retrieved in snapshots. These snapshots are performed via [updating the terminal](#update-terminal), which refreshes all of the queried information about the terminal. Once the terminal has been updated, its corresponding [terminal information](#retrieve-terminal-information) is up to date at that moment.
+			// @DOCLINE Since a terminal in muCOSA acts as a running application, information about it can only be retrieved in snapshots. These snapshots are performed via [updating the terminal](#update-terminal), which refreshes all of the queried information about the terminal. Once the terminal has been updated, its corresponding [terminal information](#retrieve-terminal-information) is up to date at that moment. The contents of the terminal information are undefined until it is updated at least once.
 
 			// @DOCLINE ### Update terminal
 
@@ -1901,7 +1901,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				// @DOCLINE The function `muCOSA_terminal_info` retrieves the pointer used for storing all of the updated information about a terminal, defined below: @NLNT
 				MUDEF muTerminalInfo* muCOSA_terminal_info(muCOSAContext* context, muTerminal ter);
 
-				// @DOCLINE This pointer is valid for as long as the terminal is not destroyed via [`muCOSA_terminal_destroy`](#terminal-destruction), and the [information within it](#terminal-information) is refreshed upon every call to [`muCOSA_terminal_update`](#update-terminal).
+				// @DOCLINE This pointer is valid for as long as the terminal is not destroyed via [`muCOSA_terminal_destroy`](#terminal-destruction), and the [information within it](#terminal-information) is refreshed upon every call to [`muCOSA_terminal_update`](#update-terminal); this pointer value does not change upon updating.
 
 				// @DOCLINE > The macro `mu_terminal_update` is the non-result-checking equivalent.
 				#define mu_terminal_update(...) muCOSA_terminal_update(muCOSA_global_context, __VA_ARGS__)
@@ -1929,14 +1929,18 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// Selection:
 			struct muTerminalSelection {
-				char* text;
+				muBool active;
+				uint32_m beginning_column;
+				uint32_m beginning_row;
+				uint32_m end_column;
+				uint32_m end_row;
 			};
 			typedef struct muTerminalSelection muTerminalSelection;
 
 			// @DOCLINE The struct `muTerminalInfo` represents the information known about a terminal since it was last [updated](#update-terminal). It has the following members:
 
 			struct muTerminalInfo {
-				// @DOCLINE * `@NLFT alive` - whether or not the terminal is still alive. If this is true, all information within this struct is a valid snapshot of the terminal's information. If this is false upon the first call to [`muCOSA_terminal_update`](#update-terminal), all contents within this struct are undefined; if this is false, but the previous terminal update set this to true, the contents within this struct are simply the previous snapshot's information.
+				// @DOCLINE * `@NLFT alive` - whether or not the terminal is still alive. If this is true, all information within this struct is a valid snapshot of the terminal's information. If this is false upon the first call to [`muCOSA_terminal_update`](#update-terminal), all contents within this struct are undefined; if this is false otherwise, the contents within this struct are preserved from the last alive snapshot.
 				muBool alive;
 				// @DOCLINE * `@NLFT buffer` - the [terminal buffer](#terminal-buffer).
 				muTerminalBuffer buffer;
@@ -1946,11 +1950,13 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				muTerminalSelection selection;
 			};
 
+			// @DOCLINE Once a terminal is marked as not alive once, it will never be alive again for the rest of its existence.
+
 			// @DOCLINE More information about how querying terminal information works is provided in the [terminal updating and information overview section](#terminal-updating-and-information-overview).
 
 		// @DOCLINE ## Terminal buffer
 
-			// @DOCLINE The terminal buffer represents what is visually being displayed on screen. Its respective struct is `muTerminalBuffer`, which has the following members:
+			// @DOCLINE The terminal buffer represents what is visually being displayed on screen. It does *not* represent the contents of the entire terminal, just the portion that is visible. Its respective struct is `muTerminalBuffer`, which has the following members:
 
 			// @DOCLINE * `uint32_m column_width` - the width of the terminal, in columns.
 			// @DOCLINE * `uint32_m row_height` - the height of the terminal, in rows.
@@ -1991,13 +1997,21 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 		// @DOCLINE ## Terminal selection
 
-			// @DOCLINE The terminal selection represents the text that is selected/highlighted by the user. Its respective struct is `muTerminalSelection`, which has the following member:
+			// @DOCLINE The terminal selection represents the text that is selected/highlighted by the user relative to the [terminal buffer](#terminal-buffer). Its respective struct is `muTerminalSelection`, which has the following members:
 
-			// @DOCLINE * `char* text` - the text currently selected/highlighted by the user, encoded in UTF-8. The value of this member is 0 if no text is currently selected/highlighted.
+			// @DOCLINE * `muBool active` - whether or not anything is selected currently. If this member is equal to `MU_FALSE`, the values of all other members is undefined.
+			// @DOCLINE * `uint32_m beginning_column` - the column at which the current selection begins.
+			// @DOCLINE * `uint32_m beginning_row` - the row at which the current selection begins.
+			// @DOCLINE * `uint32_m end_column` - the column at which the current selection ends.
+			// @DOCLINE * `uint32_m end_row` - the row at which the current selection ends.
+
+			// @DOCLINE The given column/row values are relative to the [terminal buffer](#terminal-buffer), not the entire terminal. This means that the given values may not represent the full selection; it only represents the selection area visible on the current terminal buffer.
+
+			// @DOCLINE The beginning column/row isn't necessarily the selection anchor (the character initially selected); the beginning column/row comes *before* the end column/row from the top-left of the terminal buffer to the bottom-right.
 
 		// @DOCLINE ## Terminal input
 
-			// @DOCLINE Since the terminal acts as its own application, it must be sent input via a dedicated part of the API. Input is [sent to a terminal](#send-terminal-input), to which the application takes an undefined amount of time to process it. The user can manually wait for all of the input to be processed via [syncing the terminal input](#sync-terminal-input).
+			// @DOCLINE Since the terminal acts as its own application, it must be sent input via a dedicated part of the API. Input is [sent to a terminal](#send-terminal-input), to which the application takes an unpredictable amount of time to process it. The user can manually wait for all of the input to be processed via [syncing the terminal input](#sync-terminal-input).
 
 			// @DOCLINE ### Send terminal input
 
@@ -2006,7 +2020,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				// @DOCLINE The function `muCOSA_terminal_input` sends input to a given terminal, defined below: @NLNT
 				MUDEF void muCOSA_terminal_input(muCOSAContext* context, muTerminal ter, muTerminalInput input_type, void* input);
 
-				// @DOCLINE `input_type` is the [type of input being sent](#terminal-input-types). What data (and corresponding type) that `input` is pointing to depends on the value of `input_type` to indicate such. This is similar to the way [`mu_window_get` and `mu_window_set`](get-and-set-window-attributes) are structured.
+				// @DOCLINE `input_type` is the [type of input being sent](#terminal-input-types). What data that `input` is pointing to depends on the value of `input_type` to indicate such. This is similar to the way [`mu_window_get` and `mu_window_set`](#get-and-set-window-attributes) are structured.
 
 				// @DOCLINE > The macro `mu_terminal_input` is the non-result-checking equivalent.
 				#define mu_terminal_input(...) muCOSA_terminal_input(muCOSA_global_context, __VA_ARGS__)
@@ -2019,19 +2033,23 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					#define MU_TERMINAL_INPUT_DIMENSIONS 1
 					// @DOCLINE * `MU_TERMINAL_INPUT_SCROLL` - the [terminal scroll input](#terminal-scroll-input) type.
 					#define MU_TERMINAL_INPUT_SCROLL 2
-					// @DOCLINE * `MU_TERMINAL_INPUT_CURSOR` - the [terminal cursor input](#terminal-cursor-input) type.
-					#define MU_TERMINAL_INPUT_CURSOR 3
+					// @DOCLINE * `MU_TERMINAL_INPUT_MOUSE_POSITION` - the [mouse position input](#mouse-position-input) type.
+					#define MU_TERMINAL_INPUT_MOUSE_POSITION 3
+					// @DOCLINE * `MU_TERMINAL_INPUT_MOUSE_BUTTON` - the [mouse button input](#mouse-button-input) type.
+					#define MU_TERMINAL_INPUT_MOUSE_BUTTON 4
 					// @DOCLINE * `MU_TERMINAL_INPUT_TEXT` - the [terminal text input](#terminal-text-input) type.
-					#define MU_TERMINAL_INPUT_TEXT 4
-					// @DOCLINE * `MU_TERMINAL_INPUT_SELECT` - the [terminal select input](#terminal-select-input) type.
-					#define MU_TERMINAL_INPUT_SELECT 5
+					#define MU_TERMINAL_INPUT_TEXT 5
+					// @DOCLINE * `MU_TERMINAL_INPUT_KEYBOARD_KEY` - the [terminal keyboard key input](#terminal-keyboard-key-input) type.
+					#define MU_TERMINAL_INPUT_KEYBOARD_KEY 6
+					// @DOCLINE * `MU_TERMINAL_INPUT_KEYBOARD_STATE` - the [terminal keyboard state input](#terminal-keyboard-state-input) type.
+					#define MU_TERMINAL_INPUT_KEYBOARD_STATE 7
 
 			// @DOCLINE ### Sync terminal input
 
 				// @DOCLINE The function `muCOSA_terminal_input_sync` blocks the calling thread until all input sent to the given terminal is processed by it, defined below: @NLNT
-				MUDEF void muCOSA_terminal_input_sync(muCOSAContext* context, muTerminal ter);
+				MUDEF void muCOSA_terminal_input_sync(muCOSAContext* context, muTerminal ter, muBool* exit_signal);
 
-				// @DOCLINE This function has no maximum time-out safety built in, meaning that it's safest to execute this function from a separate thread with such safety measures.
+				// @DOCLINE If `exit_signal` is not 0, and its dereferenced value is ever `MU_TRUE`, the function will exit; this can be used to safely unblock the calling thread.
 
 				// @DOCLINE > The macro `mu_terminal_input_sync` is the non-result-checking equivalent.
 				#define mu_terminal_input_sync(...) muCOSA_terminal_input_sync(muCOSA_global_context, __VA_ARGS__)
@@ -2052,13 +2070,27 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 				// @DOCLINE a pointer to a `uint32_m` value representing the new scroll amount.
 
-			// @DOCLINE ### Terminal cursor input
+			// @DOCLINE ### Mouse position input
 
-				// @DOCLINE The [cursor position of a terminal](#terminal-cursor) is changed via cursor input (respective value [`MU_TERMINAL_INPUT_CURSOR`](#terminal-input-types)).
+				// @DOCLINE The position of the mouse relative to a terminal is changed via mouse position input (respective value [`MU_TERMINAL_INPUT_MOUSE_POSITION`](#terminal-input-types)).
 
-				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_CURSOR`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_MOUSE_POSITION`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
 
-				// @DOCLINE an array of two `uint32_m` values representing the new position of the cursor; array index 0 corresponds to the column, and array index 1 corresponds to the row.
+				// @DOCLINE an array of two `uint32_m` values representing the column/row position of the mouse; array index 0 corresponds to the column, and array index 1 corresponds to the row.
+
+			// @DOCLINE ### Mouse button input
+
+				// @DOCLINE Mouse button input can be sent to a terminal (respective value [`MU_TERMINAL_INPUT_MOUSE_BUTTON`](#terminal-input-types)).
+
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_MOUSE_BUTTON`](#terminal-input-types), the pointer `void* input` is interpreted as the struct `muTerminalMouseButton`, which has the following members:
+
+				struct muTerminalMouseButton {
+					// @DOCLINE * `@NLFT key` - the mouse button.
+					muMouseKey key;
+					// @DOCLINE * `@NLFT state` - the state of the mouse button; `MU_TRUE` indicates the button being pressed, and `MU_FALSE` indicates the button being released.
+					muBool state;
+				};
+				typedef struct muTerminalMouseButton muTerminalMouseButton;
 
 			// @DOCLINE ### Terminal text input
 
@@ -2068,13 +2100,33 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 				// @DOCLINE a `char*` pointer pointing to UTF-8-encoded text to be typed into the terminal.
 
-			// @DOCLINE ### Terminal select input
+			// @DOCLINE ### Terminal keyboard key input
 
-				// @DOCLINE Text can be selected in a terminal via select input (respective value [`MU_TERMINAL_INPUT_SELECT`](#terminal-input-types)).
+				// @DOCLINE Keyboard key input can be sent to a terminal (respective value [`MU_TERMINAL_INPUT_KEYBOARD_KEY`](#terminal-input-types)).
 
-				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_SELECT`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_KEYBOARD_KEY`](#terminal-input-types), the pointer `void* input` is interpreted as the struct `muTerminalKeyboardKey`, which has the following members:
 
-				// @DOCLINE an array of four `uint32_m` values representing the beginning and end column and row selection range. Array index 0 and index 1 correspond to the first column and row (respectively) to be selected, and array index 2 and 3 correspond to the last column and row (respectively) to be selected.
+				struct muTerminalKeyboardKey {
+					// @DOCLINE * `@NLFT key` - the keyboard key.
+					muKeyboardKey key;
+					// @DOCLINE * `@NLFT state` - the state of the keyboard key; `MU_TRUE` indicates the key being pressed, and `MU_FALSE` indicates the key being released.
+					muBool state;
+				};
+				typedef struct muTerminalKeyboardKey muTerminalKeyboardKey;
+
+			// @DOCLINE ### Terminal keyboard state input
+
+				// @DOCLINE Keyboard state input can be sent to a terminal (respective value [`MU_TERMINAL_INPUT_KEYBOARD_STATE`](#terminal-input-types)).
+
+				// @DOCLINE When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_KEYBOARD_STATE`](#terminal-input-types), the pointer `void* input` is interpreted as the struct `muTerminalKeyboardState`, which has the following members:
+
+				struct muTerminalKeyboardState {
+					// @DOCLINE * `@NLFT state` - the keyboard state.
+					muKeyboardState state;
+					// @DOCLINE * `@NLFT active` - whether or not the state is active.
+					muBool active;
+				};
+				typedef struct muTerminalKeyboardState muTerminalKeyboardState;
 
 	// @DOCLINE # Result
 
@@ -2199,6 +2251,9 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE * `MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA` - the function `SetClipboardData` failed when attempting to set the clipboard data; this is exclusive to Win32.
 			#define MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA 4124
 
+			// @DOCLINE * `MUCOSA_WIN32_FAILED_CREATE_PROCESS` - the function `CreateProcessW` failed when attempting to create the terminal process; this is exclusive to Win32.
+			#define MUCOSA_WIN32_FAILED_CREATE_PROCESS 4125
+
 		// @DOCLINE All non-success values (unless explicitly stated otherwise) mean that the function fully failed, AKA it was "fatal", and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function fatally failed, nothing was allocated.
 
 		// @DOCLINE There are non-fatal failure values, which mean that the function still executed, but not fully to the extent that the user would expect from the function. The function `muCOSA_result_is_fatal` returns whether or not a given result function value is fatal, defined below: @NLNT
@@ -2268,6 +2323,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 #endif /* MUCOSA_H */
 
+// @IGNORE
 #ifdef MUCOSA_IMPLEMENTATION
 
 	MU_CPP_EXTERN_START
@@ -2480,6 +2536,127 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				}
 			}
 
+			// muCOSA key code to Win32 virtual key code
+			WORD muCOSAW32_muCOSA_to_VK(muKeyboardKey key) {
+				switch (key) {
+					default: return 0x00; break;
+					case MU_KEYBOARD_BACKSPACE: return VK_BACK; break;
+					case MU_KEYBOARD_TAB: return VK_TAB; break;
+					case MU_KEYBOARD_CLEAR: return VK_CLEAR; break;
+					case MU_KEYBOARD_RETURN: return VK_RETURN; break;
+					case MU_KEYBOARD_PAUSE: return VK_PAUSE; break;
+					case MU_KEYBOARD_ESCAPE: return VK_ESCAPE; break;
+					case MU_KEYBOARD_MODECHANGE: return VK_MODECHANGE; break;
+					case MU_KEYBOARD_SPACE: return VK_SPACE; break;
+					case MU_KEYBOARD_PRIOR: return VK_PRIOR; break;
+					case MU_KEYBOARD_NEXT: return VK_NEXT; break;
+					case MU_KEYBOARD_END: return VK_END; break;
+					case MU_KEYBOARD_HOME: return VK_HOME; break;
+					case MU_KEYBOARD_LEFT: return VK_LEFT; break;
+					case MU_KEYBOARD_UP: return VK_UP; break;
+					case MU_KEYBOARD_RIGHT: return VK_RIGHT; break;
+					case MU_KEYBOARD_DOWN: return VK_DOWN; break;
+					case MU_KEYBOARD_SELECT: return VK_SELECT; break;
+					case MU_KEYBOARD_PRINT: return VK_PRINT; break;
+					case MU_KEYBOARD_EXECUTE: return VK_EXECUTE; break;
+					case MU_KEYBOARD_INSERT: return VK_INSERT; break;
+					case MU_KEYBOARD_DELETE: return VK_DELETE; break;
+					case MU_KEYBOARD_HELP: return VK_HELP; break;
+					case MU_KEYBOARD_0: return 0x30; break;
+					case MU_KEYBOARD_1: return 0x31; break;
+					case MU_KEYBOARD_2: return 0x32; break;
+					case MU_KEYBOARD_3: return 0x33; break;
+					case MU_KEYBOARD_4: return 0x34; break;
+					case MU_KEYBOARD_5: return 0x35; break;
+					case MU_KEYBOARD_6: return 0x36; break;
+					case MU_KEYBOARD_7: return 0x37; break;
+					case MU_KEYBOARD_8: return 0x38; break;
+					case MU_KEYBOARD_9: return 0x39; break;
+					case MU_KEYBOARD_A: return 0x41; break;
+					case MU_KEYBOARD_B: return 0x42; break;
+					case MU_KEYBOARD_C: return 0x43; break;
+					case MU_KEYBOARD_D: return 0x44; break;
+					case MU_KEYBOARD_E: return 0x45; break;
+					case MU_KEYBOARD_F: return 0x46; break;
+					case MU_KEYBOARD_G: return 0x47; break;
+					case MU_KEYBOARD_H: return 0x48; break;
+					case MU_KEYBOARD_I: return 0x49; break;
+					case MU_KEYBOARD_J: return 0x4A; break;
+					case MU_KEYBOARD_K: return 0x4B; break;
+					case MU_KEYBOARD_L: return 0x4C; break;
+					case MU_KEYBOARD_M: return 0x4D; break;
+					case MU_KEYBOARD_N: return 0x4E; break;
+					case MU_KEYBOARD_O: return 0x4F; break;
+					case MU_KEYBOARD_P: return 0x50; break;
+					case MU_KEYBOARD_Q: return 0x51; break;
+					case MU_KEYBOARD_R: return 0x52; break;
+					case MU_KEYBOARD_S: return 0x53; break;
+					case MU_KEYBOARD_T: return 0x54; break;
+					case MU_KEYBOARD_U: return 0x55; break;
+					case MU_KEYBOARD_V: return 0x56; break;
+					case MU_KEYBOARD_W: return 0x57; break;
+					case MU_KEYBOARD_X: return 0x58; break;
+					case MU_KEYBOARD_Y: return 0x59; break;
+					case MU_KEYBOARD_Z: return 0x5A; break;
+					case MU_KEYBOARD_LEFT_WINDOWS: return VK_LWIN; break;
+					case MU_KEYBOARD_RIGHT_WINDOWS: return VK_RWIN; break;
+					case MU_KEYBOARD_NUMPAD_0: return VK_NUMPAD0; break;
+					case MU_KEYBOARD_NUMPAD_1: return VK_NUMPAD1; break;
+					case MU_KEYBOARD_NUMPAD_2: return VK_NUMPAD2; break;
+					case MU_KEYBOARD_NUMPAD_3: return VK_NUMPAD3; break;
+					case MU_KEYBOARD_NUMPAD_4: return VK_NUMPAD4; break;
+					case MU_KEYBOARD_NUMPAD_5: return VK_NUMPAD5; break;
+					case MU_KEYBOARD_NUMPAD_6: return VK_NUMPAD6; break;
+					case MU_KEYBOARD_NUMPAD_7: return VK_NUMPAD7; break;
+					case MU_KEYBOARD_NUMPAD_8: return VK_NUMPAD8; break;
+					case MU_KEYBOARD_NUMPAD_9: return VK_NUMPAD9; break;
+					case MU_KEYBOARD_MULTIPLY: return VK_MULTIPLY; break;
+					case MU_KEYBOARD_ADD: return VK_ADD; break;
+					case MU_KEYBOARD_SEPARATOR: return VK_SEPARATOR; break;
+					case MU_KEYBOARD_SUBTRACT: return VK_SUBTRACT; break;
+					case MU_KEYBOARD_DECIMAL: return VK_DECIMAL; break;
+					case MU_KEYBOARD_DIVIDE: return VK_DIVIDE; break;
+					case MU_KEYBOARD_F1: return VK_F1; break;
+					case MU_KEYBOARD_F2: return VK_F2; break;
+					case MU_KEYBOARD_F3: return VK_F3; break;
+					case MU_KEYBOARD_F4: return VK_F4; break;
+					case MU_KEYBOARD_F5: return VK_F5; break;
+					case MU_KEYBOARD_F6: return VK_F6; break;
+					case MU_KEYBOARD_F7: return VK_F7; break;
+					case MU_KEYBOARD_F8: return VK_F8; break;
+					case MU_KEYBOARD_F9: return VK_F9; break;
+					case MU_KEYBOARD_F10: return VK_F10; break;
+					case MU_KEYBOARD_F11: return VK_F11; break;
+					case MU_KEYBOARD_F12: return VK_F12; break;
+					case MU_KEYBOARD_F13: return VK_F13; break;
+					case MU_KEYBOARD_F14: return VK_F14; break;
+					case MU_KEYBOARD_F15: return VK_F15; break;
+					case MU_KEYBOARD_F16: return VK_F16; break;
+					case MU_KEYBOARD_F17: return VK_F17; break;
+					case MU_KEYBOARD_F18: return VK_F18; break;
+					case MU_KEYBOARD_F19: return VK_F19; break;
+					case MU_KEYBOARD_F20: return VK_F20; break;
+					case MU_KEYBOARD_F21: return VK_F21; break;
+					case MU_KEYBOARD_F22: return VK_F22; break;
+					case MU_KEYBOARD_F23: return VK_F23; break;
+					case MU_KEYBOARD_F24: return VK_F24; break;
+					case MU_KEYBOARD_NUMLOCK: return VK_NUMLOCK; break;
+					case MU_KEYBOARD_SCROLL: return VK_SCROLL; break;
+					case MU_KEYBOARD_LEFT_SHIFT: return VK_LSHIFT; break;
+					case MU_KEYBOARD_RIGHT_SHIFT: return VK_RSHIFT; break;
+					case MU_KEYBOARD_LEFT_CONTROL: return VK_LCONTROL; break;
+					case MU_KEYBOARD_RIGHT_CONTROL: return VK_RCONTROL; break;
+					case MU_KEYBOARD_LEFT_MENU: return VK_LMENU; break;
+					case MU_KEYBOARD_RIGHT_MENU: return VK_RMENU; break;
+					case MU_KEYBOARD_ATTN: return VK_ATTN; break;
+					case MU_KEYBOARD_CRSEL: return VK_CRSEL; break;
+					case MU_KEYBOARD_EXSEL: return VK_EXSEL; break;
+					case MU_KEYBOARD_EREOF: return VK_EREOF; break;
+					case MU_KEYBOARD_PLAY: return VK_PLAY; break;
+					case MU_KEYBOARD_PA1: return VK_PA1; break;
+				}
+			}
+
 			// muCOSA cursor style to Win32 cursor
 			void* muCOSAW32_muCOSA_cursor_to_W32(muCursorStyle style) {
 				switch (style) {
@@ -2500,7 +2677,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			}
 
 			// muCOSA keystate to Win32
-			int muCOSAW32_keystate_to_W32(muKeystate state) {
+			int muCOSAW32_keystate_to_W32(muKeyboardState state) {
 				switch (state) {
 					default: return VK_NONAME; break;
 					case MU_KEYSTATE_CAPS_LOCK: return VK_CAPITAL; break;
@@ -3061,6 +3238,574 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				// Close clipboard and we're done
 				CloseClipboard();
 			}
+
+		/* Terminal */
+
+			/* Semi-setup stuff */
+
+				// Struct representing a terminal
+				struct muCOSAW32_Terminal {
+					// Process information generated from CreateProcess
+					PROCESS_INFORMATION pi;
+					// Terminal information
+					muTerminalInfo ti;
+					// Current amount of bytes allocated for ti.buffer.chars
+					size_m chars_bytes;
+					// Mouse position tracker
+					COORD mouse_position;
+					// Mouse button state tracker
+					DWORD mouse_button_state;
+					// Control key state tracker
+					DWORD control_key_state;
+				};
+				typedef struct muCOSAW32_Terminal muCOSAW32_Terminal;
+
+				// Name of cmd process
+				static const wchar_t muCOSAW32_cmd[4] = { 'c', 'm', 'd', '\0' };
+
+				// Creates terminal
+				muCOSAW32_Terminal* muCOSAW32_terminal_create(muCOSAResult* result, uint32_m width, uint32_m height) {
+					// Allocate terminal
+					muCOSAW32_Terminal* ter = (muCOSAW32_Terminal*)mu_malloc(sizeof(muCOSAW32_Terminal));
+					if (!ter) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_MALLOC)
+						return 0;
+					}
+
+					// Set certain terminal defaults
+					// - Misc.
+					mu_memset(&ter->pi, 0, sizeof(ter->pi));
+					ter->ti.alive = MU_TRUE;
+					ter->mouse_position.X = ter->mouse_position.Y = 0;
+					ter->mouse_button_state = 0;
+					ter->control_key_state = 0;
+					// - Allocate terminal character buffer
+					ter->chars_bytes = sizeof(muTerminalChar) * width * height;
+					ter->ti.buffer.chars = (muTerminalChar*)mu_malloc(ter->chars_bytes);
+					if (!ter->ti.buffer.chars) {
+						MU_SET_RESULT(result, MUCOSA_FAILED_MALLOC)
+						mu_free(ter);
+						return 0;
+					}
+
+					// Set-up start-up info
+					STARTUPINFOW si_info;
+					mu_memset(&si_info, 0, sizeof(si_info));
+					si_info.cb = sizeof(si_info);
+					// - Width & height
+					si_info.dwFlags |= STARTF_USECOUNTCHARS;
+					si_info.dwXCountChars = (DWORD)width;
+					si_info.dwYCountChars = (DWORD)height;
+
+					// Create cmd process
+					if (!CreateProcessW(
+						// App name; we don't care
+						NULL,
+						// Command line to be executed; cmd to run command prompt
+						(LPWSTR)muCOSAW32_cmd,
+						// Security attributes; we don't care
+						NULL,
+						// Thread attributes; we don't care
+						NULL,
+						// Inherit handles; true...?
+						TRUE,
+						// Creation flags; do not visually create a window
+						CREATE_NO_WINDOW,
+						// Environment block; we don't care
+						NULL,
+						// Current directory path; we don't care
+						NULL,
+						// Start-up info
+						&si_info,
+						// Process info
+						&ter->pi
+					)) {
+						MU_SET_RESULT(result, MUCOSA_WIN32_FAILED_CREATE_PROCESS)
+						mu_free(ter->ti.buffer.chars);
+						mu_free(ter);
+						return 0;
+					}
+
+					// Give terminal pointer
+					return ter;
+				}
+
+				// Returns if terminal still exists
+				muBool muCOSAW32_terminal_exists(muCOSAW32_Terminal* ter) {
+					// Get exit code
+					DWORD exit_code = 0;
+					if (!GetExitCodeProcess(ter->pi.hProcess, &exit_code)) {
+						// If getting it failed, assume it doesn't exist
+						return MU_FALSE;
+					}
+
+					// If exit code == 259 (STILL_ACTIVE), still exists
+					if (exit_code == 259) {
+						return MU_TRUE;
+					}
+					return MU_FALSE;
+				}
+
+				// Destroys terminal
+				void muCOSAW32_terminal_destroy(muCOSAW32_Terminal* ter) {
+					// Terminate process if it still exists
+					if (muCOSAW32_terminal_exists(ter)) {
+						TerminateProcess(ter->pi.hProcess, 0);
+					}
+
+					// Deallocate terminal's resources + terminal
+					mu_free(ter->ti.buffer.chars);
+					mu_free(ter);
+				}
+
+				// Retrieves terminal info pointer
+				muTerminalInfo* muCOSAW32_terminal_info(muCOSAW32_Terminal* ter) {
+					return &ter->ti;
+				}
+
+				// Binds the given terminal
+				void muCOSAW32_terminal_bind(muCOSAW32_Terminal* ter) {
+					// Attach to console via process ID
+					AttachConsole(ter->pi.dwProcessId);
+				}
+
+				// Unbinds the given terminal
+				void muCOSAW32_terminal_unbind(muCOSAW32_Terminal* ter) {
+					// Deattach console
+					FreeConsole();
+					return; if (ter) {}
+				}
+
+			/* Updating */
+
+				// Reads all info regarding the CONSOLE_SCREEN_BUFFER_INFO
+				void muCOSAW32_terminal_update_screen_buffer_info(muCOSAW32_Terminal* ter, HANDLE out) {
+					// Read screen buffer info
+					CONSOLE_SCREEN_BUFFER_INFO buf_info;
+					if (!GetConsoleScreenBufferInfo(out, &buf_info)) {
+						return;
+					}
+
+					// Update width & height
+					ter->ti.buffer.column_width = (uint32_m)buf_info.dwSize.X;
+					ter->ti.buffer.row_height   = (uint32_m)buf_info.dwSize.Y;
+					// Update cursor position
+					ter->ti.cursor.column = (uint32_m)buf_info.dwCursorPosition.X;
+					ter->ti.cursor.row    = (uint32_m)buf_info.dwCursorPosition.Y;
+					// Update scroll amount
+					ter->ti.buffer.scroll = (uint32_m)buf_info.srWindow.Top;
+				}
+
+				// Translates a Win32 terminal character to a muCOSA terminal character
+				void muCOSAW32_terminal_update_character(CHAR_INFO* win32_char, muTerminalChar* muCOSA_char) {
+					// Codepoint value:
+					muCOSA_char->codepoint = win32_char->Char.UnicodeChar;
+
+					// Text color
+					// - Red
+					if (win32_char->Attributes & 0x0004) {
+						muCOSA_char->text_color[0] = (win32_char->Attributes & 0x0008) ?(255) :(200);
+					} else {
+						muCOSA_char->text_color[0] = 0;
+					}
+					// - Green
+					if (win32_char->Attributes & 0x0002) {
+						muCOSA_char->text_color[1] = (win32_char->Attributes & 0x0008) ?(255) :(200);
+					} else {
+						muCOSA_char->text_color[1] = 0;
+					}
+					// - Blue
+					if (win32_char->Attributes & 0x0001) {
+						muCOSA_char->text_color[2] = (win32_char->Attributes & 0x0008) ?(255) :(200);
+					} else {
+						muCOSA_char->text_color[2] = 0;
+					}
+
+					// Background color
+					// - Red
+					if (win32_char->Attributes & 0x0040) {
+						muCOSA_char->background_color[0] = (win32_char->Attributes & 0x0080) ?(255) :(200);
+					} else {
+						muCOSA_char->background_color[0] = 0;
+					}
+					// - Green
+					if (win32_char->Attributes & 0x0020) {
+						muCOSA_char->background_color[1] = (win32_char->Attributes & 0x0080) ?(255) :(200);
+					} else {
+						muCOSA_char->background_color[1] = 0;
+					}
+					// - Blue
+					if (win32_char->Attributes & 0x0010) {
+						muCOSA_char->background_color[2] = (win32_char->Attributes & 0x0080) ?(255) :(200);
+					} else {
+						muCOSA_char->background_color[2] = 0;
+					}
+
+					// Style
+					muCOSA_char->style = 0;
+					muCOSA_char->style |= (win32_char->Attributes & 0x8000) ?(MU_TERMINAL_UNDERSCORE) :(0);
+				}
+
+				// Reads terminal character information
+				void muCOSAW32_terminal_update_characters(muCOSAW32_Terminal* ter, HANDLE out) {
+					// Reallocate character buffer if necessary
+					size_m alloc_amount = sizeof(muTerminalChar) * ter->ti.buffer.column_width * ter->ti.buffer.row_height;
+					if (alloc_amount != ter->chars_bytes) {
+						muTerminalChar* chars = (muTerminalChar*)mu_realloc(ter->ti.buffer.chars, alloc_amount);
+						if (chars == NULL) {
+							return;
+						}
+						ter->ti.buffer.chars = chars;
+						ter->chars_bytes = alloc_amount;
+					}
+
+					// Read line-by-line in chunks of defined buffer sizes
+					// - Char buffer:
+					#define MUCOSAW32_TERMINAL_READ_LINE_BUF 16
+					CHAR_INFO char_info[MUCOSAW32_TERMINAL_READ_LINE_BUF];
+					// - Read region:
+					SMALL_RECT read_region;
+					mu_memset(&read_region, 0, sizeof(read_region));
+					read_region.Right = MUCOSAW32_TERMINAL_READ_LINE_BUF-1;
+					// - Buffer size:
+					COORD buffer_size;
+					buffer_size.X = MUCOSAW32_TERMINAL_READ_LINE_BUF;
+					buffer_size.Y = 1;
+					// - Buffer coord:
+					COORD buffer_coord;
+					mu_memset(&buffer_coord, 0, sizeof(buffer_coord));
+					// - Progressive chars pointer
+					muTerminalChar* prog_chars = ter->ti.buffer.chars;
+
+					// - Loop through each row:
+					for (uint32_m r = 0; r < ter->ti.buffer.row_height; ++r) {
+						// - Loop through each column, buf by buf:
+						for (uint32_m c = 0; c < ter->ti.buffer.column_width; c += MUCOSAW32_TERMINAL_READ_LINE_BUF) {
+							// Read character:
+							uint32_m column_read;
+							// If this is the last column strip we're gonna read for this row,
+							// we need only read the remaining column characters in the row
+							if ((c + MUCOSAW32_TERMINAL_READ_LINE_BUF) >= ter->ti.buffer.column_width) {
+								// Amount of columns to read:
+								column_read = (ter->ti.buffer.column_width - (c + MUCOSAW32_TERMINAL_READ_LINE_BUF)) + 1;
+								// Apply to read region:
+								read_region.Right = read_region.Left + (column_read - 1);
+								// Read stuff
+								buffer_size.X = column_read;
+								ReadConsoleOutput(out, char_info, buffer_size, buffer_coord, &read_region);
+								// Set values for next row
+								buffer_size.X = MUCOSAW32_TERMINAL_READ_LINE_BUF;
+								read_region.Left = 0;
+								read_region.Right = MUCOSAW32_TERMINAL_READ_LINE_BUF-1;
+								read_region.Top++;
+								read_region.Bottom++;
+							}
+							// If this ISN'T the last column strip, read whole buf
+							else {
+								column_read = MUCOSAW32_TERMINAL_READ_LINE_BUF;
+								ReadConsoleOutput(out, char_info, buffer_size, buffer_coord, &read_region);
+								// Set values for next row
+								read_region.Left += MUCOSAW32_TERMINAL_READ_LINE_BUF;
+								read_region.Right += MUCOSAW32_TERMINAL_READ_LINE_BUF;
+							}
+
+							// Loop through and update each read character
+							for (uint32_m i = 0; i < column_read; ++i) {
+								muCOSAW32_terminal_update_character(&char_info[i], prog_chars++);
+							}
+						}
+					}
+				}
+
+				// Reads all info regarding CONSOLE_SELECTION_INFO
+				void muCOSAW32_terminal_update_selection(muCOSAW32_Terminal* ter) {
+					// Get selection info
+					CONSOLE_SELECTION_INFO sel_info;
+					if (!GetConsoleSelectionInfo(&sel_info)) {
+						return;
+					}
+
+					// Determine if there is a selection
+					if (sel_info.dwFlags == 0x0000) {
+						ter->ti.selection.active = MU_FALSE;
+						return;
+					} else {
+						ter->ti.selection.active = MU_TRUE;
+					}
+
+					// Beggining/End column/row
+					ter->ti.selection.beginning_column = (uint32_m)sel_info.srSelection.Left;
+					ter->ti.selection.beginning_row    = (uint32_m)sel_info.srSelection.Top;
+					ter->ti.selection.end_column       = (uint32_m)sel_info.srSelection.Right;
+					ter->ti.selection.end_row          = (uint32_m)sel_info.srSelection.Bottom;
+				}
+
+				// Updates terminal information
+				void muCOSAW32_terminal_update(muCOSAW32_Terminal* ter) {
+					// Determine if alive
+					if (!ter->ti.alive) {
+						return;
+					}
+					ter->ti.alive = muCOSAW32_terminal_exists(ter);
+					if (!ter->ti.alive) {
+						return;
+					}
+
+					// Bind terminal
+					muCOSAW32_terminal_bind(ter);
+					// Get STDOUT
+					HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+					
+					// Read bunch of info
+					muCOSAW32_terminal_update_screen_buffer_info(ter, out);
+					muCOSAW32_terminal_update_characters(ter, out);
+					muCOSAW32_terminal_update_selection(ter);
+
+					// Unbind terminal
+					muCOSAW32_terminal_unbind(ter);
+				}
+
+			/* Input */
+
+				// Syncs input
+				void muCOSAW32_terminal_input_sync(muCOSAW32_Terminal* ter, muBool* exit_signal) {
+					// Bind terminal
+					muCOSAW32_terminal_bind(ter);
+					// Get STDIN
+					HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
+
+					// Keep looping until rather:
+					DWORD events = 0;
+					while (TRUE) {
+						// 1. Exit signal is non-NULL and signals to exit.
+						if (exit_signal) {
+							if ((*exit_signal) == MU_TRUE) {
+								break;
+							}
+						}
+
+						// 2. Failure to retrieve amount of events in the input buffer.
+						if (!GetNumberOfConsoleInputEvents(in, &events)) {
+							break;
+						}
+
+						// 3. No more inputs are in the input buffer.
+						if (events == 0) {
+							break;
+						}
+					}
+					// ^ There might be a better way of doing this, since this
+					// seems inefficient, but I am unaware of a better method.
+
+					// Unbind terminal
+					muCOSAW32_terminal_unbind(ter);
+				}
+
+				// Sends an input record to a terminal
+				void muCOSAW32_terminal_send_input_record(muCOSAW32_Terminal* ter, INPUT_RECORD* input_rec) {
+					muCOSAW32_terminal_bind(ter);
+					HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
+					DWORD written;
+					WriteConsoleInput(in, input_rec, 1, &written);
+					muCOSAW32_terminal_unbind(ter);
+				}
+
+				// Dimensions input
+				void muCOSAW32_terminal_input_dimensions(muCOSAW32_Terminal* ter, uint32_m* dim) {
+					// Form and send input record
+					INPUT_RECORD input_rec = MU_ZERO_STRUCT(INPUT_RECORD);
+					input_rec.EventType = 0x0004;
+					input_rec.Event.WindowBufferSizeEvent.dwSize.X = dim[0];
+					input_rec.Event.WindowBufferSizeEvent.dwSize.Y = dim[1];
+					muCOSAW32_terminal_send_input_record(ter, &input_rec);
+				}
+
+				// Scroll input
+				void muCOSAW32_terminal_input_scroll(muCOSAW32_Terminal* ter, uint32_m* scroll) {
+					// This function assumes that the parameter:
+					// lpConsoleScreenBufferInfo.srWindow in GetConsoleScreenBufferInfo
+					// works the same way as the parameter:
+					// lpConsoleWindow in SetConsoleWindowInfo
+
+					// Bind and get out handle
+					muCOSAW32_terminal_bind(ter);
+					HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+
+					// Get current display window info
+					CONSOLE_SCREEN_BUFFER_INFO buf_info;
+					if (!GetConsoleScreenBufferInfo(out, &buf_info)) {
+						return;
+					}
+
+					// Make new SMALL_RECT based on srWindow
+					SMALL_RECT new_rect;
+					new_rect.Left = buf_info.srWindow.Left;
+					new_rect.Right = buf_info.srWindow.Right;
+					new_rect.Top = *scroll;
+					new_rect.Bottom = new_rect.Top + (buf_info.srWindow.Top - buf_info.srWindow.Bottom);
+
+					// Set new window
+					SetConsoleWindowInfo(out, TRUE, &new_rect);
+
+					// Unbind terminal
+					muCOSAW32_terminal_unbind(ter);
+				}
+
+				// Mouse position input
+				void muCOSAW32_terminal_input_mouse_position(muCOSAW32_Terminal* ter, uint32_m* pos) {
+					// Form and send input record
+					INPUT_RECORD input_rec = MU_ZERO_STRUCT(INPUT_RECORD);
+					input_rec.EventType = 0x0002;
+					input_rec.Event.MouseEvent.dwMousePosition.X = pos[0];
+					input_rec.Event.MouseEvent.dwMousePosition.Y = pos[1];
+					input_rec.Event.MouseEvent.dwButtonState = ter->mouse_button_state;
+					input_rec.Event.MouseEvent.dwControlKeyState = ter->control_key_state;
+					input_rec.Event.MouseEvent.dwEventFlags = 0x0001;
+					muCOSAW32_terminal_send_input_record(ter, &input_rec);
+
+					// Update mouse position tracker
+					ter->mouse_position.X = pos[0];
+					ter->mouse_position.Y = pos[1];
+				}
+
+				// Mouse button input
+				void muCOSAW32_terminal_input_mouse_button(muCOSAW32_Terminal* ter, muTerminalMouseButton* button) {
+					// Modify button state tracker
+					if (button->state) {
+						switch (button->key) {
+							default: return; break;
+							case MU_MOUSE_LEFT:   ter->mouse_button_state |= 0x0001; break;
+							case MU_MOUSE_RIGHT:  ter->mouse_button_state |= 0x0002; break;
+							case MU_MOUSE_MIDDLE: ter->mouse_button_state |= 0x0004; break; // <--- Probably incorrect
+						}
+					} else {
+						switch (button->key) {
+							default: return; break;
+							case MU_MOUSE_LEFT:   ter->mouse_button_state &= ~0x0001; break;
+							case MU_MOUSE_RIGHT:  ter->mouse_button_state &= ~0x0002; break;
+							case MU_MOUSE_MIDDLE: ter->mouse_button_state &= ~0x0004; break;
+						}
+					}
+
+					// Form and send input record
+					INPUT_RECORD input_rec = MU_ZERO_STRUCT(INPUT_RECORD);
+					input_rec.EventType = 0x0002;
+					input_rec.Event.MouseEvent.dwMousePosition = ter->mouse_position;
+					input_rec.Event.MouseEvent.dwButtonState = ter->mouse_button_state;
+					input_rec.Event.MouseEvent.dwControlKeyState = ter->control_key_state;
+					input_rec.Event.MouseEvent.dwEventFlags = 0x0000;
+					muCOSAW32_terminal_send_input_record(ter, &input_rec);
+				}
+
+				// Text input
+				void muCOSAW32_terminal_input_text(muCOSAW32_Terminal* ter, char* text) {
+					// Convert UTF-8 to UTF-16
+					wchar_t* wstr = muCOSAW32_utf8_to_wchar(text);
+					if (!wstr) {
+						return;
+					}
+
+					// Bind and get handle
+					muCOSAW32_terminal_bind(ter);
+					HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+
+					// Write string
+					DWORD written;
+					WriteConsoleW(out, wstr, lstrlenW(wstr), &written, NULL);
+
+					// Unbind and deallocate
+					muCOSAW32_terminal_unbind(ter);
+					mu_free(wstr);
+				}
+
+				// Keyboard key input
+				void muCOSAW32_terminal_input_keyboard_key(muCOSAW32_Terminal* ter, muTerminalKeyboardKey* key) {
+					// Form input record
+					INPUT_RECORD input_rec = MU_ZERO_STRUCT(INPUT_RECORD);
+
+					// - Misc.
+					input_rec.EventType = 0x0001;
+					input_rec.Event.KeyEvent.bKeyDown = key->state;
+					input_rec.Event.KeyEvent.wRepeatCount = 1;
+					input_rec.Event.KeyEvent.dwControlKeyState = ter->control_key_state;
+
+					// - Converting muCOSA key to virtual key;
+					//   if no equivalent, exit function
+					input_rec.Event.KeyEvent.wVirtualKeyCode = muCOSAW32_muCOSA_to_VK(key->key);
+					if (input_rec.Event.KeyEvent.wVirtualKeyCode == 0) {
+						return;
+					}
+
+					// - Map that virtual key to the scan code
+					input_rec.Event.KeyEvent.wVirtualScanCode = MapVirtualKeyW(input_rec.Event.KeyEvent.wVirtualKeyCode, MAPVK_VK_TO_VSC);
+
+					// - Convert virtual key to a Unicode character
+					//   To do this, a keyboard state array must be set up.
+					//   Only toggle bit of caps lock is relevant according to docs.
+					BYTE states[256];
+					//   I THINK this is how you index into it properly.
+					states[VK_CAPITAL] = ((ter->control_key_state & 0x0080) || (ter->control_key_state & 0x0010)) ?(0xFF) :(0x00);
+					//   Then convert:
+					WCHAR key_unicode[2] = { 0, 0 };
+					ToUnicode(
+						// The key code
+						input_rec.Event.KeyEvent.wVirtualKeyCode,
+						// The scan code
+						input_rec.Event.KeyEvent.wVirtualScanCode,
+						// The key state
+						states,
+						// The WCHAR buffer for it to fill in
+						key_unicode,
+						// How long that buffer is
+						2,
+						// wFlags
+						0
+					);
+					//   Then write result to UnicodeChar
+					input_rec.Event.KeyEvent.uChar.UnicodeChar = key_unicode[0];
+
+					// Send input record
+					muCOSAW32_terminal_send_input_record(ter, &input_rec);
+				}
+
+				// Keyboard state input
+				void muCOSAW32_terminal_input_keyboard_state(muCOSAW32_Terminal* ter, muTerminalKeyboardState* state) {
+					// As far as I can tell, you can't just send a
+					// key state change; you have to change a key
+					// along with it, so all I can really do here
+					// is internally update the control key state
+					// which will be sent with the next keyboard
+					// key event.
+					if (state->active) {
+						switch (state->state) {
+							default: return; break;
+							case MU_KEYSTATE_CAPS_LOCK:   ter->control_key_state |= 0x0080; break;
+							case MU_KEYSTATE_SCROLL_LOCK: ter->control_key_state |= 0x0040; break;
+							case MU_KEYSTATE_NUM_LOCK:    ter->control_key_state |= 0x0020; break;
+						}
+					} else {
+						switch (state->state) {
+							default: return; break;
+							case MU_KEYSTATE_CAPS_LOCK:   ter->control_key_state &= ~0x0080; break;
+							case MU_KEYSTATE_SCROLL_LOCK: ter->control_key_state &= ~0x0040; break;
+							case MU_KEYSTATE_NUM_LOCK:    ter->control_key_state &= ~0x0020; break;
+						}
+					}
+				}
+
+				// All input
+				void muCOSAW32_terminal_input(muCOSAW32_Terminal* ter, muTerminalInput input_type, void* input) {
+					switch (input_type) {
+						default: return; break;
+						case MU_TERMINAL_INPUT_DIMENSIONS: muCOSAW32_terminal_input_dimensions(ter, (uint32_m*)input); break;
+						case MU_TERMINAL_INPUT_SCROLL: muCOSAW32_terminal_input_scroll(ter, (uint32_m*)input); break;
+						case MU_TERMINAL_INPUT_MOUSE_POSITION: muCOSAW32_terminal_input_mouse_position(ter, (uint32_m*)input); break;
+						case MU_TERMINAL_INPUT_MOUSE_BUTTON: muCOSAW32_terminal_input_mouse_button(ter, (muTerminalMouseButton*)input); break;
+						case MU_TERMINAL_INPUT_TEXT: muCOSAW32_terminal_input_text(ter, (char*)input); break;
+						case MU_TERMINAL_INPUT_KEYBOARD_KEY: muCOSAW32_terminal_input_keyboard_key(ter, (muTerminalKeyboardKey*)input); break;
+						case MU_TERMINAL_INPUT_KEYBOARD_STATE: muCOSAW32_terminal_input_keyboard_state(ter, (muTerminalKeyboardState*)input); break;
+					}
+				}
 
 		/* Context */
 
@@ -3938,7 +4683,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// Checks all keystates and updates accordingly
 			void muCOSAW32_update_keystate(muCOSAW32_Window* win) {
 				// Loop through each possible keystate
-				for (muKeystate s = 1; s < MU_KEYSTATE_LENGTH; ++s) {
+				for (muKeyboardState s = 1; s < MU_KEYSTATE_LENGTH; ++s) {
 					// Assume not on at first
 					muBool b = MU_FALSE;
 					// Convert keystate to Win32
@@ -5052,6 +5797,117 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			if (result) {} if (data) {} if (datalen) {}
 		}
 
+	/* Terminal */
+
+		MUDEF muTerminal muCOSA_terminal_create(muCOSAContext* context, muCOSAResult* result, uint32_m column_width, uint32_m row_height) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return 0; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					return (muTerminal)muCOSAW32_terminal_create(result, column_width, row_height);
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (result) {} if (column_width) {} if (row_height) {}
+		}
+
+		MUDEF muTerminal muCOSA_terminal_destroy(muCOSAContext* context, muTerminal ter) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return 0; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					muCOSAW32_terminal_destroy((muCOSAW32_Terminal*)ter);
+					return 0;
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (ter) {}
+		}
+
+		MUDEF void muCOSA_terminal_update(muCOSAContext* context, muTerminal ter) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					muCOSAW32_terminal_update((muCOSAW32_Terminal*)ter);
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (ter) {}
+		}
+
+		MUDEF muTerminalInfo* muCOSA_terminal_info(muCOSAContext* context, muTerminal ter) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return 0; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					return muCOSAW32_terminal_info((muCOSAW32_Terminal*)ter);
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (ter) {}
+		}
+
+		MUDEF void muCOSA_terminal_input(muCOSAContext* context, muTerminal ter, muTerminalInput input_type, void* input) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					muCOSAW32_terminal_input((muCOSAW32_Terminal*)ter, input_type, input);
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (ter) {} if (input_type) {} if (input) {}
+		}
+
+		MUDEF void muCOSA_terminal_input_sync(muCOSAContext* context, muTerminal ter, muBool* exit_signal) {
+			// Get inner from context
+			muCOSA_Inner* inner = (muCOSA_Inner*)context->inner;
+
+			// Do things based on window system
+			switch (inner->system) {
+				default: return; break;
+
+				// Win32
+				MUCOSA_WIN32_CALL(case MU_WINDOW_WIN32: {
+					muCOSAW32_terminal_input_sync((muCOSAW32_Terminal*)ter, exit_signal);
+				} break;)
+			}
+
+			// To avoid unused parameter warnings in some circumstances
+			if (ter) {} if (exit_signal) {}
+		}
+
 	/* Result */
 
 		MUDEF muBool muCOSA_result_is_fatal(muCOSAResult result) {
@@ -5120,6 +5976,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				case MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT: return "MUCOSA_WIN32_FAILED_CONVERT_CLIPBOARD_DATA_FORMAT"; break;
 				case MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA: return "MUCOSA_WIN32_FAILED_ALLOCATE_CLIPBOARD_DATA"; break;
 				case MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA: return "MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA"; break;
+				case MUCOSA_WIN32_FAILED_CREATE_PROCESS: return "MUCOSA_WIN32_FAILED_CREATE_PROCESS"; break;
 			}
 		}
 
@@ -5427,7 +6284,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			}
 		}
 
-		MUDEF const char* mu_keystate_get_name(muKeystate state) {
+		MUDEF const char* mu_keystate_get_name(muKeyboardState state) {
 			switch (state) {
 				default: return "MU_UNKNOWN"; break;
 				case MU_KEYSTATE_UNKNOWN: return "MU_KEYSTATE_UNKNOWN"; break;
@@ -5437,7 +6294,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			}
 		}
 
-		MUDEF const char* mu_keystate_get_nice_name(muKeystate state) {
+		MUDEF const char* mu_keystate_get_nice_name(muKeyboardState state) {
 			switch (state) {
 				default: return "Unknown"; break;
 				case MU_KEYSTATE_UNKNOWN: return "Unknown"; break;
@@ -5581,6 +6438,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 	MU_CPP_EXTERN_END
 
 #endif /* MUCOSA_IMPLEMENTATION */
+// @ATTENTION
 
 /*
 ------------------------------------------------------------------------------

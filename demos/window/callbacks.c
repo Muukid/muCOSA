@@ -5,7 +5,7 @@
 DEMO NAME:          callbacks.c
 DEMO WRITTEN BY:    Muukid
 CREATION DATE:      2024-08-07
-LAST UPDATED:       2024-08-07
+LAST UPDATED:       2024-10-17
 
 ============================================================
                         DEMO PURPOSE
@@ -72,7 +72,7 @@ More explicit license information at the end of file.
 	}
 
 	// Keystate callback; called every time a keyboard state changes
-	void keystate_callback(muWindow win, muKeystate state, muBool status) {
+	void keystate_callback(muWindow win, muKeyboardState state, muBool status) {
 		// Print keystate
 		printf("[Keystate] %s - ", mu_keystate_get_nice_name(state));
 		// Print if on or off
