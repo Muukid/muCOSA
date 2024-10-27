@@ -480,7 +480,7 @@ void (*keyboard)(muWindow win, muKeyboardKey key, muBool status);
 * `void (*keystate)` - the keystate callback, called every time that the status of a keystate on the [keystate keymap](#keystate-keymap) changes, defined below: 
 
 ```c
-void (*keystate)(muWindow win, muKeystate state, muBool status);
+void (*keystate)(muWindow win, muKeyboardState state, muBool status);
 ```
 
 
@@ -631,7 +631,7 @@ It will return "Unknown" in the case that `key` is an invalid keyboard key value
 
 ### Keystate keymap
 
-The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeystate` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
+The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeyboardState` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
 
 * `MU_KEYSTATE_UNKNOWN` - unknown keystate.
 
@@ -648,7 +648,7 @@ Once the pointer to the keystate keymap array has been retrieved via `muCOSA_win
 The name function `mu_keystate_get_name` returns a `const char*` representation of the given keystate (for example, `MU_KEYSTATE_CAPS_LOCK` returns "MU_KEYSTATE_CAPS_LOCK"), defined below: 
 
 ```c
-MUDEF const char* mu_keystate_get_name(muKeystate state);
+MUDEF const char* mu_keystate_get_name(muKeyboardState state);
 ```
 
 
@@ -657,7 +657,7 @@ It will return "MU_UNKNOWN" in the case that `state` is an invalid keystate valu
 The name function `mu_keystate_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYSTATE_CAPS_LOCK` returns "Caps Lock"), defined below: 
 
 ```c
-MUDEF const char* mu_keystate_get_nice_name(muKeystate state);
+MUDEF const char* mu_keystate_get_nice_name(muKeyboardState state);
 ```
 
 

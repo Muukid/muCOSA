@@ -879,7 +879,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 	// Types elaborated later on
 	typedef uint16_m muCOSAResult; // (65,536 error results including success)
 	typedef uint16_m muKeyboardKey;
-	typedef uint8_m muKeystate;
+	typedef uint8_m muKeyboardState;
 	typedef uint16_m muMouseKey;
 
 	// @DOCLINE # Version
@@ -1236,7 +1236,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 				// @DOCLINE * `void (*keyboard)` - the keyboard callback, called every time that the status of a keyboard key on the [keyboard keymap](#keyboard-keymap) changes, defined below: @NLNT
 				void (*keyboard)(muWindow win, muKeyboardKey key, muBool status);
 				// @DOCLINE * `void (*keystate)` - the keystate callback, called every time that the status of a keystate on the [keystate keymap](#keystate-keymap) changes, defined below: @NLNT
-				void (*keystate)(muWindow win, muKeystate state, muBool status);
+				void (*keystate)(muWindow win, muKeyboardState state, muBool status);
 				// @DOCLINE * `void (*mouse_key)` - the mouse key callback, called every time that the status of a mouse key on the [mouse keymap](#mouse-keymap) changes, defined below: @NLNT
 				void (*mouse_key)(muWindow win, muMouseKey key, muBool status);
 				// @DOCLINE * `void (*cursor)` - the cursor position callback, called every time that the cursor position changes, defined below: @NLNT
@@ -1443,7 +1443,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 
 			// @DOCLINE ### Keystate keymap
 
-			// @DOCLINE The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeystate` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
+			// @DOCLINE The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeyboardState` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
 
 			// @DOCLINE * `MU_KEYSTATE_UNKNOWN` - unknown keystate.
 			#define MU_KEYSTATE_UNKNOWN 0
@@ -1462,11 +1462,11 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// @DOCLINE #### Keystate names
 
 			// @DOCLINE The name function `mu_keystate_get_name` returns a `const char*` representation of the given keystate (for example, `MU_KEYSTATE_CAPS_LOCK` returns "MU_KEYSTATE_CAPS_LOCK"), defined below: @NLNT
-			MUDEF const char* mu_keystate_get_name(muKeystate state);
+			MUDEF const char* mu_keystate_get_name(muKeyboardState state);
 			// @DOCLINE It will return "MU_UNKNOWN" in the case that `state` is an invalid keystate value.
 
 			// @DOCLINE The name function `mu_keystate_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYSTATE_CAPS_LOCK` returns "Caps Lock"), defined below: @NLNT
-			MUDEF const char* mu_keystate_get_nice_name(muKeystate state);
+			MUDEF const char* mu_keystate_get_nice_name(muKeyboardState state);
 			// @DOCLINE It will return "Unknown" in the case that `state` is an invalid keystate value.
 
 			// @DOCLINE > These functions are "name" functions, and therefore are only defined if `MUCOSA_NAMES` is also defined by the user.
@@ -2270,7 +2270,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			}
 
 			// muCOSA keystate to Win32
-			int muCOSAW32_keystate_to_W32(muKeystate state) {
+			int muCOSAW32_keystate_to_W32(muKeyboardState state) {
 				switch (state) {
 					default: return VK_NONAME; break;
 					case MU_KEYSTATE_CAPS_LOCK: return VK_CAPITAL; break;
@@ -3471,13 +3471,6 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			muCOSAResult muCOSAW32_window_set_position(muCOSAW32_Window* win, int32_m* data);
 
 			muCOSAResult muCOSAW32_window_create(muWindowInfo* info, muCOSAW32_Window* win) {
-				/* Add window to pmap */
-
-					muCOSAResult res = muCOSAW32_window_pmap_add(win);
-					if (muCOSA_result_is_fatal(res)) {
-						return res;
-					}
-
 				/* Default attributes */
 
 					// Zero-ing-out
@@ -3680,6 +3673,13 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 					int32_m pos[2] = { info->x, info->y };
 					muCOSAW32_window_set_position(win, pos);
 
+				/* Add window to pmap */
+
+					muCOSAResult res = muCOSAW32_window_pmap_add(win);
+					if (muCOSA_result_is_fatal(res)) {
+						return res;
+					}
+
 				return res;
 			}
 
@@ -3708,7 +3708,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			// Checks all keystates and updates accordingly
 			void muCOSAW32_update_keystate(muCOSAW32_Window* win) {
 				// Loop through each possible keystate
-				for (muKeystate s = 1; s < MU_KEYSTATE_LENGTH; ++s) {
+				for (muKeyboardState s = 1; s < MU_KEYSTATE_LENGTH; ++s) {
 					// Assume not on at first
 					muBool b = MU_FALSE;
 					// Convert keystate to Win32
@@ -5197,7 +5197,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			}
 		}
 
-		MUDEF const char* mu_keystate_get_name(muKeystate state) {
+		MUDEF const char* mu_keystate_get_name(muKeyboardState state) {
 			switch (state) {
 				default: return "MU_UNKNOWN"; break;
 				case MU_KEYSTATE_UNKNOWN: return "MU_KEYSTATE_UNKNOWN"; break;
@@ -5207,7 +5207,7 @@ Uncommon pixel formats (such as no-alpha pixel formats) are not tested thoroughl
 			}
 		}
 
-		MUDEF const char* mu_keystate_get_nice_name(muKeystate state) {
+		MUDEF const char* mu_keystate_get_nice_name(muKeyboardState state) {
 			switch (state) {
 				default: return "Unknown"; break;
 				case MU_KEYSTATE_UNKNOWN: return "Unknown"; break;
