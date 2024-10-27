@@ -1,8 +1,8 @@
 
 
-# muCOSA v2.1.0
+# muCOSA v2.0.0
 
-muCOSA (COSA standing for cross operating-system API) is a public domain single-file C library for interacting with operating systems with a cross-platform API. Its header is automatically defined upon inclusion if not already included (`MUCOSA_H`), and the source code is defined if `MUCOSA_IMPLEMENTATION` is defined, following the internal structure of:
+muCOSA (COSA standing for cross operating-system API) is a public domain single-file C library for interacting with operating systems with a cross-platform API. Its header is automatically defined upon inclusion if not already included (`MUCOSA_H`), and the source code is defined if `MUCOSA_IMPLEMENTATION` is defined, following the interal structure of:
 
 ```c
 #ifndef MUCOSA_H
@@ -30,7 +30,7 @@ Demos are designed for muCOSA to both test its functionality and allow users to 
 
 ## Demo dependencies
 
-Since the demos test the functionality of OpenGL, [glad](https://github.com/Dav1dde/glad) is used as an OpenGL loader in the demos (with [these settings](http://glad.sh/#api=gl%3Acore%3D3.3&extensions=&generator=c&options=HEADER_ONLY%2CLOADER) if you're interested), and therefore needs to be included when compiling the demos. Include dependencies are stored in the `include` folder within `demos`, and all files within this folder should be in the user's include directory when compiling them.
+Since the demos test the functionality of OpenGL, [glad](https://github.com/Dav1dde/glad) is used as an OpenGL loader in the demos (with [these settings](http://glad.sh/#api=gl%3Acore%3D3.3&extensions=&generator=c&options=HEADER_ONLY%2CLOADER) if you're interested), and therefore needs to be included when compiling the demos. Include dependencies are stored in the `include` folder within demos, and all files within this folder should be in the user's include directory when compiling them.
 
 > Note that the inclusion of glad changes the conditions of the licensing due to Khronos's Apache 2.0 license for OpenGL specifications; more information is given in the [licensing](#licensing) section of this documentation.
 
@@ -78,7 +78,7 @@ This version of muCOSA is intended to be very basic, meaning that it only suppor
 
 ## Minimal overhead attribute management
 
-Currently, muCOSA gets/sets attributes using a single function that requires at least one get/set call for every attribute being modified. Theoretically, more overhead could be abolished by allowing the user to get/set multiple attributes in one function call, perhaps using the `muWindowInfo` struct and a flag system. This has not been outruled as an option, and muCOSA may stand to gain via this being implemented at some point.
+Currently, muCOSA gets/sets attributes using a single function that requires at least one get/set call for every attribute being modified. Theoretically, more overhead could be abolished by allowing to get/set multiple attributes in one function call, perhaps using the `muWindowInfo` struct and a flag system. This has not been outruled as an option, and muCOSA may stand to gain via this being implemented at some point.
 
 ## Unique class name generation
 
@@ -199,7 +199,7 @@ MUDEF muWindowSystem muCOSA_context_get_window_system(muCOSAContext* context);
 
 If a function takes a `muCOSAContext` and `muCOSAResult` parameter, there will likely be two defined macros for calling the function without explicitly passing these parameters, with the current global context being assumed for both parameters.
 
-Non-result-checking functions are functions that assume the `muCOSAContext` parameter to be the current global context, and assume the `muCOSAResult` parameter to be the current global context's result member. These functions' parameters are simply the normal function's parameters but without the context or result parameter, instead being routed to the current global context. The name of these functions are simply the normal name but `muCOSA_...` being replaced with just `mu_...`.
+Non-result-checking functions are functions that assume the `muCOSAContext` parameter to be the current global context, and assume that the `muCOSAResult` parameter to be the current global context's result member. These functions' parameters are simply the normal function's parameters but without the context or result paramter, instead being routed to the current global context. The name of these functions are simply the normal name but `muCOSA_...` being replaced with just `mu_...`.
 
 Result-checking functions are functions that also assume (and thus don't make you specify) the `muCOSAContext` parameter to be the current global context, but they still make you specify the `muCOSAResult` parameter, and the global context's result member goes unmodified. The name of these functions is the same as the non-result-checking functions, but with an underscore appended at the end.
 
@@ -256,7 +256,7 @@ The struct `muWindowInfo` represents information about a window. It has the foll
 
 * `int32_m y` - the y-coordinate of the top-leftest pixel in the window's surface relative to the entire window space of the window system.
 
-* `muPixelFormat* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will signal a non-fatal error and default on a compatible pixel format.
+* `muPixelFormat* pixel_format` - the pixel format for the window's surface. If the value of this member is equal to 0, no pixel format is specified, and a default compatible one is chosen. If the pixel format is specified, muCOSA attempts to choose it, and if unsupported, muCOSA will throw a non-fatal error and default on a compatible pixel format.
 
 * `muWindowCallbacks* callbacks` - the [callback functions](#window-callbacks) for various attributes of the window. If this member is equal to 0, no callbacks are specified. If this member is not equal to 0, it should be a valid pointer to a `muWindowCallbacks` struct specifying callbacks for the window.
 
@@ -480,7 +480,7 @@ void (*keyboard)(muWindow win, muKeyboardKey key, muBool status);
 * `void (*keystate)` - the keystate callback, called every time that the status of a keystate on the [keystate keymap](#keystate-keymap) changes, defined below: 
 
 ```c
-void (*keystate)(muWindow win, muKeyboardState state, muBool status);
+void (*keystate)(muWindow win, muKeystate state, muBool status);
 ```
 
 
@@ -631,7 +631,7 @@ It will return "Unknown" in the case that `key` is an invalid keyboard key value
 
 ### Keystate keymap
 
-The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeyboardState` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
+The keystate keymap represents the state of certain modifiers on the keyboard readable by muCOSA, using type `muKeystate` (typedef for `uint8_m`) as index. The length of the keymap is `MU_KEYSTATE_LENGTH`. It has the following indexes:
 
 * `MU_KEYSTATE_UNKNOWN` - unknown keystate.
 
@@ -648,7 +648,7 @@ Once the pointer to the keystate keymap array has been retrieved via `muCOSA_win
 The name function `mu_keystate_get_name` returns a `const char*` representation of the given keystate (for example, `MU_KEYSTATE_CAPS_LOCK` returns "MU_KEYSTATE_CAPS_LOCK"), defined below: 
 
 ```c
-MUDEF const char* mu_keystate_get_name(muKeyboardState state);
+MUDEF const char* mu_keystate_get_name(muKeystate state);
 ```
 
 
@@ -657,7 +657,7 @@ It will return "MU_UNKNOWN" in the case that `state` is an invalid keystate valu
 The name function `mu_keystate_get_nice_name` does the same thing, but with a nicer and more readable `const char*` representation (for example, `MU_KEYSTATE_CAPS_LOCK` returns "Caps Lock"), defined below: 
 
 ```c
-MUDEF const char* mu_keystate_get_nice_name(muKeyboardState state);
+MUDEF const char* mu_keystate_get_nice_name(muKeystate state);
 ```
 
 
@@ -1080,256 +1080,6 @@ On success, this function sets the current text clipboard to the given UTF-8 tex
 
 > The macro `mu_clipboard_set` is the non-result-checking equivalent, and the macro `mu_clipboard_set_` is the result-checking equivalent.
 
-# Terminal
-
-muCOSA has an API for interfacing with an emulated terminal for the current operating system. This terminal is not graphically created; the terminal is fully emulated without anything graphically changing, and graphical information must be manually queried by the user.
-
-In Win32, muCOSA runs the 'cmd' process for a terminal.
-
-## Create and destroy terminal
-
-Every [created](#terminal-creation) terminal must be [destroyed](#terminal-destruction) before its corresponding muCOSA context is destroyed.
-
-### Terminal creation
-
-The function `muCOSA_terminal_create` creates a terminal, defined below: 
-
-```c
-MUDEF muTerminal muCOSA_terminal_create(muCOSAContext* context, muCOSAResult* result, uint32_m column_width, uint32_m row_height);
-```
-
-
-Upon failure (marked by the value of `result`), the creation function returns 0.
-
-`column_width` and `row_height` specify the width and height of [the terminal's buffer](#terminal-buffer) in amount of columns and rows respectively. These values must be at least 1.
-
-> The macro `mu_terminal_create` is the non-result-checking equivalent, and the macro `mu_terminal_create_` is the result-checking equivalent.
-
-### Terminal destruction
-
-The function `muCOSA_terminal_destroy` destroys a terminal, defined below: 
-
-```c
-MUDEF muTerminal muCOSA_terminal_destroy(muCOSAContext* context, muTerminal ter);
-```
-
-
-This function must be called at some point on every successfully created terminal.
-
-> The macro `mu_terminal_destroy` is the non-result-checking equivalent.
-
-## Terminal updating and information overview
-
-Since a terminal in muCOSA acts as a running application, information about it can only be retrieved in snapshots. These snapshots are performed via [updating the terminal](#update-terminal), which refreshes all of the queried information about the terminal. Once the terminal has been updated, its corresponding [terminal information](#retrieve-terminal-information) is up to date at that moment. The contents of the terminal information are undefined until it is updated at least once.
-
-### Update terminal
-
-The function `muCOSA_terminal_update` updates a terminal, refreshing all of the queryable information about the terminal, defined below: 
-
-```c
-MUDEF void muCOSA_terminal_update(muCOSAContext* context, muTerminal ter);
-```
-
-
-> The macro `mu_terminal_update` is the non-result-checking equivalent.
-
-### Retrieve terminal information
-
-The function `muCOSA_terminal_info` retrieves the pointer used for storing all of the updated information about a terminal, defined below: 
-
-```c
-MUDEF muTerminalInfo* muCOSA_terminal_info(muCOSAContext* context, muTerminal ter);
-```
-
-
-This pointer is valid for as long as the terminal is not destroyed via [`muCOSA_terminal_destroy`](#terminal-destruction), and the [information within it](#terminal-information) is refreshed upon every call to [`muCOSA_terminal_update`](#update-terminal); this pointer value does not change upon updating.
-
-> The macro `mu_terminal_update` is the non-result-checking equivalent.
-
-## Terminal information
-
-The struct `muTerminalInfo` represents the information known about a terminal since it was last [updated](#update-terminal). It has the following members:
-
-* `muBool alive` - whether or not the terminal is still alive. If this is true, all information within this struct is a valid snapshot of the terminal's information. If this is false upon the first call to [`muCOSA_terminal_update`](#update-terminal), all contents within this struct are undefined; if this is false otherwise, the contents within this struct are preserved from the last alive snapshot.
-
-* `muTerminalBuffer buffer` - the [terminal buffer](#terminal-buffer).
-
-* `muTerminalCursor cursor` - the [terminal cursor](#terminal-cursor).
-
-* `muTerminalSelection selection` - the [terminal selection](#terminal-selection).
-
-Once a terminal is marked as not alive once, it will never be alive again for the rest of its existence.
-
-More information about how querying terminal information works is provided in the [terminal updating and information overview section](#terminal-updating-and-information-overview).
-
-## Terminal buffer
-
-The terminal buffer represents what is visually being displayed on screen. It does *not* represent the contents of the entire terminal, just the portion that is visible. Its respective struct is `muTerminalBuffer`, which has the following members:
-
-* `uint32_m column_width` - the width of the terminal, in columns.
-
-* `uint32_m row_height` - the height of the terminal, in rows.
-
-* `muTerminalChar* chars` - each [terminal character](#terminal-character) within the terminal buffer, listed from left-to-right, top-to-bottom.
-
-* `uint32_m scroll` - how far scrolled-down the terminal is from the top row. This does not affect how you index into the `chars` array, as the terminal buffer represents what is visually being shown, meaning that the `chars` array already takes the scroll amount into account.
-
-### Terminal character
-
-A terminal character represents an individual character slot within the terminal buffer. Its respective struct is `muTerminalChar`, which has the following members:
-
-* `uint32_m codepoint` - the Unicode codepoint value of the character. For empty characters, this is usually 32 (the Unicode character value for space).
-
-* `muByte background_color[3]` - the background color for the character's slot, in RGB form.
-
-* `muByte text_color[3]` - the color of the character, in RGB form.
-
-* `muTerminalCharStyle style` - the [style of the character](#terminal-character-style).
-
-#### Terminal character style
-
-A terminal character style (respective type `muTerminalCharStyle`; typedef for `uint16_m`) is a value that represents a set of flags representing possible stylizations of a terminal character. It has the following defined bit flags:
-
-* [0x0001] `MU_TERMINAL_UNDERSCORE` - whether or not an underscore appears below the character within its slot, acting as an underline.
-
-## Terminal cursor
-
-The terminal cursor represents where text will start appearing once the user starts typing. Its respective struct is `muTerminalCursor`, which has the following members:
-
-* `uint32_m column` - the column that the cursor is in, starting at 0 for the leftmost column.
-
-* `uint32_m row` - the row that the cursor is in, starting at 0 for the topmost row.
-
-The values given for the column and row are relative to the [terminal buffer](#terminal-buffer).
-
-## Terminal selection
-
-The terminal selection represents the text that is selected/highlighted by the user relative to the [terminal buffer](#terminal-buffer). Its respective struct is `muTerminalSelection`, which has the following members:
-
-* `muBool active` - whether or not anything is selected currently. If this member is equal to `MU_FALSE`, the values of all other members is undefined.
-
-* `uint32_m beginning_column` - the column at which the current selection begins.
-
-* `uint32_m beginning_row` - the row at which the current selection begins.
-
-* `uint32_m end_column` - the column at which the current selection ends.
-
-* `uint32_m end_row` - the row at which the current selection ends.
-
-The given column/row values are relative to the [terminal buffer](#terminal-buffer), not the entire terminal. This means that the given values may not represent the full selection; it only represents the selection area visible on the current terminal buffer.
-
-The beginning column/row isn't necessarily the selection anchor (the character initially selected); the beginning column/row comes *before* the end column/row from the top-left of the terminal buffer to the bottom-right.
-
-## Terminal input
-
-Since the terminal acts as its own application, it must be sent input via a dedicated part of the API. Input is [sent to a terminal](#send-terminal-input), to which the application takes an unpredictable amount of time to process it. The user can manually wait for all of the input to be processed via [syncing the terminal input](#sync-terminal-input).
-
-### Send terminal input
-
-The function `muCOSA_terminal_input` sends input to a given terminal, defined below: 
-
-```c
-MUDEF void muCOSA_terminal_input(muCOSAContext* context, muTerminal ter, muTerminalInput input_type, void* input);
-```
-
-
-`input_type` is the [type of input being sent](#terminal-input-types). What data that `input` is pointing to depends on the value of `input_type` to indicate such. This is similar to the way [`mu_window_get` and `mu_window_set`](#get-and-set-window-attributes) are structured.
-
-> The macro `mu_terminal_input` is the non-result-checking equivalent.
-
-#### Terminal input types
-
-The type of input being sent to a terminal in the function [`muCOSA_terminal_input`](#send-terminal-input) is represented by the type `muTerminalInput` (typedef for `uint16_m`). It has the following defined values:
-
-* `MU_TERMINAL_INPUT_DIMENSIONS` - the [terminal dimensions input](#terminal-dimensions-input) type.
-
-* `MU_TERMINAL_INPUT_SCROLL` - the [terminal scroll input](#terminal-scroll-input) type.
-
-* `MU_TERMINAL_INPUT_MOUSE_POSITION` - the [mouse position input](#mouse-position-input) type.
-
-* `MU_TERMINAL_INPUT_MOUSE_BUTTON` - the [mouse button input](#mouse-button-input) type.
-
-* `MU_TERMINAL_INPUT_TEXT` - the [terminal text input](#terminal-text-input) type.
-
-* `MU_TERMINAL_INPUT_KEYBOARD_KEY` - the [terminal keyboard key input](#terminal-keyboard-key-input) type.
-
-* `MU_TERMINAL_INPUT_KEYBOARD_STATE` - the [terminal keyboard state input](#terminal-keyboard-state-input) type.
-
-### Sync terminal input
-
-The function `muCOSA_terminal_input_sync` blocks the calling thread until all input sent to the given terminal is processed by it, defined below: 
-
-```c
-MUDEF void muCOSA_terminal_input_sync(muCOSAContext* context, muTerminal ter, muBool* exit_signal);
-```
-
-
-If `exit_signal` is not 0, and its dereferenced value is ever `MU_TRUE`, the function will exit; this can be used to safely unblock the calling thread.
-
-> The macro `mu_terminal_input_sync` is the non-result-checking equivalent.
-
-### Terminal dimensions input
-
-The [dimensions of a terminal buffer](#terminal-buffer) are changed via dimensions input (respective value [`MU_TERMINAL_INPUT_DIMENSIONS`](#terminal-input-types)).
-
-When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_DIMENSIONS`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
-
-an array of two `uint32_m` values representing the new dimensions of the terminal, in column amount (array index 0) and row amount (array index 1). These values must be at least 1.
-
-### Terminal scroll input
-
-The [scroll amount of a terminal buffer](#terminal-buffer) is changed via scroll input (respective value [`MU_TERMINAL_INPUT_SCROLL`](#terminal-input-types)).
-
-When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_SCROLL`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
-
-a pointer to a `uint32_m` value representing the new scroll amount.
-
-### Mouse position input
-
-The position of the mouse relative to a terminal is changed via mouse position input (respective value [`MU_TERMINAL_INPUT_MOUSE_POSITION`](#terminal-input-types)).
-
-When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_MOUSE_POSITION`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
-
-an array of two `uint32_m` values representing the column/row position of the mouse; array index 0 corresponds to the column, and array index 1 corresponds to the row.
-
-### Mouse button input
-
-Mouse button input can be sent to a terminal (respective value [`MU_TERMINAL_INPUT_MOUSE_BUTTON`](#terminal-input-types)).
-
-When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_MOUSE_BUTTON`](#terminal-input-types), the pointer `void* input` is interpreted as the struct `muTerminalMouseButton`, which has the following members:
-
-* `muMouseKey key` - the mouse button.
-
-* `muBool state` - the state of the mouse button; `MU_TRUE` indicates the button being pressed, and `MU_FALSE` indicates the button being released.
-
-### Terminal text input
-
-Text can be sent to a terminal (as if it were typed out) via text input (respective value [`MU_TERMINAL_INPUT_TEXT`](#terminal-input-types)).
-
-When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_TEXT`](#terminal-input-types), the pointer `void* input` is interpreted as the following:
-
-a `char*` pointer pointing to UTF-8-encoded text to be typed into the terminal.
-
-### Terminal keyboard key input
-
-Keyboard key input can be sent to a terminal (respective value [`MU_TERMINAL_INPUT_KEYBOARD_KEY`](#terminal-input-types)).
-
-When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_KEYBOARD_KEY`](#terminal-input-types), the pointer `void* input` is interpreted as the struct `muTerminalKeyboardKey`, which has the following members:
-
-* `muKeyboardKey key` - the keyboard key.
-
-* `muBool state` - the state of the keyboard key; `MU_TRUE` indicates the key being pressed, and `MU_FALSE` indicates the key being released.
-
-### Terminal keyboard state input
-
-Keyboard state input can be sent to a terminal (respective value [`MU_TERMINAL_INPUT_KEYBOARD_STATE`](#terminal-input-types)).
-
-When calling [`muCOSA_terminal_input`](#send-terminal-input) with the `input_type` set to [`MU_TERMINAL_INPUT_KEYBOARD_STATE`](#terminal-input-types), the pointer `void* input` is interpreted as the struct `muTerminalKeyboardState`, which has the following members:
-
-* `muKeyboardState state` - the keyboard state.
-
-* `muBool active` - whether or not the state is active.
-
 # Result
 
 The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task in muCOSA went. It has the following defined values:
@@ -1420,8 +1170,6 @@ The type `muCOSAResult` (typedef for `uint16_m`) is used to represent how a task
 
 * `MUCOSA_WIN32_FAILED_SET_CLIPBOARD_DATA` - the function `SetClipboardData` failed when attempting to set the clipboard data; this is exclusive to Win32.
 
-* `MUCOSA_WIN32_FAILED_CREATE_PROCESS` - the function `CreateProcessW` failed when attempting to create the terminal process; this is exclusive to Win32.
-
 All non-success values (unless explicitly stated otherwise) mean that the function fully failed, AKA it was "fatal", and the library continues as if the function had never been called; so, for example, if something was supposed to be allocated, but the function fatally failed, nothing was allocated.
 
 There are non-fatal failure values, which mean that the function still executed, but not fully to the extent that the user would expect from the function. The function `muCOSA_result_is_fatal` returns whether or not a given result function value is fatal, defined below: 
@@ -1463,3 +1211,7 @@ muCOSA has several C standard library dependencies, all of which are overridable
 * `mu_free` - equivalent to `free`.
 
 * `mu_realloc` - equivalent to `realloc`.
+
+The original time the context was created.
+
+The non-overwritable time.
