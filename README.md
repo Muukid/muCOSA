@@ -1,6 +1,6 @@
 
 
-# muCOSA v2.0.0
+# muCOSA v2.0.1
 
 muCOSA (COSA standing for cross operating-system API) is a public domain single-file C library for interacting with operating systems with a cross-platform API. Its header is automatically defined upon inclusion if not already included (`MUCOSA_H`), and the source code is defined if `MUCOSA_IMPLEMENTATION` is defined, following the interal structure of:
 
